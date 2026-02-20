@@ -1,0 +1,349 @@
+import { useState, useEffect } from "react";
+import {
+  getDefaultSession,
+  handleIncomingRedirect,
+  login,
+  logout,
+} from "@inrupt/solid-client-authn-browser";
+import {
+  saveFileInContainer,
+  getContainedResourceUrlAll,
+  getFile,
+  createContainerAt,
+  getSolidDataset,
+  saveSolidDatasetAt,
+  createThing,
+  setThing,
+  getThing,
+  setStringNoLocale,
+  getStringNoLocale,
+  createSolidDataset,
+  getPodUrlAll,
+  overwriteFile,
+} from "@inrupt/solid-client";
+import { SCHEMA_INRUPT } from "@inrupt/vocab-common-rdf";
+
+function App() {
+  const [session, setSession] = useState(getDefaultSession());
+  const [photos, setPhotos] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [loginError, setLoginError] = useState(null);
+  const [podUrl, setPodUrl] = useState(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        console.log("Starting handleIncomingRedirect...");
+        await handleIncomingRedirect({ restorePreviousSession: false });
+        console.log("handleIncomingRedirect complete");
+
+        const currentSession = getDefaultSession();
+        setSession(currentSession);
+        console.log("Session set. Logged in:", currentSession.info.isLoggedIn);
+
+        if (currentSession.info.isLoggedIn) {
+          const boundFetch = currentSession.fetch.bind(window);
+          console.log("Bound fetch created");
+
+          console.log("Starting getPodUrlAll...");
+          const podUrls = await getPodUrlAll(currentSession.info.webId, {
+            fetch: boundFetch,
+          });
+          console.log("getPodUrlAll complete. Found pods:", podUrls);
+
+          if (podUrls.length > 0) {
+            setPodUrl(podUrls[0]);
+          } else {
+            console.warn("No pod URLs found in profile");
+          }
+        }
+
+        setReady(true);
+        console.log("Auth init complete");
+      } catch (err) {
+        console.error("Auth init failed:", err);
+        setLoginError(err.message || "Authentication failed");
+        setReady(true);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    if (ready && session?.info?.isLoggedIn && podUrl) {
+      loadPhotos();
+    }
+  }, [ready, session?.info?.isLoggedIn, podUrl]);
+
+  const loadPhotos = async () => {
+    if (!podUrl || !session) return;
+
+    setLoadingPhotos(true);
+    const boundFetch = session.fetch.bind(window);
+    const photosContainer = `${podUrl}photos/`;
+
+    try {
+      console.log("Loading photos from:", photosContainer);
+      const containerDataset = await getSolidDataset(photosContainer, {
+        fetch: boundFetch,
+      });
+
+      const urls = getContainedResourceUrlAll(containerDataset);
+      const imageUrls = urls.filter((url) =>
+        /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+      );
+
+      const loaded = await Promise.all(
+        imageUrls.map(async (url) => {
+          const file = await getFile(url, { fetch: boundFetch });
+          const caption = await getCaption(url, boundFetch);
+          return { url, file, caption };
+        })
+      );
+
+      setPhotos(loaded);
+      console.log("Photos loaded:", loaded.length);
+    } catch (err) {
+      console.log("No photos folder yet or access issue:", err);
+      setPhotos([]);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  };
+
+  const getCaption = async (photoUrl, fetchFn) => {
+    try {
+      const dataset = await getSolidDataset(`${photoUrl}.meta`, {
+        fetch: fetchFn,
+      });
+      const thing = getThing(dataset, photoUrl);
+      return thing ? getStringNoLocale(thing, "http://schema.org/caption") || "" : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const handleLogin = async () => {
+    setLoginError(null);
+
+    const redirectUrl = window.location.origin + "/";
+
+    try {
+      await login({
+        oidcIssuer: "https://login.inrupt.com",
+        redirectUrl,
+        clientName: "Podsta",
+      });
+    } catch (err) {
+      console.error("Login failed:", err);
+      setLoginError(err.message || "Login failed");
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setSession(getDefaultSession());
+    setPhotos([]);
+    setPodUrl(null);
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !podUrl || !session) return;
+
+    setUploading(true);
+    const boundFetch = session.fetch.bind(window);
+    const photosContainer = `${podUrl}photos/`;
+
+    try {
+      console.log("Ensuring container:", photosContainer);
+      try {
+        await createContainerAt(photosContainer, { fetch: boundFetch });
+        console.log("Container created");
+      } catch (containerErr) {
+        console.log("Container creation failed (likely exists):", containerErr);
+        await getSolidDataset(photosContainer, { fetch: boundFetch });
+        console.log("Container confirmed");
+      }
+
+      console.log("Uploading file:", file.name);
+      const savedFile = await saveFileInContainer(photosContainer, file, {
+        slug: `${Date.now()}-${file.name}`,
+        contentType: file.type,
+        fetch: boundFetch,
+      });
+
+      const photoUrl = savedFile?.internal_resourceInfo?.sourceIri;
+      if (!photoUrl) {
+        throw new Error("Upload succeeded but no sourceIri returned");
+      }
+      console.log("Photo uploaded at:", photoUrl);
+
+      const caption = prompt("Add a caption (optional):") || "";
+      if (caption.trim()) {
+        console.log("Saving caption:", caption);
+        let metaDataset = createSolidDataset();
+        let metaThing = createThing({ url: photoUrl });
+        metaThing = setStringNoLocale(metaThing, "http://schema.org/caption", caption);
+        metaDataset = setThing(metaDataset, metaThing);
+
+        await saveSolidDatasetAt(`${photoUrl}.meta`, metaDataset, {
+          fetch: boundFetch,
+        });
+        console.log("Caption saved successfully");
+      } else {
+        console.log("No caption provided");
+      }
+
+      await loadPhotos();
+      alert("✅ Photo uploaded to your Pod!");
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert(`Upload failed: ${err.message || "Unknown error"} – check console`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const makePublic = async (photoUrl) => {
+    if (!session || !confirm("Make this photo public?")) return;
+
+    const boundFetch = session.fetch.bind(window);
+
+    const createPublicAcl = async (resourceUrl) => {
+      const aclUrl = `${resourceUrl}.acl`;
+
+      // Check if ACL already exists
+      let aclExists = true;
+      try {
+        await getSolidDataset(aclUrl, { fetch: boundFetch });
+        console.log(`ACL already exists for ${resourceUrl}`);
+      } catch (err) {
+        if (err.status === 404) {
+          aclExists = false;
+          console.log(`Creating ACL for ${resourceUrl}`);
+        } else {
+          throw err;
+        }
+      }
+
+      // Minimal public read ACL in Turtle format
+      const publicAclTurtle = `
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<#public>
+  a acl:Authorization ;
+  acl:accessTo <${resourceUrl}> ;
+  acl:agentClass foaf:Agent ;
+  acl:mode acl:Read .
+      `.trim();
+
+      try {
+        await overwriteFile(
+          aclUrl,
+          new Blob([publicAclTurtle], { type: "text/turtle" }),
+          { contentType: "text/turtle", fetch: boundFetch }
+        );
+        console.log(`Public read ACL created/saved for ${resourceUrl}`);
+      } catch (saveErr) {
+        console.error("ACL save failed:", saveErr);
+        throw saveErr;
+      }
+    };
+
+    try {
+      // Apply to photo
+      await createPublicAcl(photoUrl);
+
+      // Apply to caption metadata
+      const metaUrl = `${photoUrl}.meta`;
+      await createPublicAcl(metaUrl);
+
+      alert("🌍 Photo and caption are now public! Test in incognito without login.");
+    } catch (err) {
+      console.error("Make public failed:", err);
+      alert(`Couldn't make public: ${err.message || "Unknown error"} – check console`);
+    }
+  };
+
+  if (!ready) {
+    return <div className="p-10 text-white">Loading...</div>;
+  }
+
+  if (!session?.info?.isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <h1 className="text-5xl mb-6">📸 Podsta</h1>
+          {loginError && <p className="text-red-400 mb-4">{loginError}</p>}
+          <button
+            onClick={handleLogin}
+            className="px-8 py-3 bg-white text-black rounded-xl"
+          >
+            Log in with Inrupt
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white p-10">
+      <div className="flex justify-between mb-10">
+        <h1 className="text-3xl">📸 Podsta</h1>
+        <button onClick={handleLogout} className="px-4 py-2 bg-red-600 rounded hover:bg-red-700">
+          Logout
+        </button>
+      </div>
+
+      <div className="mb-8">
+        <label className="block mb-2 text-lg">Upload Photo</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          disabled={uploading}
+          className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+        />
+        {uploading && <p className="mt-2 text-blue-400">Uploading...</p>}
+      </div>
+
+      <h2 className="text-2xl mb-6">
+        Your Gallery {loadingPhotos ? "(loading...)" : `(${photos.length} photos)`}
+      </h2>
+
+      {loadingPhotos ? (
+        <p className="text-center text-gray-400">Loading photos...</p>
+      ) : photos.length === 0 ? (
+        <p className="text-center text-gray-400">No photos yet – upload one!</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {photos.map((photo) => (
+            <div key={photo.url} className="bg-zinc-800 rounded-lg overflow-hidden shadow-lg">
+              <img
+                src={URL.createObjectURL(photo.file)}
+                alt={photo.caption || "Photo"}
+                className="w-full h-64 object-cover"
+              />
+              <div className="p-4">
+                <p className="text-sm text-gray-300 line-clamp-2">{photo.caption || "No caption"}</p>
+                <button
+                  onClick={() => makePublic(photo.url)}
+                  className="mt-3 w-full px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition"
+                >
+                  Make Public
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
