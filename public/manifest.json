@@ -1,0 +1,16 @@
+{
+  "name": "Podsta",
+  "short_name": "Podsta",
+  "description": "Your posts. Your Pod. Your rules.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1610",
+  "theme_color": "#1a1610",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

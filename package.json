@@ -1,0 +1,40 @@
+{
+  "name": "podsta",
+  "version": "1.0.0",
+  "description": "Podsta — A decentralized social network for text and photo posts, built on Solid Pods",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx",
+    "format": "prettier --write src"
+  },
+  "dependencies": {
+    "@inrupt/solid-client": "^2.1.2",
+    "@inrupt/solid-client-authn-browser": "^2.3.0",
+    "@inrupt/vocab-common-rdf": "^1.0.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.13.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  },
+  "browserslist": [
+    ">0.5%",
+    "not dead",
+    "not op_mini all"
+  ]
+}

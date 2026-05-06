@@ -1,0 +1,9 @@
+[
+  {
+    "webId": "https://demo.inrupt.net/profile/card#me",
+    "name": "Inrupt Demo",
+    "bio": "An example Solid Pod for demonstrations.",
+    "avatarUrl": "",
+    "joinedAt": "2024-01-01"
+  }
+]
