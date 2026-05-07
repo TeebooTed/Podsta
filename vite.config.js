@@ -7,6 +7,11 @@ import react from '@vitejs/plugin-react';
 //   reference `global` (a Node-ism) at module load time.
 // - Polyfill alias for `buffer` is included for the same reason; if you
 //   hit a "Buffer is not defined" error on auth, uncomment the resolve line.
+build: {
+     target: 'es2022',
+     cssCodeSplit: false,
+     // existing
+   }
 export default defineConfig({
   plugins: [react()],
   define: {
