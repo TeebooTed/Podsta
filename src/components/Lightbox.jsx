@@ -10,7 +10,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap.js';
  *   - Mouse-wheel and double-click zoom
  *   - Touch swipe between photos and pinch-zoom on mobile
  */
-export default function Lightbox({ posts, index, onClose, onNavigate, session }) {
+export default function Lightbox({ posts, index, onClose, onNavigate, session, footer = null }) {
   const post = posts[index];
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -226,6 +226,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session })
             Zoom: {Math.round(zoom * 100)}% — double-click to reset
           </p>
         )}
+        {footer}
       </div>
     </div>
   );

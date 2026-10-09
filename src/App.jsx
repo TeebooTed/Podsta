@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { restoreSession, logout, findPodUrl } from './lib/auth.js';
 import { lockExistingComments } from './lib/acl.js';
 import { postedToast } from './lib/shareFeedback.js';
@@ -13,13 +14,17 @@ import {
   deletePost,
 } from './lib/posts.js';
 import { loadFriends, addFriend, removeFriend } from './lib/friends.js';
-import { loadProfile } from './lib/profile.js';
+import { loadProfile, saveProfile } from './lib/profile.js';
+import { hasFinishedOnboarding, markOnboardingDone } from './lib/onboarding.js';
 import LoginPage from './pages/LoginPage.jsx';
 import HomePage from './pages/HomePage.jsx';
-import FeedPage from './pages/FeedPage.jsx';
 import DiscoverPage from './pages/DiscoverPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import PersonPage from './pages/PersonPage.jsx';
+import PostPage from './pages/PostPage.jsx';
 import Header from './components/Header.jsx';
+import BottomNav from './components/BottomNav.jsx';
+import Onboarding from './components/Onboarding.jsx';
 import Composer from './components/Composer.jsx';
 import Toast from './components/Toast.jsx';
 
@@ -46,8 +51,9 @@ export default function App() {
   const [posts, setPosts] = useState([]);
   const [friends, setFriends] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [currentTab, setCurrentTab] = useState('home');
   const [composerOpen, setComposerOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const navigate = useNavigate();
 
   // ── Per-resource in-flight trackers (so cards know to disable buttons) ──
   const [togglingUrls, setTogglingUrls] = useState(new Set());
@@ -110,6 +116,9 @@ export default function App() {
             setPosts(postsList);
             setFriends(friendsList);
             setLoadingPosts(false);
+            if (!hasFinishedOnboarding(window.localStorage, s.info.webId)) {
+              setOnboardingOpen(true);
+            }
           }
         }
       } catch (err) {
@@ -328,8 +337,9 @@ export default function App() {
     setProfile({ name: '', bio: '', avatarUrl: '' });
     setPosts([]);
     setFriends([]);
-    setCurrentTab('home');
-  }, []);
+    setOnboardingOpen(false);
+    navigate('/');
+  }, [navigate]);
 
   // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
@@ -340,23 +350,40 @@ export default function App() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (document.querySelector('[role="dialog"]')) return;
-      if (e.key === 'h') setCurrentTab('home');
-      else if (e.key === 'f') setCurrentTab('feed');
-      else if (e.key === 'd') setCurrentTab('discover');
-      else if (e.key === 'p') setCurrentTab('profile');
+      if (e.key === 'h' || e.key === 'f') navigate('/');
+      else if (e.key === 'd') navigate('/discover');
+      else if (e.key === 'p') navigate('/profile');
       else if (e.key === 'n') setComposerOpen(true);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, [session, navigate]);
+
+  const finishOnboarding = useCallback(() => {
+    if (session?.info?.webId) markOnboardingDone(window.localStorage, session.info.webId);
+    setOnboardingOpen(false);
   }, [session]);
+
+  const handleSaveName = useCallback(
+    async (name) => {
+      await saveProfile({
+        podUrl,
+        session,
+        ownerWebId: session.info.webId,
+        profile: { name, bio: profile.bio || '', avatarUrl: profile.avatarUrl || '' },
+      });
+      setProfile((prev) => ({ ...prev, name }));
+    },
+    [podUrl, session, profile],
+  );
 
   // ── Render ────────────────────────────────────────────────
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-ink-400 text-sm">Resuming session…</p>
+          <p className="text-ink-300 text-sm">Resuming session…</p>
         </div>
       </div>
     );
@@ -384,78 +411,98 @@ export default function App() {
         session={session}
         profile={profile}
         podUrl={podUrl}
-        currentTab={currentTab}
-        onTabChange={setCurrentTab}
         onLogout={handleLogout}
         onCompose={() => setComposerOpen(true)}
       />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
         {authError && (
-          <div className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent">
+          <div className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent" role="alert">
             {authError}
           </div>
         )}
 
-        {currentTab === 'home' && (
-          <HomePage
-            posts={posts}
-            loading={loadingPosts}
-            podUrl={podUrl}
-            session={session}
-            onCompose={() => setComposerOpen(true)}
-            onTogglePublic={handleTogglePublic}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            togglingUrls={togglingUrls}
-            deletingUrls={deletingUrls}
-            showToast={showToast}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                friends={friends}
+                session={session}
+                ownPostCount={posts.length}
+                onRemoveFriend={handleRemoveFriend}
+                onCompose={() => setComposerOpen(true)}
+                showToast={showToast}
+              />
+            }
           />
-        )}
-        {currentTab === 'feed' && (
-          <FeedPage
-            friends={friends}
-            session={session}
-            onRemoveFriend={handleRemoveFriend}
-            showToast={showToast}
+          <Route
+            path="/discover"
+            element={
+              <DiscoverPage
+                session={session}
+                friends={friends}
+                onAddFriend={handleAddFriend}
+                addingWebId={addingWebId}
+                showToast={showToast}
+              />
+            }
           />
-        )}
-        {currentTab === 'discover' && (
-          <DiscoverPage
-            session={session}
-            friends={friends}
-            onAddFriend={handleAddFriend}
-            addingWebId={addingWebId}
-            showToast={showToast}
+          <Route
+            path="/profile"
+            element={
+              <ProfilePage
+                session={session}
+                podUrl={podUrl}
+                profile={profile}
+                onProfileUpdated={(p) => setProfile(p)}
+                posts={posts}
+                loading={loadingPosts}
+                friends={friends}
+                onCompose={() => setComposerOpen(true)}
+                onTogglePublic={handleTogglePublic}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                togglingUrls={togglingUrls}
+                deletingUrls={deletingUrls}
+                showToast={showToast}
+              />
+            }
           />
-        )}
-        {currentTab === 'profile' && (
-          <ProfilePage
-            session={session}
-            podUrl={podUrl}
-            profile={profile}
-            onProfileUpdated={(p) => setProfile(p)}
-            posts={posts}
-            friends={friends}
-            showToast={showToast}
+          <Route
+            path="/people"
+            element={
+              <PersonPage
+                session={session}
+                friends={friends}
+                onAddFriend={handleAddFriend}
+                addingWebId={addingWebId}
+              />
+            }
           />
-        )}
+          <Route path="/post" element={<PostPage session={session} posts={posts} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
-      {/* Floating compose button on mobile */}
-      <button
-        onClick={() => setComposerOpen(true)}
-        className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-accent-light text-ink-950 rounded-full shadow-2xl shadow-accent/50 text-2xl flex items-center justify-center z-30 transition"
-        aria-label="New post"
-      >
-        +
-      </button>
+      <BottomNav onCompose={() => setComposerOpen(true)} />
 
       <Composer
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
         onSubmit={handleCompose}
       />
+
+      {onboardingOpen && podUrl && (
+        <Onboarding
+          webId={session.info.webId}
+          initialName={profile.name || ''}
+          onSaveName={handleSaveName}
+          onCompose={() => setComposerOpen(true)}
+          onDone={finishOnboarding}
+          showToast={showToast}
+        />
+      )}
 
       {toast && (
         <Toast

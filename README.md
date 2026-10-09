@@ -17,8 +17,8 @@ This is a complete rebuild of the [original Podsta MVP](https://github.com/Teebo
 - **Owner-only comments** on your posts, stored in your Pod. Other people cannot write into that folder.
 - **Discovery** by copying your WebID or pasting someone else's. There is no public directory in this beta.
 - **Profile editor** — name, bio, avatar.
-- **Keyboard shortcuts**: `h`/`f`/`d`/`p` for tabs, `n` for new post.
-- **Mobile-first** responsive layout with a tab bar under the header and a floating compose button.
+- **Keyboard shortcuts**: `h` for Home, `d` for Discover, `p` for Profile, `n` for a new post.
+- **Mobile-first** layout: a bottom bar on phones (Home, Discover, New post, Profile) and a header bar on larger screens.
 - **PWA-ready** — installable manifest.
 
 ---
@@ -134,10 +134,11 @@ src/
     vocab.js                    # RDF predicates + paths + limits
   pages/
     DiscoverPage.jsx
-    FeedPage.jsx
-    HomePage.jsx
+    HomePage.jsx                # Following feed
     LoginPage.jsx
-    ProfilePage.jsx
+    PersonPage.jsx              # Someone else's public grid
+    PostPage.jsx                # Permalink for one post
+    ProfilePage.jsx             # Editor plus your post grid
   styles/
     index.css                   # Tailwind + custom design tokens
 ```

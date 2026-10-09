@@ -1,181 +1,263 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
 import SkeletonCard from '../components/SkeletonCard.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import Lightbox from '../components/Lightbox.jsx';
-import EditPostModal from '../components/EditPostModal.jsx';
 import CommentsDrawer from '../components/CommentsDrawer.jsx';
+import Avatar from '../components/Avatar.jsx';
+import { loadFriendFeed } from '../lib/feed.js';
+import { loadPublicPost } from '../lib/posts.js';
+import { shortWebId, copyToClipboard } from '../lib/utils.js';
+import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 
 /**
- * The "Home" tab — your own posts. We show photos and text posts together
- * in chronological order with filter and search controls.
+ * Home is the following feed: one column, newest first.
  */
-export default function HomePage({
-  posts,
-  loading,
-  podUrl,
-  session,
-  onCompose,
-  onTogglePublic,
-  onEdit,
-  onDelete,
-  togglingUrls,
-  deletingUrls,
-  showToast,
-}) {
-  const [filter, setFilter] = useState('all'); // all | photo | text | public | private
-  const [search, setSearch] = useState('');
+export default function HomePage({ friends, session, ownPostCount = 0, onRemoveFriend, onCompose, showToast }) {
+  const [feedEntries, setFeedEntries] = useState([]);
+  const [unreachable, setUnreachable] = useState(0);
+  const [hydrated, setHydrated] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
-  const [editingPost, setEditingPost] = useState(null);
-  const [savingEdit, setSavingEdit] = useState(false);
   const [commentsPost, setCommentsPost] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(24);
-  const loadMoreRef = useRef(null);
+  const [pendingUnfollow, setPendingUnfollow] = useState(null);
+  const hydratedRef = useRef({});
+  const copy = emptyFeedCopy();
 
-  // Infinite scroll sentinel.
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setVisibleCount((v) => v + 24);
-      },
-      { rootMargin: '300px' },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+  const reload = useCallback(() => {
+    hydratedRef.current = {};
+    setHydrated({});
+    setReloadKey((n) => n + 1);
   }, []);
 
-  const filtered = useMemo(() => {
-    let result = posts;
-    if (filter === 'photo' || filter === 'text') {
-      result = result.filter((p) => p.type === filter);
-    } else if (filter === 'public') {
-      result = result.filter((p) => p.isPublic);
-    } else if (filter === 'private') {
-      result = result.filter((p) => !p.isPublic);
+  useEffect(() => {
+    if (!friends?.length) {
+      setFeedEntries([]);
+      setUnreachable(0);
+      setFailed(false);
+      setLoading(false);
+      return undefined;
     }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          (p.caption || '').toLowerCase().includes(q) ||
-          (p.title || '').toLowerCase().includes(q) ||
-          (p.body || '').toLowerCase().includes(q),
-      );
-    }
-    return result;
-  }, [posts, filter, search]);
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    loadFriendFeed({ friends, session })
+      .then(({ entries, unreachable: missed }) => {
+        if (cancelled) return;
+        setFeedEntries(entries);
+        setUnreachable(missed);
+        if (missed > 0 && entries.length === 0) setFailed(true);
+      })
+      .catch((err) => {
+        console.error('Feed load failed:', err);
+        if (!cancelled) setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [friends, session, reloadKey]);
 
-  const photoPosts = filtered.filter((p) => p.type === 'photo');
+  useEffect(() => {
+    let cancelled = false;
+    feedEntries.forEach(async (entry) => {
+      if (entry.type !== 'text') return;
+      if (hydratedRef.current[entry.url]) return;
+      hydratedRef.current[entry.url] = 'loading';
+      const post = await loadPublicPost({
+        url: entry.url,
+        type: 'text',
+        fetchFn: session?.fetch,
+      });
+      if (cancelled) return;
+      if (post) {
+        hydratedRef.current[entry.url] = 'done';
+        setHydrated((h) => ({ ...h, [entry.url]: post }));
+      } else {
+        hydratedRef.current[entry.url] = 'error';
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [feedEntries, session]);
 
-  const handleSaveEdit = async (changes) => {
-    setSavingEdit(true);
-    try {
-      await onEdit(editingPost, changes);
-      setEditingPost(null);
-    } finally {
-      setSavingEdit(false);
+  const renderablePosts = feedEntries.map((entry) => {
+    const base = {
+      id: entry.url,
+      url: entry.url,
+      type: entry.type,
+      title: entry.title || '',
+      caption: entry.caption || '',
+      body: '',
+      dateCreated: entry.dateCreated,
+      isPublic: true,
+      mediaUrl: entry.url,
+      mediaBlob: null,
+    };
+    if (entry.type === 'text' && hydrated[entry.url]) {
+      base.body = hydrated[entry.url].body;
+      base.title = hydrated[entry.url].title || base.title;
     }
+    return { ...base, _entry: entry };
+  });
+
+  const photoPosts = renderablePosts.filter((p) => p.type === 'photo');
+  const errorCopy = feedErrorCopy(unreachable);
+
+  const copyWebId = async () => {
+    const ok = await copyToClipboard(session?.info?.webId || '');
+    showToast(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
   };
-
-  const handleCopyLink = async (post) => {
-    try {
-      await navigator.clipboard.writeText(post.url);
-      showToast('Link copied to clipboard');
-    } catch {
-      showToast('Could not copy — your browser blocked clipboard access', 'error');
-    }
-  };
-
-  if (loading && posts.length === 0) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <SkeletonCard key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  if (!loading && posts.length === 0) {
-    return (
-      <EmptyState
-        title="Your story starts here"
-        message="Upload a photo or write a post. Everything saves to your Pod — you decide what to share."
-        action={
-          <button onClick={onCompose} className="btn-primary">
-            Create your first post
-          </button>
-        }
-      />
-    );
-  }
 
   return (
-    <>
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex-1 flex gap-2 flex-wrap">
-          {[
-            { id: 'all', label: `All (${posts.length})` },
-            { id: 'photo', label: 'Photos' },
-            { id: 'text', label: 'Text' },
-            { id: 'public', label: 'Public' },
-            { id: 'private', label: 'Private' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setFilter(opt.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition border ${
-                filter === opt.id
-                  ? 'bg-accent text-ink-950 border-accent'
-                  : 'bg-ink-800/60 text-ink-300 border-ink-700 hover:border-ink-600'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <input
-          type="search"
-          aria-label="Search captions and posts"
-          placeholder="Search captions and posts…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-field w-full sm:max-w-xs"
-        />
+    <div className="max-w-lg mx-auto">
+      <h1 className="display-serif text-4xl mb-6">Home</h1>
+
+      {friends?.length > 0 && (
+        <section className="mb-6" aria-label="Following">
+          <h2 className="text-xs font-medium text-ink-300 uppercase tracking-wider mb-3">
+            Following ({friends.length})
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            {friends.map((f) => {
+              const name = f.name || shortWebId(f.webId);
+              const confirming = pendingUnfollow === f.webId;
+              return (
+                <div key={f.webId} className="shrink-0 flex flex-col items-center gap-1.5 w-[5.5rem]">
+                  <Avatar src={f.avatarUrl} name={name} size="lg" />
+                  <p className="text-xs text-ink-100 max-w-[5.5rem] truncate">{name}</p>
+                  {confirming ? (
+                    <div className="flex flex-col gap-1 w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onRemoveFriend(f.webId);
+                          setPendingUnfollow(null);
+                        }}
+                        className="min-h-8 px-2 rounded-md bg-accent text-ink-950 text-xs font-medium"
+                        aria-label={`Confirm unfollow ${name}`}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingUnfollow(null)}
+                        className="min-h-8 px-2 rounded-md bg-ink-700 text-ink-100 text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setPendingUnfollow(f.webId)}
+                      className="min-h-8 px-2 rounded-md border border-ink-600 text-ink-100 text-xs hover:border-accent hover:text-accent"
+                      aria-label={`Unfollow ${name}`}
+                    >
+                      Unfollow
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <div role="status" aria-live="polite" className="sr-only">
+        {loading ? 'Loading the feed' : failed ? errorCopy.title : ''}
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState icon="∅" title="No matches" message="Try a different filter or search." />
+      {loading ? (
+        <div className="space-y-5">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : !friends?.length ? (
+        <EmptyState
+          icon="✦"
+          title={copy.title}
+          message={copy.message}
+          action={
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button type="button" onClick={copyWebId} className="btn-primary">
+                {copy.copyLabel}
+              </button>
+              <Link to={copy.followPath} className="btn-secondary">
+                {copy.followLabel}
+              </Link>
+              {ownPostCount === 0 && (
+                <button type="button" onClick={onCompose} className="btn-ghost">
+                  {copy.composeLabel}
+                </button>
+              )}
+            </div>
+          }
+        />
+      ) : failed ? (
+        <EmptyState
+          icon="!"
+          title={errorCopy.title}
+          message={errorCopy.message}
+          action={
+            <button type="button" onClick={reload} className="btn-primary">
+              {errorCopy.retryLabel}
+            </button>
+          }
+        />
+      ) : renderablePosts.length === 0 ? (
+        <EmptyState
+          icon="◯"
+          title="Nothing public yet"
+          message="The people you follow have not shared a post. When they do, it will show up here."
+          action={
+            <Link to={copy.followPath} className="btn-secondary">
+              {copy.followLabel}
+            </Link>
+          }
+        />
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.slice(0, visibleCount).map((post) => (
+          {unreachable > 0 && (
+            <p className="mb-4 text-sm text-ink-200 bg-ink-800 border border-ink-700 rounded-lg px-3 py-2" role="status">
+              {feedErrorCopy(unreachable).message}{' '}
+              <button type="button" onClick={reload} className="underline text-ink-50">
+                Try again
+              </button>
+            </p>
+          )}
+          <div className="space-y-5">
+            {renderablePosts.map((post) => (
               <PostCard
                 key={post.url}
                 post={post}
-                mode="own"
-                ownerName=""
-                onTogglePublic={onTogglePublic}
-                onEdit={setEditingPost}
-                onDelete={onDelete}
-                onCopyLink={handleCopyLink}
-                onShowComments={(p) => setCommentsPost(p)}
+                mode="feed"
+                ownerName={post._entry.ownerName}
+                ownerAvatar={post._entry.ownerAvatar}
+                ownerHref={`/people?webid=${encodeURIComponent(post._entry.ownerWebId)}`}
+                linkUrl={appPostUrl(window.location.origin, post.url)}
+                onShowComments={(p) =>
+                  setCommentsPost({ ...p, _ownerPodUrl: post._entry.ownerPodUrl })
+                }
+                onCopyLink={(_, ok) =>
+                  showToast(ok ? 'Link copied' : 'Copy failed', ok ? 'success' : 'error')
+                }
                 onOpenLightbox={() => {
                   if (post.type === 'photo') {
                     const idx = photoPosts.findIndex((p) => p.url === post.url);
                     if (idx >= 0) setLightboxIndex(idx);
                   }
                 }}
-                toggling={togglingUrls.has(post.url)}
-                deleting={deletingUrls.has(post.url)}
-                session={session}
               />
             ))}
           </div>
-          <div ref={loadMoreRef} className="h-20" />
         </>
       )}
 
@@ -189,27 +271,17 @@ export default function HomePage({
         />
       )}
 
-      {editingPost && (
-        <EditPostModal
-          open
-          post={editingPost}
-          onClose={() => setEditingPost(null)}
-          onSave={handleSaveEdit}
-          saving={savingEdit}
-        />
-      )}
-
       {commentsPost && (
         <CommentsDrawer
           open
           post={commentsPost}
-          ownerPodUrl={podUrl}
-          canComment
+          ownerPodUrl={commentsPost._ownerPodUrl}
+          canComment={false}
           session={session}
           onClose={() => setCommentsPost(null)}
           showToast={showToast}
         />
       )}
-    </>
+    </div>
   );
 }
