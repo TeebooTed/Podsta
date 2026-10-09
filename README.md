@@ -18,7 +18,7 @@ This is a complete rebuild of the [original Podsta MVP](https://github.com/Teebo
 - **Discovery** through three channels: manual WebID, friends-of-friends, and a community registry.
 - **Profile editor** — name, bio, avatar.
 - **Keyboard shortcuts**: `h`/`f`/`d`/`p` for tabs, `n` for new post.
-- **Mobile-first** responsive layout with bottom tab bar and floating compose button.
+- **Mobile-first** responsive layout with a tab bar under the header and a floating compose button.
 - **PWA-ready** — installable manifest.
 
 ---
