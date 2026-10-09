@@ -14,10 +14,25 @@ import { resolveProfile } from './friends.js';
  *   3. Merge all entries, sort by date, return.
  *
  * Failures on individual friends are isolated — if Bob's pod is offline, you
- * still see Alice's posts.
+ * still see Alice's posts. `unreachable` counts friends whose index could not
+ * be read, so the feed can say so instead of looking empty.
  */
+export function mergeFeedResults(results) {
+  const entries = [];
+  let unreachable = 0;
+  for (const result of results) {
+    if (result.status !== 'fulfilled' || !Array.isArray(result.value)) {
+      unreachable += 1;
+      continue;
+    }
+    entries.push(...result.value);
+  }
+  entries.sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
+  return { entries, unreachable };
+}
+
 export async function loadFriendFeed({ friends, session }) {
-  if (!friends?.length) return [];
+  if (!friends?.length) return { entries: [], unreachable: 0 };
 
   const perFriendResults = await Promise.allSettled(
     friends.map(async (friend) => {
@@ -27,7 +42,7 @@ export async function loadFriendFeed({ friends, session }) {
       if (!podUrl) {
         const profile = await resolveProfile(friend.webId, session?.fetch);
         podUrl = profile.podUrl;
-        if (!podUrl) return [];
+        if (!podUrl) throw new Error('No Pod');
       }
 
       const entries = await readPublicIndex(podUrl, session?.fetch);
@@ -41,9 +56,5 @@ export async function loadFriendFeed({ friends, session }) {
     }),
   );
 
-  const all = perFriendResults
-    .filter((r) => r.status === 'fulfilled')
-    .flatMap((r) => r.value);
-
-  return all.sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
+  return mergeFeedResults(perFriendResults);
 }

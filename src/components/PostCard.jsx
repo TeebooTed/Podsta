@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { getFile } from '@inrupt/solid-client';
 import Avatar from './Avatar.jsx';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
@@ -26,6 +27,8 @@ export default function PostCard({
   onOpenLightbox,
   onShowComments,
   onCopyLink,
+  ownerHref,
+  linkUrl,
   toggling,
   deleting,
   session,
@@ -115,7 +118,13 @@ export default function PostCard({
         <div className="flex items-center gap-3 px-4 pt-4 pb-2">
           <Avatar src={ownerAvatar} name={ownerName} size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{ownerName || 'You'}</p>
+            {ownerHref ? (
+              <Link to={ownerHref} className="font-medium text-sm truncate block hover:text-accent">
+                {ownerName || 'You'}
+              </Link>
+            ) : (
+              <p className="font-medium text-sm truncate">{ownerName || 'You'}</p>
+            )}
             <p className="text-xs text-ink-300">{dateStr}</p>
           </div>
           {mode === 'own' && post.isPublic && (
@@ -131,9 +140,11 @@ export default function PostCard({
 
       {/* Media or body */}
       {post.type === 'photo' ? (
-        <div
-          className="relative bg-ink-900 cursor-zoom-in"
+        <button
+          type="button"
+          className="relative block w-full bg-ink-900 cursor-zoom-in"
           onClick={() => onOpenLightbox?.()}
+          aria-label={post.caption ? `Open photo: ${post.caption}` : 'Open photo'}
         >
           {photoSrc ? (
             <img
@@ -149,7 +160,7 @@ export default function PostCard({
           ) : (
             <div className="w-full aspect-[4/3] skeleton"></div>
           )}
-        </div>
+        </button>
       ) : (
         <div className="px-5 py-4">
           {post.title && (
@@ -299,7 +310,7 @@ export default function PostCard({
             <button
               type="button"
               onClick={async () => {
-                const ok = await copyToClipboard(post.url);
+                const ok = await copyToClipboard(linkUrl || post.url);
                 onCopyLink?.(post, ok);
               }}
               className="min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"

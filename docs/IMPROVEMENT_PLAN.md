@@ -2,7 +2,7 @@
 
 Audit date: 9 October 2026.
 
-Phase 1 decisions were accepted: WAC-only beta, stay on React, keep the editorial theme, copy-my-WebID with an honest empty directory, owner-only comments, and private by default. Those items are implemented on the Phase 1 branch. Sharing, public-index updates, and the comments lockdown were exercised against a local server that stores the files and enforces the ACL documents the app writes. They were not run against a signed-in solidcommunity.net Pod. Phase 2 (following feed as Home, profile grid, bottom nav) has not started.
+Phase 1 decisions were accepted: WAC-only beta, stay on React, keep the editorial theme, copy-my-WebID with an honest empty directory, owner-only comments, and private by default. Those items are implemented on the Phase 1 branch. Sharing, public-index updates, and the comments lockdown were exercised against a local server that stores the files and enforces the ACL documents the app writes. They were not run against a signed-in solidcommunity.net Pod. Phase 2 (following feed as Home, profile grid, bottom nav, routes, and a skippable first-run tour) is implemented on the Phase 2 branch.
 
 ## How this was reviewed
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Avatar from '../components/Avatar.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import { discoverViaFriends } from '../lib/discover.js';
 import { normalizeWebId } from '../lib/friends.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
+import { personPath } from '../lib/navigation.js';
 
 /**
  * Find people by WebID. There is no community directory in this beta.
@@ -77,6 +79,9 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
         <p className="text-xs text-ink-300 truncate font-mono mt-0.5">{shortWebId(p.webId)}</p>
         {p.viaName && <p className="text-xs text-ink-300 mt-0.5">via {p.viaName}</p>}
         {p.bio && <p className="text-xs text-ink-200 mt-1.5 line-clamp-2">{p.bio}</p>}
+        <Link to={personPath(p.webId)} className="inline-flex items-center min-h-8 text-xs text-ink-100 underline mt-1">
+          View profile
+        </Link>
       </div>
       <div className="shrink-0">
         {p.webId === ownWebId ? (
@@ -99,6 +104,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
 
   return (
     <div className="space-y-8">
+      <h1 className="display-serif text-4xl">Discover</h1>
       <section className="card p-5">
         <h2 className="display-serif text-2xl mb-1">Your WebID</h2>
         <p className="text-sm text-ink-300 mb-4">

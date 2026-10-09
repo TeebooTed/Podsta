@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { initials } from '../lib/utils.js';
 import { safeHttpUrl } from '../lib/urls.js';
 
@@ -9,26 +10,7 @@ const sizes = {
   xl: 'w-20 h-20 text-2xl',
 };
 
-export default function Avatar({ src, name, size = 'md', className = '' }) {
-  const sizeClass = sizes[size] || sizes.md;
-  const safeSrc = safeHttpUrl(src);
-
-  if (safeSrc) {
-    return (
-      <img
-        src={safeSrc}
-        alt={name || 'avatar'}
-        loading="lazy"
-        className={`${sizeClass} rounded-full object-cover bg-ink-700 ring-1 ring-ink-600 ${className}`}
-        onError={(e) => {
-          // If avatar fails to load, swap it for the initials fallback.
-          e.currentTarget.style.display = 'none';
-          e.currentTarget.nextSibling?.style?.removeProperty('display');
-        }}
-      />
-    );
-  }
-
+function Initials({ name, sizeClass, className }) {
   return (
     <div
       className={`${sizeClass} rounded-full bg-gradient-to-br from-ink-600 to-ink-700
@@ -37,5 +19,29 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
     >
       {initials(name)}
     </div>
+  );
+}
+
+export default function Avatar({ src, name, size = 'md', className = '' }) {
+  const sizeClass = sizes[size] || sizes.md;
+  const safeSrc = safeHttpUrl(src);
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [safeSrc]);
+
+  if (!safeSrc || broken) {
+    return <Initials name={name} sizeClass={sizeClass} className={className} />;
+  }
+
+  return (
+    <img
+      src={safeSrc}
+      alt={name || 'avatar'}
+      loading="lazy"
+      className={`${sizeClass} rounded-full object-cover bg-ink-700 ring-1 ring-ink-600 ${className}`}
+      onError={() => setBroken(true)}
+    />
   );
 }
