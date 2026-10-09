@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PostCard from '../components/PostCard.jsx';
 import SkeletonCard from '../components/SkeletonCard.jsx';
 import EmptyState from '../components/EmptyState.jsx';
@@ -21,6 +21,8 @@ export default function FeedPage({ friends, session, onRemoveFriend, showToast }
   const [filter, setFilter] = useState('all'); // all | photo | text
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [commentsPost, setCommentsPost] = useState(null);
+  const [pendingUnfollow, setPendingUnfollow] = useState(null);
+  const hydratedRef = useRef({});
 
   useEffect(() => {
     if (!friends?.length) {
@@ -40,22 +42,30 @@ export default function FeedPage({ friends, session, onRemoveFriend, showToast }
       .finally(() => setLoading(false));
   }, [friends, session, showToast]);
 
-  // Hydrate text posts (which need an extra fetch for their body) when they enter view.
-  // For photos, we already have caption from the index, so no hydration needed.
+  // Fetch text bodies once. A failed post is not retried on every sibling update.
   useEffect(() => {
+    let cancelled = false;
     feedEntries.forEach(async (entry) => {
       if (entry.type !== 'text') return;
-      if (hydrated[entry.url]) return;
+      if (hydratedRef.current[entry.url]) return;
+      hydratedRef.current[entry.url] = 'loading';
       const post = await loadPublicPost({
         url: entry.url,
         type: 'text',
         fetchFn: session?.fetch,
       });
+      if (cancelled) return;
       if (post) {
+        hydratedRef.current[entry.url] = 'done';
         setHydrated((h) => ({ ...h, [entry.url]: post }));
+      } else {
+        hydratedRef.current[entry.url] = 'error';
       }
     });
-  }, [feedEntries, hydrated, session]);
+    return () => {
+      cancelled = true;
+    };
+  }, [feedEntries, session]);
 
   const filtered = feedEntries.filter((e) => filter === 'all' || e.type === filter);
 
@@ -100,28 +110,47 @@ export default function FeedPage({ friends, session, onRemoveFriend, showToast }
           Following ({friends.length})
         </h2>
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-          {friends.map((f) => (
-            <div
-              key={f.webId}
-              className="shrink-0 flex flex-col items-center gap-1.5 group/friend relative"
-            >
-              <Avatar src={f.avatarUrl} name={f.name || shortWebId(f.webId)} size="lg" />
-              <p className="text-xs text-ink-200 max-w-[80px] truncate">
-                {f.name || shortWebId(f.webId)}
-              </p>
-              <button
-                onClick={() => {
-                  if (confirm(`Unfollow ${f.name || shortWebId(f.webId)}?`)) {
-                    onRemoveFriend(f.webId);
-                  }
-                }}
-                className="absolute top-0 right-0 w-5 h-5 rounded-full bg-ink-950/80 text-ink-300 hover:text-accent text-xs flex items-center justify-center opacity-0 group-hover/friend:opacity-100 transition"
-                title="Unfollow"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+          {friends.map((f) => {
+            const name = f.name || shortWebId(f.webId);
+            const confirming = pendingUnfollow === f.webId;
+            return (
+              <div key={f.webId} className="shrink-0 flex flex-col items-center gap-1.5 w-[5.5rem]">
+                <Avatar src={f.avatarUrl} name={name} size="lg" />
+                <p className="text-xs text-ink-100 max-w-[5.5rem] truncate">{name}</p>
+                {confirming ? (
+                  <div className="flex flex-col gap-1 w-full">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onRemoveFriend(f.webId);
+                        setPendingUnfollow(null);
+                      }}
+                      className="min-h-8 px-2 rounded-md bg-accent text-ink-950 text-xs font-medium"
+                      aria-label={`Confirm unfollow ${name}`}
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingUnfollow(null)}
+                      className="min-h-8 px-2 rounded-md bg-ink-700 text-ink-100 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setPendingUnfollow(f.webId)}
+                    className="min-h-8 px-2 rounded-md border border-ink-600 text-ink-100 text-xs hover:border-accent hover:text-accent"
+                    aria-label={`Unfollow ${name}`}
+                  >
+                    Unfollow
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -137,7 +166,7 @@ export default function FeedPage({ friends, session, onRemoveFriend, showToast }
             onClick={() => setFilter(opt.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition border ${
               filter === opt.id
-                ? 'bg-accent text-ink-50 border-accent'
+                ? 'bg-accent text-ink-950 border-accent'
                 : 'bg-ink-800/60 text-ink-300 border-ink-700'
             }`}
           >
@@ -187,6 +216,7 @@ export default function FeedPage({ friends, session, onRemoveFriend, showToast }
         <Lightbox
           posts={photoPosts}
           index={lightboxIndex}
+          session={session}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
         />
@@ -197,6 +227,7 @@ export default function FeedPage({ friends, session, onRemoveFriend, showToast }
           open
           post={commentsPost}
           ownerPodUrl={commentsPost._ownerPodUrl}
+          canComment={false}
           session={session}
           onClose={() => setCommentsPost(null)}
           showToast={showToast}

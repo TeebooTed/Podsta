@@ -1,4 +1,5 @@
 import { initials } from '../lib/utils.js';
+import { safeHttpUrl } from '../lib/urls.js';
 
 const sizes = {
   xs: 'w-6 h-6 text-xs',
@@ -10,11 +11,12 @@ const sizes = {
 
 export default function Avatar({ src, name, size = 'md', className = '' }) {
   const sizeClass = sizes[size] || sizes.md;
+  const safeSrc = safeHttpUrl(src);
 
-  if (src) {
+  if (safeSrc) {
     return (
       <img
-        src={src}
+        src={safeSrc}
         alt={name || 'avatar'}
         loading="lazy"
         className={`${sizeClass} rounded-full object-cover bg-ink-700 ring-1 ring-ink-600 ${className}`}

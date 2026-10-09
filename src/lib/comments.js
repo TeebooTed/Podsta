@@ -9,12 +9,13 @@ import {
   getStringNoLocale,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA } from './vocab.js';
+import { isNotFound, withTimeout } from './timeoutFetch.js';
 
 /**
  * Comments are stored in the POST OWNER's pod (not the commenter's), so they
  * stay attached to the post even if the commenter deletes their pod. The
- * comments container has an ACL granting public Read+Append (set when the
- * owner first shares any post — see lib/posts.js sharePost).
+ * comments container is owner-only: sharing a post does not grant public
+ * Append. Other people cannot leave comments in this beta.
  *
  * Each post gets one Turtle file at /podsta/comments/<hash>.ttl containing
  * all its comments as separate Things. We hash the post URL to keep filenames
@@ -34,11 +35,10 @@ function commentsFileUrl(ownerPodUrl, postUrl) {
 }
 
 export async function loadComments({ ownerPodUrl, postUrl, fetchFn }) {
+  const timed = withTimeout(fetchFn || fetch);
   try {
-    const ds = fetchFn
-      ? await getSolidDataset(commentsFileUrl(ownerPodUrl, postUrl), { fetch: fetchFn })
-      : await getSolidDataset(commentsFileUrl(ownerPodUrl, postUrl));
-    return getThingAll(ds)
+    const ds = await getSolidDataset(commentsFileUrl(ownerPodUrl, postUrl), { fetch: timed });
+    const comments = getThingAll(ds)
       .map((t) => ({
         text: getStringNoLocale(t, SCHEMA.text) || '',
         date: getStringNoLocale(t, SCHEMA.dateCreated) || '',
@@ -46,9 +46,12 @@ export async function loadComments({ ownerPodUrl, postUrl, fetchFn }) {
       }))
       .filter((c) => c.text)
       .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return { comments, error: null };
   } catch (err) {
-    if (err?.statusCode === 404 || err?.response?.status === 404) return [];
-    return [];
+    if (isNotFound(err)) return { comments: [], error: null };
+    const status = err?.statusCode || err?.response?.status;
+    if (status === 401 || status === 403) return { comments: [], error: 'private' };
+    return { comments: [], error: 'unavailable' };
   }
 }
 
@@ -57,11 +60,18 @@ export async function postComment({ ownerPodUrl, postUrl, text, session }) {
   if (!session?.info?.webId) throw new Error('Must be logged in to comment');
 
   const fileUrl = commentsFileUrl(ownerPodUrl, postUrl);
+  const timed = withTimeout(session.fetch, 20000);
   let ds;
   try {
-    ds = await getSolidDataset(fileUrl, { fetch: session.fetch });
-  } catch {
-    ds = createSolidDataset();
+    ds = await getSolidDataset(fileUrl, { fetch: timed });
+  } catch (err) {
+    if (isNotFound(err)) {
+      ds = createSolidDataset();
+    } else if (err?.name === 'AbortError') {
+      throw new Error('The Pod took too long to respond');
+    } else {
+      throw err;
+    }
   }
 
   const ts = new Date().toISOString();

@@ -1,6 +1,8 @@
 # Podsta improvement plan
 
-Audit date: 9 October 2026. This is a plan only. The only code changes in this pull request are the three trivial fixes listed at the end. Matthew should review this before implementation starts.
+Audit date: 9 October 2026.
+
+Phase 1 decisions were accepted: WAC-only beta, stay on React, keep the editorial theme, copy-my-WebID with an honest empty directory, owner-only comments, and private by default. Those items are implemented on the Phase 1 branch. Sharing, public-index updates, and the comments lockdown were exercised against a local server that stores the files and enforces the ACL documents the app writes. They were not run against a signed-in solidcommunity.net Pod. Phase 2 (following feed as Home, profile grid, bottom nav) has not started.
 
 ## How this was reviewed
 

@@ -5,6 +5,8 @@ import {
   logout as inruptLogout,
 } from '@inrupt/solid-client-authn-browser';
 import { getPodUrlAll } from '@inrupt/solid-client';
+import { asPodRoot } from './urls.js';
+import { withTimeout } from './timeoutFetch.js';
 
 /**
  * Resume any in-flight OIDC flow on app boot.
@@ -19,7 +21,7 @@ export async function restoreSession() {
  * Kick off the OIDC login flow.
  * The user is redirected to their identity provider; on return, restoreSession() picks up.
  */
-export async function login(oidcIssuer = 'https://login.inrupt.com') {
+export async function login(oidcIssuer = 'https://solidcommunity.net') {
   const redirectUrl = window.location.origin + '/';
   await inruptLogin({
     oidcIssuer,
@@ -39,8 +41,14 @@ export async function logout() {
  */
 export async function findPodUrl(session) {
   if (!session?.info?.webId) return null;
-  const pods = await getPodUrlAll(session.info.webId, { fetch: session.fetch });
-  return pods[0] ?? null;
+  const pods = await getPodUrlAll(session.info.webId, {
+    fetch: withTimeout(session.fetch, 15000),
+  });
+  for (const pod of pods) {
+    const root = asPodRoot(pod);
+    if (root) return root;
+  }
+  return null;
 }
 
 export function getSession() {

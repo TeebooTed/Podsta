@@ -12,7 +12,7 @@ export default function Toast({ message, type = 'success', onDismiss, duration =
 
   const styles = {
     success: 'bg-signal/95 text-ink-900',
-    error: 'bg-accent/95 text-ink-50',
+    error: 'bg-accent/95 text-ink-950',
     info: 'bg-ink-700/95 text-ink-50 border border-ink-600',
   };
 

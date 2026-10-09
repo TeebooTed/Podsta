@@ -13,6 +13,7 @@ import {
 import { PATHS, SCHEMA, FOAF } from './vocab.js';
 import { makePublic } from './acl.js';
 import { resolveProfile } from './friends.js';
+import { safeHttpUrl } from './urls.js';
 
 /**
  * Podsta-specific profile data lives at /podsta/profile.ttl and is publicly
@@ -64,10 +65,15 @@ export async function saveProfile({ podUrl, session, profile, ownerWebId }) {
     ds = createSolidDataset();
   }
 
+  const avatarUrl = profile.avatarUrl ? safeHttpUrl(profile.avatarUrl) : '';
+  if (profile.avatarUrl && !avatarUrl) {
+    throw new Error('Avatar URL must be an https URL');
+  }
+
   let thing = getThing(ds, profileUrl(podUrl)) ?? createThing({ url: profileUrl(podUrl) });
   thing = setStringNoLocale(thing, FOAF.name, profile.name || '');
   thing = setStringNoLocale(thing, SCHEMA.description, profile.bio || '');
-  thing = setStringNoLocale(thing, SCHEMA.image, profile.avatarUrl || '');
+  thing = setStringNoLocale(thing, SCHEMA.image, avatarUrl || '');
   ds = setThing(ds, thing);
 
   await saveSolidDatasetAt(profileUrl(podUrl), ds, { fetch: session.fetch });

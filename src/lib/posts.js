@@ -1,7 +1,6 @@
 import {
   saveFileInContainer,
   getContainedResourceUrlAll,
-  getFile,
   deleteFile,
   createContainerAt,
   getSolidDataset,
@@ -14,8 +13,10 @@ import {
   getStringNoLocale,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, PODSTA, ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from './vocab.js';
-import { isPublic, shareResources, unshareResources, makeCommentable } from './acl.js';
+import { isPublic, lockCommentsToOwner, makePublic, shareResources, unshareResources } from './acl.js';
 import { addToPublicIndex, removeFromPublicIndex } from './publicIndex.js';
+import { publicIndexEntryFromPost } from './indexEntry.js';
+import { isNotFound, withTimeout } from './timeoutFetch.js';
 
 /**
  * A "post" in Podsta is one of two things:
@@ -88,10 +89,9 @@ export async function uploadPhoto({ podUrl, session, file, caption }) {
 }
 
 async function loadPhotoCaption(photoUrl, fetchFn) {
+  const timed = withTimeout(fetchFn || fetch);
   try {
-    const ds = fetchFn
-      ? await getSolidDataset(`${photoUrl}.meta`, { fetch: fetchFn })
-      : await getSolidDataset(`${photoUrl}.meta`);
+    const ds = await getSolidDataset(`${photoUrl}.meta`, { fetch: timed });
     const thing = getThing(ds, photoUrl);
     if (!thing) return { caption: '', dateCreated: '' };
     return {
@@ -112,17 +112,16 @@ export async function loadOwnPhotos({ podUrl, session }) {
       /\.(jpg|jpeg|png|gif|webp)$/i.test(u),
     );
   } catch (err) {
-    if (err?.statusCode === 404 || err?.response?.status === 404) return [];
+    if (isNotFound(err)) return [];
     throw err;
   }
 
-  // Fetch each photo's binary, caption metadata, and public status in parallel.
+  // Caption and ACL only. The image bytes load later, when a card is on screen.
   const photos = await Promise.all(
     urls.map(async (url) => {
-      const [file, meta, pub] = await Promise.all([
-        getFile(url, { fetch: session.fetch }).catch(() => null),
+      const [meta, pub] = await Promise.all([
         loadPhotoCaption(url, session.fetch),
-        isPublic(url),
+        isPublic(url, session.fetch),
       ]);
       // Use file last-modified or filename timestamp for ordering.
       const tsMatch = url.match(/(\d{13})/);
@@ -139,7 +138,7 @@ export async function loadOwnPhotos({ podUrl, session }) {
         dateCreated,
         isPublic: pub,
         mediaUrl: url,
-        mediaBlob: file,
+        mediaBlob: null,
       };
     }),
   );
@@ -172,10 +171,9 @@ export async function createTextPost({ podUrl, session, title, body }) {
 }
 
 async function loadTextPost(postUrl, fetchFn) {
+  const timed = withTimeout(fetchFn || fetch);
   try {
-    const ds = fetchFn
-      ? await getSolidDataset(postUrl, { fetch: fetchFn })
-      : await getSolidDataset(postUrl);
+    const ds = await getSolidDataset(postUrl, { fetch: timed });
     const thing = getThing(ds, postUrl);
     if (!thing) return null;
     return {
@@ -201,7 +199,7 @@ export async function loadOwnTextPosts({ podUrl, session }) {
     const ds = await getSolidDataset(container, { fetch: session.fetch });
     urls = getContainedResourceUrlAll(ds).filter((u) => u.endsWith('.ttl'));
   } catch (err) {
-    if (err?.statusCode === 404 || err?.response?.status === 404) return [];
+    if (isNotFound(err)) return [];
     throw err;
   }
 
@@ -209,7 +207,7 @@ export async function loadOwnTextPosts({ podUrl, session }) {
     urls.map(async (url) => {
       const [post, pub] = await Promise.all([
         loadTextPost(url, session.fetch),
-        isPublic(url),
+        isPublic(url, session.fetch),
       ]);
       if (!post) return null;
       return { ...post, isPublic: pub };
@@ -249,30 +247,12 @@ export async function sharePost({ post, podUrl, ownerWebId, session }) {
   }
   await shareResources(urlsToShare, ownerWebId, session);
 
-  // Set up the comments container as commentable (read+append for public).
-  // Lazy-create it the first time someone shares.
+  // Comments stay owner-only. This also replaces an older public Append grant.
   const commentsContainer = `${podUrl}${PATHS.comments}`;
   await ensureContainer(commentsContainer, session);
-  try {
-    await makeCommentable(commentsContainer, ownerWebId, session);
-  } catch (err) {
-    // Non-fatal; comments will still work for the owner, just not for others.
-    console.warn('Could not make comments container commentable:', err);
-  }
+  await lockCommentsToOwner(commentsContainer, ownerWebId, session);
 
-  // Update public index so feeds find it.
-  await addToPublicIndex(
-    podUrl,
-    {
-      url: post.url,
-      type: post.type,
-      dateCreated: post.dateCreated,
-      title: post.title || '',
-      caption: post.caption || (post.type === 'text' ? post.body.slice(0, 200) : ''),
-    },
-    ownerWebId,
-    session,
-  );
+  await addToPublicIndex(podUrl, publicIndexEntryFromPost(post), ownerWebId, session);
 }
 
 export async function unsharePost({ post, podUrl, ownerWebId, session }) {
@@ -286,7 +266,8 @@ export async function unsharePost({ post, podUrl, ownerWebId, session }) {
 // EDIT & DELETE
 // ─────────────────────────────────────────────────────────────
 
-export async function editPhotoCaption({ post, newCaption, session }) {
+export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, session }) {
+  const caption = (newCaption || '').trim();
   let ds;
   try {
     ds = await getSolidDataset(`${post.url}.meta`, { fetch: session.fetch });
@@ -294,15 +275,30 @@ export async function editPhotoCaption({ post, newCaption, session }) {
     ds = createSolidDataset();
   }
   let thing = getThing(ds, post.url) ?? createThing({ url: post.url });
-  thing = setStringNoLocale(thing, SCHEMA.caption, newCaption.trim());
+  thing = setStringNoLocale(thing, SCHEMA.caption, caption);
   if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
     thing = setStringNoLocale(thing, SCHEMA.dateCreated, post.dateCreated || new Date().toISOString());
   }
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(`${post.url}.meta`, ds, { fetch: session.fetch });
+
+  if (!post.isPublic) return;
+  try {
+    if (caption) await makePublic(`${post.url}.meta`, ownerWebId, session);
+    await addToPublicIndex(
+      podUrl,
+      publicIndexEntryFromPost({ ...post, caption }, { caption }),
+      ownerWebId,
+      session,
+    );
+  } catch (err) {
+    throw new Error(
+      `The caption was saved, but the public index was not updated: ${err.message}`,
+    );
+  }
 }
 
-export async function editTextPost({ post, newTitle, newBody, session }) {
+export async function editTextPost({ post, newTitle, newBody, podUrl, ownerWebId, session }) {
   let ds;
   try {
     ds = await getSolidDataset(post.url, { fetch: session.fetch });
@@ -317,13 +313,25 @@ export async function editTextPost({ post, newTitle, newBody, session }) {
   }
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(post.url, ds, { fetch: session.fetch });
+
+  if (!post.isPublic) return;
+  const title = newTitle?.trim() || '';
+  const body = newBody.trim();
+  try {
+    await addToPublicIndex(
+      podUrl,
+      publicIndexEntryFromPost({ ...post, title, body }, { title, body }),
+      ownerWebId,
+      session,
+    );
+  } catch (err) {
+    throw new Error(`The post was saved, but the public index was not updated: ${err.message}`);
+  }
 }
 
 export async function deletePost({ post, podUrl, session }) {
-  // If the post was public, remove from index FIRST (so feeds stop showing it).
-  if (post.isPublic) {
-    await removeFromPublicIndex(podUrl, post.url, session).catch(() => {});
-  }
+  // Always try. A stale isPublic flag should not leave the post in friends' feeds.
+  await removeFromPublicIndex(podUrl, post.url, session).catch(() => {});
 
   // Delete the main resource.
   try {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { getFile } from '@inrupt/solid-client';
 import Avatar from './Avatar.jsx';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
+import { withTimeout } from '../lib/timeoutFetch.js';
 
 /**
  * PostCard renders ONE post (photo or text) in feed-style.
@@ -26,6 +28,7 @@ export default function PostCard({
   onCopyLink,
   toggling,
   deleting,
+  session,
 }) {
   const [imgUrl, setImgUrl] = useState(null);
   const [visible, setVisible] = useState(mode === 'feed'); // feed images load by URL directly, no observer needed
@@ -53,13 +56,37 @@ export default function PostCard({
     return () => obs.disconnect();
   }, [mode, post.type]);
 
-  // Create object URL for own photos.
+  // Own photos: public files use the Pod URL (the browser loads them). Private files
+  // are fetched only after the card is near the viewport, one at a time.
   useEffect(() => {
-    if (mode !== 'own' || post.type !== 'photo' || !visible || !post.mediaBlob) return;
-    const url = URL.createObjectURL(post.mediaBlob);
-    setImgUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [mode, post.type, post.mediaBlob, visible]);
+    if (mode !== 'own' || post.type !== 'photo' || !visible) return undefined;
+    if (post.mediaBlob) {
+      const url = URL.createObjectURL(post.mediaBlob);
+      setImgUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    if (post.isPublic) {
+      setImgUrl(post.mediaUrl || post.url);
+      return undefined;
+    }
+    let cancelled = false;
+    let objectUrl;
+    (async () => {
+      try {
+        if (!session?.fetch) return;
+        const file = await getFile(post.url, { fetch: withTimeout(session.fetch, 30000) });
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(file);
+        setImgUrl(objectUrl);
+      } catch {
+        if (!cancelled) setImgUrl(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [mode, post, visible, session]);
 
   // Close menu on outside click.
   useEffect(() => {
@@ -89,7 +116,7 @@ export default function PostCard({
           <Avatar src={ownerAvatar} name={ownerName} size="sm" />
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">{ownerName || 'You'}</p>
-            <p className="text-xs text-ink-400">{dateStr}</p>
+            <p className="text-xs text-ink-300">{dateStr}</p>
           </div>
           {mode === 'own' && post.isPublic && (
             <span
@@ -159,9 +186,10 @@ export default function PostCard({
           <>
             {/* Visibility toggle */}
             <button
+              type="button"
               onClick={() => onTogglePublic?.(post)}
               disabled={toggling}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition border
+              className={`flex-1 min-h-8 px-3 py-1.5 rounded-lg text-xs font-medium transition border
                           ${
                             post.isPublic
                               ? 'bg-signal/10 text-signal border-signal/30 hover:bg-accent/10 hover:text-accent hover:border-accent/30'
@@ -179,22 +207,25 @@ export default function PostCard({
             {/* Comments */}
             {post.isPublic && (
               <button
+                type="button"
                 onClick={() => onShowComments?.(post)}
-                className="px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-200 transition"
-                title="View comments"
+                className="min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
+                aria-label="View comments"
               >
-                💬
+                <span aria-hidden="true">💬</span>
               </button>
             )}
 
             {/* Overflow menu */}
             <div className="relative" ref={menuRef}>
               <button
+                type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="px-2.5 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-200 transition"
+                className="min-h-8 min-w-8 px-2.5 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
                 aria-label="More actions"
+                aria-expanded={menuOpen}
               >
-                ⋯
+                <span aria-hidden="true">⋯</span>
               </button>
               {menuOpen && (
                 <div className="absolute right-0 bottom-full mb-1 w-44 card overflow-hidden z-10 animate-slide-down">
@@ -209,6 +240,7 @@ export default function PostCard({
                   </button>
                   {post.isPublic && (
                     <button
+                      type="button"
                       onClick={() => {
                         setMenuOpen(false);
                         onCopyLink?.(post);
@@ -236,7 +268,7 @@ export default function PostCard({
                             onDelete?.(post);
                           }}
                           disabled={deleting}
-                          className="flex-1 py-1 bg-accent hover:bg-accent-dark rounded text-xs disabled:opacity-50"
+                          className="flex-1 py-1 bg-accent hover:bg-accent-dark text-ink-950 rounded text-xs disabled:opacity-50"
                         >
                           {deleting ? '…' : 'Delete'}
                         </button>
@@ -257,20 +289,23 @@ export default function PostCard({
           // Feed mode: comments + copy-link only.
           <>
             <button
+              type="button"
               onClick={() => onShowComments?.(post)}
-              className="flex-1 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-200 transition"
+              className="flex-1 min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
             >
-              💬 Comments
+              <span aria-hidden="true">💬 </span>
+              Comments
             </button>
             <button
+              type="button"
               onClick={async () => {
                 const ok = await copyToClipboard(post.url);
                 onCopyLink?.(post, ok);
               }}
-              className="px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-200 transition"
-              title="Copy link"
+              className="min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
+              aria-label="Copy link"
             >
-              🔗
+              <span aria-hidden="true">🔗</span>
             </button>
           </>
         )}

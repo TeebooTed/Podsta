@@ -2,22 +2,37 @@ import { useState } from 'react';
 import { login } from '../lib/auth.js';
 
 const PROVIDERS = [
-  { url: 'https://login.inrupt.com', label: 'Inrupt', hint: 'pod.inrupt.com (recommended)' },
-  { url: 'https://solidcommunity.net', label: 'Solid Community', hint: 'solidcommunity.net' },
-  { url: 'https://solidweb.org', label: 'SolidWeb', hint: 'solidweb.org' },
+  {
+    url: 'https://solidcommunity.net',
+    label: 'Solid Community',
+    hint: 'solidcommunity.net · Web Access Control',
+  },
+  {
+    url: 'https://solidweb.org',
+    label: 'SolidWeb',
+    hint: 'solidweb.org · Web Access Control',
+  },
+  {
+    url: 'https://login.inrupt.com',
+    label: 'Inrupt PodSpaces',
+    hint: 'Uses access policies this beta cannot share with',
+  },
 ];
 
 export default function LoginPage({ error }) {
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [customIssuer, setCustomIssuer] = useState('');
+  const [localError, setLocalError] = useState(null);
 
   const doLogin = async (issuer) => {
     setBusy(true);
+    setLocalError(null);
     try {
       await login(issuer);
     } catch (err) {
       console.error('Login failed:', err);
+      setLocalError(err?.message || 'Could not reach that provider. Check the address and try again.');
       setBusy(false);
     }
   };
@@ -45,14 +60,16 @@ export default function LoginPage({ error }) {
           <h2 className="display-serif text-2xl mb-2 text-balance">
             Sign in with your Solid Pod
           </h2>
-          <p className="text-sm text-ink-400 mb-5 leading-relaxed">
-            Podsta doesn't have accounts. Your data lives in a Solid Pod — a personal
-            data store you control. Choose your provider to continue.
+          <p className="text-sm text-ink-300 mb-5 leading-relaxed">
+            Podsta does not have accounts. Your posts live in a Solid Pod you control.
+            This beta can share posts on servers that use Web Access Control. Solid
+            Community is the place to start. Inrupt PodSpaces uses a different system,
+            so a post shared there will not become public.
           </p>
 
-          {error && (
-            <p className="mb-4 text-sm text-accent bg-accent/10 border border-accent/30 rounded-lg px-3 py-2">
-              {error}
+          {(error || localError) && (
+            <p className="mb-4 text-sm text-ink-50 bg-accent/20 border border-accent/40 rounded-lg px-3 py-2" role="alert">
+              {error || localError}
             </p>
           )}
 
@@ -65,7 +82,7 @@ export default function LoginPage({ error }) {
                 className="w-full text-left px-4 py-3 bg-ink-800/60 hover:bg-ink-700 border border-ink-700 hover:border-ink-600 rounded-lg transition disabled:opacity-50"
               >
                 <div className="font-medium text-ink-50">{p.label}</div>
-                <div className="text-xs text-ink-400 mt-0.5">{p.hint}</div>
+                <div className="text-xs text-ink-300 mt-0.5">{p.hint}</div>
               </button>
             ))}
           </div>
@@ -73,13 +90,17 @@ export default function LoginPage({ error }) {
           <div className="mt-4 pt-4 border-t border-ink-700">
             <button
               onClick={() => setAdvanced((v) => !v)}
-              className="text-xs text-ink-400 hover:text-ink-200"
+              className="text-xs text-ink-300 hover:text-ink-100"
             >
               {advanced ? '− Hide' : '+ Use a custom provider'}
             </button>
             {advanced && (
               <div className="mt-3 space-y-2">
+                <label htmlFor="custom-issuer" className="block text-xs text-ink-300">
+                  Provider address. Sharing works only if this server uses Web Access Control.
+                </label>
                 <input
+                  id="custom-issuer"
                   type="url"
                   value={customIssuer}
                   onChange={(e) => setCustomIssuer(e.target.value)}
@@ -98,7 +119,7 @@ export default function LoginPage({ error }) {
           </div>
         </div>
 
-        <p className="text-center mt-6 text-xs text-ink-400">
+        <p className="text-center mt-6 text-xs text-ink-300">
           New to Solid?{' '}
           <a
             href="https://solidproject.org/users/get-a-pod"

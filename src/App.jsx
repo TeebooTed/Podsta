@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { restoreSession, logout, findPodUrl } from './lib/auth.js';
+import { lockExistingComments } from './lib/acl.js';
+import { postedToast } from './lib/shareFeedback.js';
 import {
   loadOwnPosts,
   uploadPhoto,
@@ -95,6 +97,13 @@ export default function App() {
                 return [];
               }),
               loadFriends({ podUrl: pod, session: s }).catch(() => []),
+              lockExistingComments({
+                podUrl: pod,
+                ownerWebId: s.info.webId,
+                session: s,
+              }).catch((err) => {
+                console.warn('Could not lock comments to the owner:', err);
+              }),
             ]);
             if (cancelled || gen !== sessionGenRef.current) return;
             setProfile(prof);
@@ -139,7 +148,8 @@ export default function App() {
         postUrl = await createTextPost({ podUrl, session, title, body });
       }
 
-      // If the user wanted it public, share immediately.
+      let shareFailed = false;
+      let shareMessage = '';
       if (makePublic) {
         const justCreated = {
           url: postUrl,
@@ -157,11 +167,13 @@ export default function App() {
             session,
           });
         } catch (err) {
-          showToast(`Posted, but sharing failed: ${err.message}`, 'error');
+          shareFailed = true;
+          shareMessage = err.message;
         }
       }
 
-      showToast(makePublic ? 'Posted publicly' : 'Posted privately');
+      const toast = postedToast({ makePublic, shareFailed, shareMessage });
+      showToast(toast.message, toast.type);
       await reloadPosts();
     },
     [podUrl, session, reloadPosts, showToast],
@@ -197,11 +209,8 @@ export default function App() {
           showToast('Now public — friends can see it');
         }
       } catch (err) {
-        // Revert on error.
-        setPosts((prev) =>
-          prev.map((p) => (p.url === post.url ? { ...p, isPublic: post.isPublic } : p)),
-        );
         showToast(`Could not change visibility: ${err.message}`, 'error');
+        await reloadPosts();
       } finally {
         setTogglingUrls((s) => {
           const n = new Set(s);
@@ -210,7 +219,7 @@ export default function App() {
         });
       }
     },
-    [podUrl, session, showToast],
+    [podUrl, session, showToast, reloadPosts],
   );
 
   // ── Edit ──────────────────────────────────────────────────
@@ -219,12 +228,20 @@ export default function App() {
       if (!session) return;
       try {
         if (post.type === 'photo') {
-          await editPhotoCaption({ post, newCaption: changes.caption || '', session });
+          await editPhotoCaption({
+            post,
+            newCaption: changes.caption || '',
+            podUrl,
+            ownerWebId: session.info.webId,
+            session,
+          });
         } else {
           await editTextPost({
             post,
             newTitle: changes.title || '',
             newBody: changes.body || '',
+            podUrl,
+            ownerWebId: session.info.webId,
             session,
           });
         }
@@ -235,7 +252,7 @@ export default function App() {
         throw err;
       }
     },
-    [session, reloadPosts, showToast],
+    [podUrl, session, reloadPosts, showToast],
   );
 
   // ── Delete ────────────────────────────────────────────────
@@ -322,6 +339,7 @@ export default function App() {
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.querySelector('[role="dialog"]')) return;
       if (e.key === 'h') setCurrentTab('home');
       else if (e.key === 'f') setCurrentTab('feed');
       else if (e.key === 'd') setCurrentTab('discover');
@@ -427,7 +445,7 @@ export default function App() {
       {/* Floating compose button on mobile */}
       <button
         onClick={() => setComposerOpen(true)}
-        className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-accent-light text-ink-50 rounded-full shadow-2xl shadow-accent/50 text-2xl flex items-center justify-center z-30 transition"
+        className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-accent-light text-ink-950 rounded-full shadow-2xl shadow-accent/50 text-2xl flex items-center justify-center z-30 transition"
         aria-label="New post"
       >
         +

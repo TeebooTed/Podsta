@@ -14,8 +14,8 @@ This is a complete rebuild of the [original Podsta MVP](https://github.com/Teebo
 - **Text posts** with optional titles and read-more truncation.
 - **Public/private toggle** per post, applied via WACL ACLs to the post and its sibling resources.
 - **Cross-pod feeds** — see your friends' public posts via a `public-index.ttl` discovery file.
-- **Comments** on public posts, stored in the post owner's Pod.
-- **Discovery** through three channels: manual WebID, friends-of-friends, and a community registry.
+- **Owner-only comments** on your posts, stored in your Pod. Other people cannot write into that folder.
+- **Discovery** by copying your WebID or pasting someone else's. There is no public directory in this beta.
 - **Profile editor** — name, bio, avatar.
 - **Keyboard shortcuts**: `h`/`f`/`d`/`p` for tabs, `n` for new post.
 - **Mobile-first** responsive layout with a tab bar under the header and a floating compose button.
@@ -32,7 +32,9 @@ npm install
 # 2. Start dev server
 npm run dev
 
-# 3. Open http://localhost:5173 and sign in with any Solid Pod provider.
+# 3. Open http://localhost:5173 and sign in with a Web Access Control provider
+#    such as https://solidcommunity.net. Inrupt PodSpaces uses access policies
+#    this beta cannot share with.
 ```
 
 To build for production:
@@ -81,27 +83,22 @@ Friend feeds become a parallel fetch of N small Turtle files instead of N contai
 
 ### Sharing & ACLs
 
-When you mark a post public, we write a Turtle ACL granting `acl:Read` to `foaf:Agent` (the public class) on:
+When you mark a post public, we write a Turtle Web Access Control file granting `acl:Read` to `foaf:Agent` (the public class) on:
 
 - The post resource itself
-- For photos, the `.meta` sidecar with the caption
-- The comments container is set to public Read+Append once with a `default` cascade rule, so comment files inherit it automatically
+- For photos with a caption, the `.meta` sidecar
 
-Unsharing reverses these grants and removes the entry from the public index.
+This beta speaks WAC only. A server that uses Access Control Policies, including Inrupt PodSpaces, will not treat these files as permissions. Unsharing replaces the public grant with an owner-only rule and removes the entry from the public index. If any sibling write fails, sharing fails as a whole.
+
+The comments container is owner-only, including `acl:default`, so a previous public Append grant is removed the next time the app runs or a post is shared. Other people cannot add files there.
 
 ### Comments
 
-Comments live in the post owner's Pod, not the commenter's, so they persist if a commenter deletes their account. Each post has one Turtle file at `/podsta/comments/<hash>.ttl` containing all its comments as separate `Thing`s. The container has a public Read+Append ACL (set the first time you share any post), which means anyone can post a comment but only the owner can delete or modify them.
+Comments are notes only the post owner can read or write. They live in the owner's Pod at `/podsta/comments/<hash>.ttl`. The container ACL is owner-only. A future version can add social comments once that does not require giving the public write access to the Pod.
 
 ### Discovery
 
-Three layers, all in `src/lib/discover.js`:
-
-1. **Manual WebID** — paste any Solid WebID URL.
-2. **Friends-of-friends** — for each friend whose `friends.ttl` is public, harvest WebIDs you don't already follow.
-3. **Community registry** — a JSON file at `https://cdn.jsdelivr.net/gh/podsta-app/registry@main/registry.json` listing opt-in profiles. Cached for 1 hour in localStorage. Falls back to bundled seed list if unreachable.
-
-To set up your own registry, fork [podsta-app/registry](https://github.com/podsta-app/registry) (you'll need to create this) and edit `REGISTRY_URL` in `src/lib/discover.js`.
+People find each other by WebID. Discover shows your WebID with a copy button, and a field to paste someone else's. There is no community directory. Friends-of-friends still looks for a public `friends.ttl`, with an 8 second timeout per request, but Podsta does not publish your follow list.
 
 ---
 
@@ -186,7 +183,7 @@ Solid OIDC requires HTTPS in production. Localhost works for development, but an
 - **Comments are flat** — no threading or replies. Each post has one Turtle file; switching to one-file-per-comment would enable individual deletion/moderation.
 - **No notifications** — you don't know when someone comments on your post unless you check. Solid LDN inbox could solve this; not yet wired up.
 - **No like/reaction primitive** — by design for now (less performative pressure on a slow social network).
-- **Pod-server quirks** — different Solid servers (NSS, ESS, CSS) implement ACL slightly differently. The hand-written Turtle ACLs work on all three in our testing, but if your provider behaves oddly, file an issue.
+- **Pod-server quirks** — this beta's sharing has been written for Web Access Control (Community Solid Server and NSS). It has not been verified against Inrupt's Enterprise Solid Server, which uses Access Control Policies. Use a WAC provider such as solidcommunity.net until ACP support exists.
 
 ---
 
