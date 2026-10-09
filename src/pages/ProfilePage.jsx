@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import Avatar from '../components/Avatar.jsx';
 import PostGrid from '../components/PostGrid.jsx';
 import { saveProfile, uploadAvatar } from '../lib/profile.js';
+import DiscoverabilitySettings from '../components/DiscoverabilitySettings.jsx';
+import { DEFAULT_LEVEL } from '../lib/discoverability.js';
 import { ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from '../lib/vocab.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { safeHttpUrl } from '../lib/urls.js';
@@ -19,7 +21,13 @@ export default function ProfilePage({
   loading,
   friends,
   onCompose,
-  onTogglePublic,
+  onSetAudience,
+  onSaveDiscoverability,
+  contacts = [],
+  onAddContact,
+  onRemoveContact,
+  onAddFollowing,
+  contactBusy = false,
   onEdit,
   onDelete,
   togglingUrls,
@@ -31,12 +39,15 @@ export default function ProfilePage({
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [level, setLevel] = useState(profile?.discoverability || DEFAULT_LEVEL);
+  const [savingLevel, setSavingLevel] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
     setName(profile?.name || '');
     setBio(profile?.bio || '');
     setAvatarUrl(profile?.avatarUrl || '');
+    setLevel(profile?.discoverability || DEFAULT_LEVEL);
     setDirty(false);
   }, [profile]);
 
@@ -62,6 +73,7 @@ export default function ProfilePage({
         session,
         file,
         ownerWebId: session.info.webId,
+        discoverability: profile?.discoverability || DEFAULT_LEVEL,
       });
       setAvatarUrl(url);
       setDirty(true);
@@ -82,9 +94,9 @@ export default function ProfilePage({
         ownerWebId: session.info.webId,
         profile: { name, bio, avatarUrl },
       });
-      onProfileUpdated({ name, bio, avatarUrl });
+      onProfileUpdated({ ...profile, name, bio, avatarUrl });
       setDirty(false);
-      showToast('Profile saved — visible to everyone');
+      showToast('Profile saved');
     } catch (err) {
       showToast(`Save failed: ${err.message}`, 'error');
     } finally {
@@ -97,10 +109,36 @@ export default function ProfilePage({
     showToast(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
   };
 
-  const publicCount = posts.filter((p) => p.isPublic).length;
+  const publicCount = posts.filter((p) => p.audience === 'public' || p.isPublic).length;
+  const contactsCount = posts.filter((p) => p.audience === 'contacts').length;
+
+  const handleSaveLevel = async () => {
+    setSavingLevel(true);
+    try {
+      await onSaveDiscoverability(level, { name, bio, avatarUrl });
+      showToast('Discoverability saved');
+    } catch (err) {
+      showToast(`Discoverability was not saved: ${err.message}`, 'error');
+    } finally {
+      setSavingLevel(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
+      <DiscoverabilitySettings
+        level={level}
+        inferred={profile?.discoverabilityInferred}
+        onChange={setLevel}
+        onSave={handleSaveLevel}
+        saving={savingLevel}
+        contacts={contacts}
+        onAddContact={onAddContact}
+        onRemoveContact={onRemoveContact}
+        onAddFollowing={onAddFollowing}
+        contactBusy={contactBusy}
+      />
+
       <section className="card p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row gap-6 items-start">
           <div className="relative shrink-0">
@@ -126,7 +164,7 @@ export default function ProfilePage({
           <div className="flex-1 min-w-0 space-y-4 w-full">
             <h1 className="display-serif text-4xl leading-none">{name || 'Your profile'}</h1>
             <p className="text-sm text-ink-300">
-              {posts.length} posts · {publicCount} public · {friends.length} following
+              {posts.length} posts · {publicCount} public · {contactsCount} contacts · {friends.length} following
             </p>
             <div>
               <label htmlFor="profile-name" className="block text-xs font-medium text-ink-300 mb-1.5">
@@ -177,7 +215,8 @@ export default function ProfilePage({
           session={session}
           podUrl={podUrl}
           onCompose={onCompose}
-          onTogglePublic={onTogglePublic}
+          onSetAudience={onSetAudience}
+          discoverability={profile?.discoverability || DEFAULT_LEVEL}
           onEdit={onEdit}
           onDelete={onDelete}
           togglingUrls={togglingUrls}

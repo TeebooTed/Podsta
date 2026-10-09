@@ -96,7 +96,8 @@ export default function HomePage({ friends, session, ownPostCount = 0, onRemoveF
       caption: entry.caption || '',
       body: '',
       dateCreated: entry.dateCreated,
-      isPublic: true,
+      isPublic: entry.audience !== 'contacts',
+      audience: entry.audience || 'public',
       mediaUrl: entry.url,
       mediaBlob: null,
     };

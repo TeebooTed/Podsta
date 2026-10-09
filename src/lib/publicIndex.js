@@ -11,7 +11,7 @@ import {
   getStringNoLocale,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, PODSTA } from './vocab.js';
-import { makePublic } from './acl.js';
+import { makeGroupReadable, makePublic } from './acl.js';
 import { withTimeout } from './timeoutFetch.js';
 
 /**
@@ -37,13 +37,13 @@ import { withTimeout } from './timeoutFetch.js';
  *   - caption:    For photos, the caption (denormalized for speed; saves a fetch)
  */
 
-function indexUrl(podUrl) {
-  return `${podUrl}${PATHS.publicIndex}`;
+function indexUrl(podUrl, path = PATHS.publicIndex) {
+  return `${podUrl}${path}`;
 }
 
-function entryThingUrl(podUrl, postUrl) {
+function entryThingUrl(podUrl, postUrl, path = PATHS.publicIndex) {
   // Stable, idempotent identifier — re-sharing the same post overwrites the entry.
-  return `${indexUrl(podUrl)}#${encodeURIComponent(postUrl)}`;
+  return `${indexUrl(podUrl, path)}#${encodeURIComponent(postUrl)}`;
 }
 
 /**
@@ -53,10 +53,10 @@ function entryThingUrl(podUrl, postUrl) {
  * Pass `fetchFn` to use authenticated fetch (slightly higher rate limits on
  * some providers); omit it for anonymous fetch.
  */
-export async function readPublicIndex(podUrl, fetchFn) {
+async function readIndex(podUrl, path, fetchFn) {
   const timed = withTimeout(fetchFn || fetch);
   try {
-    const ds = await getSolidDataset(indexUrl(podUrl), { fetch: timed });
+    const ds = await getSolidDataset(indexUrl(podUrl, path), { fetch: timed });
     return getThingAll(ds)
       .map((t) => ({
         url: getStringNoLocale(t, SCHEMA.url) || '',
@@ -68,8 +68,27 @@ export async function readPublicIndex(podUrl, fetchFn) {
       .filter((e) => e.url)
       .sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
   } catch (err) {
-    // 404 → user has no public posts yet → empty list, not an error.
+    // 404 → nothing listed yet → empty list, not an error.
     if (err?.statusCode === 404 || err?.response?.status === 404) return [];
+    throw err;
+  }
+}
+
+export async function readPublicIndex(podUrl, fetchFn) {
+  return readIndex(podUrl, PATHS.publicIndex, fetchFn);
+}
+
+/**
+ * Contacts-only posts. A 401/403 means the viewer is not in the group:
+ * that is an empty list for them, not a sign that the Pod is offline.
+ * Timeouts and other failures still throw so the caller can decide.
+ */
+export async function readContactsIndex(podUrl, fetchFn) {
+  try {
+    return await readIndex(podUrl, PATHS.contactsIndex, fetchFn);
+  } catch (err) {
+    const status = err?.statusCode || err?.response?.status;
+    if (status === 401 || status === 403) return [];
     throw err;
   }
 }
@@ -78,15 +97,16 @@ export async function readPublicIndex(podUrl, fetchFn) {
  * Add or update an entry in the user's public index, then ensure the index
  * file itself is publicly readable.
  */
-export async function addToPublicIndex(podUrl, entry, ownerWebId, session) {
+async function addToIndex(podUrl, path, entry, session, lock) {
+  const url = indexUrl(podUrl, path);
   let ds;
   try {
-    ds = await getSolidDataset(indexUrl(podUrl), { fetch: session.fetch });
+    ds = await getSolidDataset(url, { fetch: session.fetch });
   } catch {
     ds = createSolidDataset();
   }
 
-  const thingUrl = entryThingUrl(podUrl, entry.url);
+  const thingUrl = entryThingUrl(podUrl, entry.url, path);
   let thing = getThing(ds, thingUrl) ?? createThing({ url: thingUrl });
   thing = setStringNoLocale(thing, SCHEMA.url, entry.url);
   thing = setStringNoLocale(thing, PODSTA.PostType, entry.type);
@@ -96,28 +116,46 @@ export async function addToPublicIndex(podUrl, entry, ownerWebId, session) {
   thing = setStringNoLocale(thing, SCHEMA.caption, entry.caption || '');
 
   ds = setThing(ds, thing);
-  await saveSolidDatasetAt(indexUrl(podUrl), ds, { fetch: session.fetch });
+  await saveSolidDatasetAt(url, ds, { fetch: session.fetch });
+  await lock(url);
+}
 
-  // First-time: ensure the index file itself is publicly readable.
-  // (Re-running this is harmless — it just overwrites the ACL with the same content.)
-  await makePublic(indexUrl(podUrl), ownerWebId, session);
+export async function addToPublicIndex(podUrl, entry, ownerWebId, session) {
+  await addToIndex(podUrl, PATHS.publicIndex, entry, session, (url) =>
+    makePublic(url, ownerWebId, session),
+  );
+}
+
+export async function addToContactsIndex(podUrl, entry, ownerWebId, groupUrl, session) {
+  await addToIndex(podUrl, PATHS.contactsIndex, entry, session, (url) =>
+    makeGroupReadable(url, ownerWebId, groupUrl, session),
+  );
 }
 
 /**
  * Remove an entry from the public index (called when a post is unshared or deleted).
  */
-export async function removeFromPublicIndex(podUrl, postUrl, session) {
+async function removeFromIndex(podUrl, path, postUrl, session) {
+  const url = indexUrl(podUrl, path);
   let ds;
   try {
-    ds = await getSolidDataset(indexUrl(podUrl), { fetch: session.fetch });
+    ds = await getSolidDataset(url, { fetch: session.fetch });
   } catch {
     return; // No index → nothing to remove.
   }
 
-  const thingUrl = entryThingUrl(podUrl, postUrl);
+  const thingUrl = entryThingUrl(podUrl, postUrl, path);
   const thing = getThing(ds, thingUrl);
   if (!thing) return;
 
   ds = removeThing(ds, thing);
-  await saveSolidDatasetAt(indexUrl(podUrl), ds, { fetch: session.fetch });
+  await saveSolidDatasetAt(url, ds, { fetch: session.fetch });
+}
+
+export async function removeFromPublicIndex(podUrl, postUrl, session) {
+  await removeFromIndex(podUrl, PATHS.publicIndex, postUrl, session);
+}
+
+export async function removeFromContactsIndex(podUrl, postUrl, session) {
+  await removeFromIndex(podUrl, PATHS.contactsIndex, postUrl, session);
 }

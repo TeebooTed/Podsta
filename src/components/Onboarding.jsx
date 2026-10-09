@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { ONBOARDING_STEPS } from '../lib/onboarding.js';
+import { DEFAULT_LEVEL, LEVEL_OPTIONS } from '../lib/discoverability.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
 
@@ -7,9 +8,19 @@ import { useFocusTrap } from '../hooks/useFocusTrap.js';
  * Skippable first-run tour. Skip and "Not now" both finish the tour
  * without requiring a post.
  */
-export default function Onboarding({ webId, initialName = '', onSaveName, onCompose, onDone, showToast }) {
+export default function Onboarding({
+  webId,
+  initialName = '',
+  initialLevel = DEFAULT_LEVEL,
+  onSaveName,
+  onSaveDiscoverability,
+  onCompose,
+  onDone,
+  showToast,
+}) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState(initialName);
+  const [level, setLevel] = useState(initialLevel || DEFAULT_LEVEL);
   const [saving, setSaving] = useState(false);
   const panelRef = useRef(null);
   const titleId = useId();
@@ -27,6 +38,17 @@ export default function Onboarding({ webId, initialName = '', onSaveName, onComp
         await onSaveName(name.trim());
       } catch (err) {
         showToast?.(`Could not save your name: ${err.message}`, 'error');
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+    }
+    if (current.id === 'visibility') {
+      setSaving(true);
+      try {
+        await onSaveDiscoverability?.(level);
+      } catch (err) {
+        showToast?.(`Could not save discoverability: ${err.message}`, 'error');
         setSaving(false);
         return;
       }
@@ -72,6 +94,33 @@ export default function Onboarding({ webId, initialName = '', onSaveName, onComp
               placeholder="Your name"
             />
           </div>
+        )}
+
+        {current.id === 'visibility' && (
+          <fieldset className="mb-5 space-y-2">
+            <legend className="sr-only">Discoverability</legend>
+            {LEVEL_OPTIONS.map((option) => (
+              <label
+                key={option.id}
+                className={`flex gap-3 items-start rounded-lg border px-3 py-3 cursor-pointer ${
+                  level === option.id ? 'border-accent bg-accent/10' : 'border-ink-600'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="onboard-discoverability"
+                  value={option.id}
+                  checked={level === option.id}
+                  onChange={() => setLevel(option.id)}
+                  className="mt-1 accent-accent shrink-0"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-ink-50">{option.label}</span>
+                  <span className="block text-sm text-ink-200 mt-1 leading-relaxed">{option.description}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
         )}
 
         {current.id === 'webid' && (

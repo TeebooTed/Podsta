@@ -23,12 +23,19 @@ export const FOAF = {
   Agent: 'http://xmlns.com/foaf/0.1/Agent',
 };
 
+export const VCARD = {
+  Group: 'http://www.w3.org/2006/vcard/ns#Group',
+  hasMember: 'http://www.w3.org/2006/vcard/ns#hasMember',
+};
+
 export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 
 // Custom Podsta vocab (ad-hoc namespace; we just need stable IRIs for our own data).
 export const PODSTA = {
   PostType: 'https://podsta.app/vocab#PostType', // "photo" | "text"
   PublicIndex: 'https://podsta.app/vocab#PublicIndex',
+  audience: 'https://podsta.app/vocab#audience', // "public" | "contacts" | "private"
+  discoverability: 'https://podsta.app/vocab#discoverability', // "public" | "contacts" | "hidden"
 };
 
 // Pod paths — relative to the user's pod URL.
@@ -37,7 +44,10 @@ export const PATHS = {
   posts: 'podsta/posts/',
   comments: 'podsta/comments/',
   contacts: 'podsta/contacts/friends.ttl',
+  contactsGroup: 'podsta/contacts/group.ttl',
   publicIndex: 'podsta/public-index.ttl',
+  contactsIndex: 'podsta/contacts-index.ttl',
+  listing: 'podsta/listing.ttl',
   favorites: 'podsta/favorites.ttl',
   profile: 'podsta/profile.ttl',
   inbox: 'podsta/inbox/',

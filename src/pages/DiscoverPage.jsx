@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../components/Avatar.jsx';
 import EmptyState from '../components/EmptyState.jsx';
-import { discoverViaFriends } from '../lib/discover.js';
+import { discoverViaFriends, listingsFor } from '../lib/discover.js';
 import { normalizeWebId } from '../lib/friends.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { personPath } from '../lib/navigation.js';
 
 /**
- * Find people by WebID. There is no community directory in this beta.
- * Friends-of-friends runs with a timeout when a friend has published their list.
+ * Find people by WebID. The directory lists people reached through a public
+ * follow list who opted in with a listing card. There is no central phone book.
  */
 export default function DiscoverPage({ session, friends, onAddFriend, addingWebId, showToast }) {
   const [foaf, setFoaf] = useState([]);
+  const [directory, setDirectory] = useState([]);
   const [loadingFoaf, setLoadingFoaf] = useState(false);
 
   const [manualInput, setManualInput] = useState('');
@@ -21,18 +22,23 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
   useEffect(() => {
     if (!friends?.length) {
       setFoaf([]);
+      setDirectory([]);
       setLoadingFoaf(false);
       return undefined;
     }
     let cancelled = false;
     setLoadingFoaf(true);
-    discoverViaFriends({
+    const args = {
       friends,
       ownWebId: session?.info?.webId,
       fetchFn: session?.fetch,
-    })
-      .then((people) => {
-        if (!cancelled) setFoaf(people);
+    };
+    discoverViaFriends(args)
+      .then(async (people) => {
+        if (cancelled) return;
+        setFoaf(people);
+        const listed = await listingsFor(people, session?.fetch);
+        if (!cancelled) setDirectory(listed);
       })
       .finally(() => {
         if (!cancelled) setLoadingFoaf(false);
@@ -167,11 +173,21 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
 
       <section>
         <h2 className="display-serif text-2xl mb-3">Directory</h2>
-        <EmptyState
-          icon="∅"
-          title="No public directory yet"
-          message="Podsta does not list people for you. Copy your WebID and send it to someone, or paste a WebID you already know."
-        />
+        {loadingFoaf ? (
+          <p className="text-sm text-ink-200 py-4">Looking for public listings…</p>
+        ) : directory.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {directory.map((p) => (
+              <ProfileCard key={p.webId} p={p} badge="Listed" />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="∅"
+            title="No public directory yet"
+            message="People appear here when you can reach them through a published follow list and they have opted in. Podsta has no central phone book. Paste a WebID you already know."
+          />
+        )}
       </section>
     </div>
   );

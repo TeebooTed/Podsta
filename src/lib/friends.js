@@ -12,6 +12,7 @@ import {
   getPodUrlAll,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, FOAF } from './vocab.js';
+import { makePublic } from './acl.js';
 import { normalizeWebId } from './webId.js';
 import { withTimeout } from './timeoutFetch.js';
 import { asPodRoot, safeHttpUrl } from './urls.js';
@@ -87,7 +88,7 @@ export async function loadFriends({ podUrl, session }) {
     .filter((f) => f.webId);
 }
 
-export async function addFriend({ podUrl, session, webId }) {
+export async function addFriend({ podUrl, session, webId, discoverability }) {
   const normalized = normalizeWebId(webId);
   if (!normalized) throw new Error('Invalid WebID');
   if (normalized === session.info.webId) {
@@ -113,6 +114,9 @@ export async function addFriend({ podUrl, session, webId }) {
   ds = setThing(ds, thing);
 
   await saveSolidDatasetAt(friendsUrl(podUrl), ds, { fetch: session.fetch });
+  if (discoverability === 'public') {
+    await makePublic(friendsUrl(podUrl), session.info.webId, session);
+  }
   return profile;
 }
 

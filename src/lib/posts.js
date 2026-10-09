@@ -13,10 +13,17 @@ import {
   getStringNoLocale,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, PODSTA, ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from './vocab.js';
-import { isPublic, lockCommentsToOwner, makePublic, shareResources, unshareResources } from './acl.js';
-import { addToPublicIndex, removeFromPublicIndex } from './publicIndex.js';
+import { applyAudience, isPublic, lockCommentsToOwner, makeGroupReadable, makePublic } from './acl.js';
+import {
+  addToContactsIndex,
+  addToPublicIndex,
+  removeFromContactsIndex,
+  removeFromPublicIndex,
+} from './publicIndex.js';
 import { publicIndexEntryFromPost } from './indexEntry.js';
 import { isNotFound, withTimeout } from './timeoutFetch.js';
+import { audienceAllowed, effectiveAudience, groupDocUrl, groupFragment } from './discoverability.js';
+import { ensureContactsGroup } from './contactsGroup.js';
 
 /**
  * A "post" in Podsta is one of two things:
@@ -93,14 +100,29 @@ async function loadPhotoCaption(photoUrl, fetchFn) {
   try {
     const ds = await getSolidDataset(`${photoUrl}.meta`, { fetch: timed });
     const thing = getThing(ds, photoUrl);
-    if (!thing) return { caption: '', dateCreated: '' };
+    if (!thing) return { caption: '', dateCreated: '', audience: '' };
     return {
       caption: getStringNoLocale(thing, SCHEMA.caption) || '',
       dateCreated: getStringNoLocale(thing, SCHEMA.dateCreated) || '',
+      audience: getStringNoLocale(thing, PODSTA.audience) || '',
     };
   } catch {
-    return { caption: '', dateCreated: '' };
+    return { caption: '', dateCreated: '', audience: '' };
   }
+}
+
+async function storeAudience(resourceUrl, thingUrl, audience, session) {
+  let ds;
+  try {
+    ds = await getSolidDataset(resourceUrl, { fetch: session.fetch });
+  } catch (err) {
+    if (!isNotFound(err)) throw err;
+    ds = createSolidDataset();
+  }
+  let thing = getThing(ds, thingUrl) ?? createThing({ url: thingUrl });
+  thing = setStringNoLocale(thing, PODSTA.audience, audience);
+  ds = setThing(ds, thing);
+  await saveSolidDatasetAt(resourceUrl, ds, { fetch: session.fetch });
 }
 
 export async function loadOwnPhotos({ podUrl, session }) {
@@ -128,6 +150,7 @@ export async function loadOwnPhotos({ podUrl, session }) {
       const dateCreated =
         meta.dateCreated ||
         (tsMatch ? new Date(parseInt(tsMatch[1], 10)).toISOString() : new Date(0).toISOString());
+      const audience = effectiveAudience({ stored: meta.audience, isPublic: pub });
       return {
         id: url,
         url,
@@ -137,6 +160,7 @@ export async function loadOwnPhotos({ podUrl, session }) {
         title: '',
         dateCreated,
         isPublic: pub,
+        audience,
         mediaUrl: url,
         mediaBlob: null,
       };
@@ -184,6 +208,7 @@ async function loadTextPost(postUrl, fetchFn) {
       title: getStringNoLocale(thing, SCHEMA.name) || '',
       caption: '',
       dateCreated: getStringNoLocale(thing, SCHEMA.dateCreated) || '',
+      audience: getStringNoLocale(thing, PODSTA.audience) || '',
       mediaUrl: null,
       mediaBlob: null,
     };
@@ -210,7 +235,8 @@ export async function loadOwnTextPosts({ podUrl, session }) {
         isPublic(url, session.fetch),
       ]);
       if (!post) return null;
-      return { ...post, isPublic: pub };
+      const audience = effectiveAudience({ stored: post.audience, isPublic: pub });
+      return { ...post, isPublic: pub, audience };
     }),
   );
 
@@ -239,27 +265,74 @@ export async function loadOwnPosts({ podUrl, session }) {
 // feeds can discover this post.
 // ─────────────────────────────────────────────────────────────
 
-export async function sharePost({ post, podUrl, ownerWebId, session }) {
-  // Apply public ACL to the post resource and any siblings.
-  const urlsToShare = [post.url];
-  if (post.type === 'photo' && post.caption) {
-    urlsToShare.push(`${post.url}.meta`);
+async function rememberAudience(post, audience, session) {
+  if (post.type === 'photo') {
+    await storeAudience(`${post.url}.meta`, post.url, audience, session);
+    return;
   }
-  await shareResources(urlsToShare, ownerWebId, session);
+  await storeAudience(post.url, post.url, audience, session);
+}
+
+export async function sharePost({ post, podUrl, ownerWebId, session, audience = 'public' }) {
+  if (audience !== 'public' && audience !== 'contacts') {
+    throw new Error('Share audience must be public or contacts');
+  }
+  const groupUrl = groupFragment(podUrl);
+  if (audience === 'contacts') {
+    await ensureContactsGroup({ podUrl, session });
+    await makePublic(groupDocUrl(podUrl), ownerWebId, session);
+  }
+
+  // Record the audience before the ACL. If the ACL write fails, isPublic
+  // still reflects the old rule, so the UI does not claim the new audience.
+  await rememberAudience(post, audience, session);
+
+  const urlsToShare = [post.url];
+  if (post.type === 'photo') urlsToShare.push(`${post.url}.meta`);
+  await applyAudience(urlsToShare, audience, { ownerWebId, groupUrl, session });
 
   // Comments stay owner-only. This also replaces an older public Append grant.
   const commentsContainer = `${podUrl}${PATHS.comments}`;
   await ensureContainer(commentsContainer, session);
   await lockCommentsToOwner(commentsContainer, ownerWebId, session);
 
-  await addToPublicIndex(podUrl, publicIndexEntryFromPost(post), ownerWebId, session);
+  const entry = publicIndexEntryFromPost(post);
+  if (audience === 'public') {
+    await addToPublicIndex(podUrl, entry, ownerWebId, session);
+    await removeFromContactsIndex(podUrl, post.url, session);
+  } else {
+    await addToContactsIndex(podUrl, entry, ownerWebId, groupUrl, session);
+    await removeFromPublicIndex(podUrl, post.url, session);
+  }
 }
 
 export async function unsharePost({ post, podUrl, ownerWebId, session }) {
   const urls = [post.url];
   if (post.type === 'photo') urls.push(`${post.url}.meta`);
-  await unshareResources(urls, ownerWebId, session);
+  await applyAudience(urls, 'private', { ownerWebId, groupUrl: groupFragment(podUrl), session });
   await removeFromPublicIndex(podUrl, post.url, session);
+  await removeFromContactsIndex(podUrl, post.url, session);
+  try {
+    await rememberAudience(post, 'private', session);
+  } catch (err) {
+    // A photo with no sidecar has nothing to tag. The ACL is already owner-only.
+    if (!isNotFound(err)) throw err;
+  }
+}
+
+/**
+ * Set one post's audience. Refuses a choice above the profile ceiling.
+ * Private clears both indexes. Success is the write returning, not a local flip.
+ */
+export async function setPostAudience({ post, audience, level, podUrl, ownerWebId, session }) {
+  if (level && !audienceAllowed(level, audience)) {
+    throw new Error('That visibility is above your discoverability setting');
+  }
+  if (audience === 'private') {
+    await unsharePost({ post, podUrl, ownerWebId, session });
+    return;
+  }
+  await sharePost({ post, audience, podUrl, ownerWebId, session });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -282,18 +355,21 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(`${post.url}.meta`, ds, { fetch: session.fetch });
 
-  if (!post.isPublic) return;
+  const audience = effectiveAudience({ stored: post.audience, isPublic: post.isPublic });
+  if (audience === 'private') return;
   try {
-    if (caption) await makePublic(`${post.url}.meta`, ownerWebId, session);
-    await addToPublicIndex(
-      podUrl,
-      publicIndexEntryFromPost({ ...post, caption }, { caption }),
-      ownerWebId,
-      session,
-    );
+    const entry = publicIndexEntryFromPost({ ...post, caption, audience }, { caption });
+    if (audience === 'public') {
+      if (caption) await makePublic(`${post.url}.meta`, ownerWebId, session);
+      await addToPublicIndex(podUrl, entry, ownerWebId, session);
+    } else {
+      const groupUrl = groupFragment(podUrl);
+      if (caption) await makeGroupReadable(`${post.url}.meta`, ownerWebId, groupUrl, session);
+      await addToContactsIndex(podUrl, entry, ownerWebId, groupUrl, session);
+    }
   } catch (err) {
     throw new Error(
-      `The caption was saved, but the public index was not updated: ${err.message}`,
+      `The caption was saved, but the shared index was not updated: ${err.message}`,
     );
   }
 }
@@ -314,24 +390,26 @@ export async function editTextPost({ post, newTitle, newBody, podUrl, ownerWebId
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(post.url, ds, { fetch: session.fetch });
 
-  if (!post.isPublic) return;
+  const audience = effectiveAudience({ stored: post.audience, isPublic: post.isPublic });
+  if (audience === 'private') return;
   const title = newTitle?.trim() || '';
   const body = newBody.trim();
   try {
-    await addToPublicIndex(
-      podUrl,
-      publicIndexEntryFromPost({ ...post, title, body }, { title, body }),
-      ownerWebId,
-      session,
-    );
+    const entry = publicIndexEntryFromPost({ ...post, title, body, audience }, { title, body });
+    if (audience === 'public') {
+      await addToPublicIndex(podUrl, entry, ownerWebId, session);
+    } else {
+      await addToContactsIndex(podUrl, entry, ownerWebId, groupFragment(podUrl), session);
+    }
   } catch (err) {
-    throw new Error(`The post was saved, but the public index was not updated: ${err.message}`);
+    throw new Error(`The post was saved, but the shared index was not updated: ${err.message}`);
   }
 }
 
 export async function deletePost({ post, podUrl, session }) {
-  // Always try. A stale isPublic flag should not leave the post in friends' feeds.
+  // Always try. A stale flag should not leave the post in either feed.
   await removeFromPublicIndex(podUrl, post.url, session).catch(() => {});
+  await removeFromContactsIndex(podUrl, post.url, session).catch(() => {});
 
   // Delete the main resource.
   try {

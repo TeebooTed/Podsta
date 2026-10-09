@@ -12,10 +12,10 @@ This is a complete rebuild of the [original Podsta MVP](https://github.com/Teebo
 
 - **Photo posts** with captions and a full-screen lightbox viewer (zoom, swipe, pinch).
 - **Text posts** with optional titles and read-more truncation.
-- **Public/private toggle** per post, applied via WACL ACLs to the post and its sibling resources.
-- **Cross-pod feeds** — see your friends' public posts via a `public-index.ttl` discovery file.
+- **Discoverability** for the profile: Hidden (the default), Contacts only, or Public. Contacts are people you approve, kept in a Solid group. Per-post visibility is Only me, Contacts, or Public, and cannot be more open than the profile.
+- **Cross-pod feeds** — public posts via `public-index.ttl`, and contacts-only posts via `contacts-index.ttl` for approved people.
 - **Owner-only comments** on your posts, stored in your Pod. Other people cannot write into that folder.
-- **Discovery** by copying your WebID or pasting someone else's. There is no public directory in this beta.
+- **Discovery** by WebID. Public profiles opt into a listing that shows up through someone else's published follow list. There is no central phone book.
 - **Profile editor** — name, bio, avatar.
 - **Keyboard shortcuts**: `h` for Home, `d` for Discover, `p` for Profile, `n` for a new post.
 - **Mobile-first** layout: a bottom bar on phones (Home, Discover, New post, Profile) and a header bar on larger screens.
@@ -67,10 +67,13 @@ Every Podsta user owns a Solid Pod. Inside it, the app uses these paths:
       8x4kfm.ttl                    # comments file per-post (hashed URL)
     contacts/
       friends.ttl                   # WebIDs of people I follow
+      group.ttl                     # vcard group of approved contacts
     avatars/
       avatar-1729872398.jpg         # profile picture
-    profile.ttl                     # name, bio, avatar URL
-    public-index.ttl                # 🔑 list of all my public posts
+    profile.ttl                     # name, bio, avatar, discoverability
+    listing.ttl                     # opt-in directory card (public profiles)
+    public-index.ttl                # list of public posts
+    contacts-index.ttl              # list of contacts-only posts
 ```
 
 ### The `public-index.ttl` pattern
@@ -98,7 +101,9 @@ Comments are notes only the post owner can read or write. They live in the owner
 
 ### Discovery
 
-People find each other by WebID. Discover shows your WebID with a copy button, and a field to paste someone else's. There is no community directory. Friends-of-friends still looks for a public `friends.ttl`, with an 8 second timeout per request, but Podsta does not publish your follow list.
+People find each other by WebID. Discover shows your WebID with a copy button, and a field to paste someone else's. A Public profile publishes `listing.ttl` and the follow list, so someone who can already read a public follow list can see that card. Hidden and Contacts profiles do not. There is no central phone book. Friends-of-friends uses an 8 second timeout per request.
+
+Contacts only uses a `vcard:Group` and WAC `acl:agentGroup`. The group file is world-readable while that grant is in use, because the Pod server reads it to check membership. The posts stay limited to those people. A WebID document itself is hosted by the identity provider and is usually still readable when the profile is Hidden.
 
 ---
 

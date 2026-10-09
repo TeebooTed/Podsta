@@ -3,6 +3,7 @@ import { PATHS } from './vocab.js';
 import {
   aclGrantsPublicRead,
   assertAllSucceeded,
+  groupReadTurtle,
   ownerOnlyTurtle,
   publicReadTurtle,
 } from './aclTurtle.js';
@@ -29,6 +30,37 @@ export async function makePublic(resourceUrl, ownerWebId, session) {
 
 export async function makePrivate(resourceUrl, ownerWebId, session) {
   await writeAcl(resourceUrl, ownerOnlyTurtle(resourceUrl, ownerWebId), session.fetch);
+}
+
+/** Read access for an approved contacts group. Not world-readable. */
+export async function makeGroupReadable(resourceUrl, ownerWebId, groupUrl, session) {
+  await writeAcl(
+    resourceUrl,
+    groupReadTurtle(resourceUrl, ownerWebId, groupUrl),
+    session.fetch,
+  );
+}
+
+/**
+ * One audience applied to every sibling URL.
+ * Missing files count as already private on unshare (404).
+ */
+export async function applyAudience(urls, audience, { ownerWebId, groupUrl, session }) {
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      try {
+        if (audience === 'public') await makePublic(url, ownerWebId, session);
+        else if (audience === 'contacts') {
+          await makeGroupReadable(url, ownerWebId, groupUrl, session);
+        } else await makePrivate(url, ownerWebId, session);
+      } catch (err) {
+        if (audience !== 'public' && audience !== 'contacts' && isNotFound(err)) return;
+        throw err;
+      }
+    }),
+  );
+  assertAllSucceeded(results, audience === 'private' ? 'unshare' : 'share');
+  return { ok: urls.length, failed: 0 };
 }
 
 /**
