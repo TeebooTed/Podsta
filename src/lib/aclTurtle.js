@@ -23,6 +23,33 @@ export function publicReadTurtle(resourceUrl, ownerWebId) {
 }
 
 /**
+ * Read for members of a vcard group, plus full control for the owner.
+ * No public agent, no Append, and no default/inherit.
+ * The group document itself must be readable by the person asking, or the
+ * server cannot check membership.
+ */
+export function groupReadTurtle(resourceUrl, ownerWebId, groupUrl) {
+  const resource = assertTurtleIri(resourceUrl);
+  const owner = assertTurtleIri(ownerWebId);
+  const group = assertTurtleIri(groupUrl);
+  return `
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+
+<#owner>
+  a acl:Authorization ;
+  acl:accessTo <${resource}> ;
+  acl:agent <${owner}> ;
+  acl:mode acl:Read, acl:Write, acl:Control .
+
+<#contacts>
+  a acl:Authorization ;
+  acl:accessTo <${resource}> ;
+  acl:agentGroup <${group}> ;
+  acl:mode acl:Read .
+`.trim();
+}
+
+/**
  * Owner-only ACL. `inherit` adds acl:default so children of a container
  * (comment files) do not keep an older public rule.
  */

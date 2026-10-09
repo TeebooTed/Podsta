@@ -2,12 +2,12 @@ import { getSolidDataset, getThingAll, getStringNoLocale } from '@inrupt/solid-c
 import { resolveProfile } from './friends.js';
 import { PATHS, FOAF } from './vocab.js';
 import { withTimeout } from './timeoutFetch.js';
+import { readListing } from './listing.js';
 
 /**
- * Discovery in this beta is manual: copy your WebID, or paste someone else's.
- * There is no community directory until one is hosted on purpose.
- * Friends-of-friends still runs, with a timeout, for people who have published
- * their follow list. Podsta does not publish that list itself.
+ * Discovery is by WebID, plus people reached through a published follow list.
+ * A public profile opts into a listing card. There is no central phone book.
+ * Hidden and contacts profiles do not publish the follow list.
  */
 
 /**
@@ -51,4 +51,24 @@ export async function discoverViaFriends({ friends, ownWebId, fetchFn, limit = 1
   );
 
   return resolved;
+}
+
+/**
+ * Directory cards for people already reached through a published follow list.
+ * Someone with a public profile still does not appear unless that path exists.
+ */
+export async function listingsFor(people, fetchFn) {
+  const listed = [];
+  for (const person of people || []) {
+    if (!person.podUrl) continue;
+    const card = await readListing(person.podUrl, fetchFn);
+    if (!card) continue;
+    listed.push({
+      ...person,
+      name: card.name || person.name,
+      bio: card.bio || '',
+      avatarUrl: card.avatarUrl || person.avatarUrl,
+    });
+  }
+  return listed;
 }

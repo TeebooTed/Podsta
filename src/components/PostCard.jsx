@@ -59,10 +59,11 @@ export default function PostCard({
     return () => obs.disconnect();
   }, [mode, post.type]);
 
-  // Own photos: public files use the Pod URL (the browser loads them). Private files
-  // are fetched only after the card is near the viewport, one at a time.
+  // Public files use the Pod URL. Private and contacts-only files need the session,
+  // because a plain image request is anonymous and those ACLs will refuse it.
   useEffect(() => {
-    if (mode !== 'own' || post.type !== 'photo' || !visible) return undefined;
+    if (post.type !== 'photo') return undefined;
+    if (mode === 'own' && !visible) return undefined;
     if (post.mediaBlob) {
       const url = URL.createObjectURL(post.mediaBlob);
       setImgUrl(url);
@@ -104,9 +105,7 @@ export default function PostCard({
   const dateStr = relativeTime(post.dateCreated);
   const isLong = post.type === 'text' && post.body && post.body.length > 280;
 
-  // Image src varies: own photos use blob URL, feed photos use the public pod URL directly.
-  const photoSrc =
-    post.type === 'photo' ? (mode === 'own' ? imgUrl : post.mediaUrl || post.url) : null;
+  const photoSrc = post.type === 'photo' ? (post.isPublic && mode !== 'own' ? post.mediaUrl || post.url : imgUrl) : null;
 
   return (
     <article

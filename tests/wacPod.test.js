@@ -5,6 +5,9 @@ import { Parser, Store, Writer } from 'n3';
 import { createTextPost, sharePost, unsharePost, editTextPost, deletePost } from '../src/lib/posts.js';
 import { lockExistingComments, shareResources } from '../src/lib/acl.js';
 import { aclGrantsPublicRead } from '../src/lib/aclTurtle.js';
+import { applyDiscoverability } from '../src/lib/applyDiscoverability.js';
+import { saveProfile } from '../src/lib/profile.js';
+import { saveContactMembers } from '../src/lib/contactsGroup.js';
 
 const OWNER = 'https://owner.example/profile/card#me';
 
@@ -270,6 +273,156 @@ test('a partial ACL failure is reported as incomplete', async () => {
       /Share incomplete \(1 of 2 failed\)/,
     );
     assert.equal(pod.files.has('/podsta/posts/one.ttl.acl'), true);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('contacts audience stays off the public index and is not anonymous', async () => {
+  const pod = await startPod();
+  try {
+    const postUrl = await createTextPost({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      title: 'Inner circle',
+      body: 'For approved people.',
+    });
+    await sharePost({
+      post: {
+        url: postUrl,
+        type: 'text',
+        title: 'Inner circle',
+        body: 'For approved people.',
+        dateCreated: '2026-04-02T00:00:00.000Z',
+      },
+      audience: 'contacts',
+      podUrl: pod.podUrl,
+      ownerWebId: OWNER,
+      session: pod.session,
+    });
+
+    assert.equal((await fetch(postUrl)).status, 403);
+    const publicIndex = pod.files.get('/podsta/public-index.ttl');
+    assert.equal(publicIndex?.body.toString().includes(postUrl) ?? false, false);
+
+    const contactsIndex = pod.files.get('/podsta/contacts-index.ttl');
+    assert.ok(contactsIndex, 'contacts index was not written');
+    assert.match(contactsIndex.body.toString(), /Inner circle/);
+    assert.equal((await fetch(`${pod.podUrl}podsta/contacts-index.ttl`)).status, 403);
+
+    const postAclPath = `${new URL(postUrl).pathname}.acl`;
+    const postAcl = pod.files.get(postAclPath).body.toString();
+    assert.equal(aclGrantsPublicRead(postAcl), false);
+    assert.match(postAcl, /acl:agentGroup/);
+
+    const groupAcl = pod.files.get('/podsta/contacts/group.ttl.acl').body.toString();
+    assert.equal(aclGrantsPublicRead(groupAcl), true);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('saving a display name does not publish the profile', async () => {
+  const pod = await startPod();
+  try {
+    await saveProfile({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      ownerWebId: OWNER,
+      profile: { name: 'Ada', bio: '', avatarUrl: '' },
+    });
+    assert.equal((await fetch(`${pod.podUrl}podsta/profile.ttl`)).status, 403);
+    assert.equal(pod.files.has('/podsta/profile.ttl.acl'), false);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('lowering discoverability unpublishes posts and the listing', async () => {
+  const pod = await startPod();
+  try {
+    const postUrl = await createTextPost({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      title: 'Was public',
+      body: 'Now only me.',
+    });
+    const post = {
+      url: postUrl,
+      type: 'text',
+      title: 'Was public',
+      body: 'Now only me.',
+      dateCreated: '2026-04-03T00:00:00.000Z',
+      isPublic: false,
+    };
+    await sharePost({ post, podUrl: pod.podUrl, ownerWebId: OWNER, session: pod.session });
+    await applyDiscoverability({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      ownerWebId: OWNER,
+      level: 'public',
+      profile: { name: 'Ada', bio: 'Hello', avatarUrl: '' },
+      posts: [{ ...post, isPublic: true, audience: 'public' }],
+    });
+    assert.equal((await fetch(`${pod.podUrl}podsta/listing.ttl`)).status, 200);
+    assert.match(await (await fetch(`${pod.podUrl}podsta/listing.ttl`)).text(), /Ada/);
+
+    await applyDiscoverability({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      ownerWebId: OWNER,
+      level: 'hidden',
+      profile: { name: 'Ada', bio: 'Hello', avatarUrl: '' },
+      posts: [{ ...post, isPublic: true, audience: 'public' }],
+    });
+
+    assert.equal((await fetch(postUrl)).status, 403);
+    assert.equal((await fetch(`${pod.podUrl}podsta/listing.ttl`)).status, 403);
+    const publicIndex = pod.files.get('/podsta/public-index.ttl');
+    assert.equal(publicIndex?.body.toString().includes(postUrl) ?? false, false);
+    const profileBody = pod.files.get('/podsta/profile.ttl').body.toString();
+    assert.match(profileBody, /hidden/);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('a failed discoverability save does not leave a new listing', async () => {
+  const pod = await startPod();
+  try {
+    pod.failOn.add('/podsta/profile.ttl.acl');
+    await assert.rejects(
+      () =>
+        applyDiscoverability({
+          podUrl: pod.podUrl,
+          session: pod.session,
+          ownerWebId: OWNER,
+          level: 'public',
+          profile: { name: 'Ada', bio: '', avatarUrl: '' },
+          posts: [],
+        }),
+      /discoverability|share|Failed/i,
+    );
+    assert.equal(pod.files.has('/podsta/listing.ttl'), false);
+    const profileBody = pod.files.get('/podsta/profile.ttl')?.body.toString() || '';
+    assert.equal(/discoverability/.test(profileBody), false);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('approved contacts are stored on the group document', async () => {
+  const pod = await startPod();
+  try {
+    const members = await saveContactMembers({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      webIds: ['https://alice.example/profile/card#me'],
+    });
+    assert.deepEqual(members, ['https://alice.example/profile/card#me']);
+    const body = pod.files.get('/podsta/contacts/group.ttl').body.toString();
+    assert.match(body, /alice\.example/);
+    assert.match(body, /Group/);
   } finally {
     pod.server.close();
   }

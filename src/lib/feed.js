@@ -1,4 +1,4 @@
-import { readPublicIndex } from './publicIndex.js';
+import { readContactsIndex, readPublicIndex } from './publicIndex.js';
 import { resolveProfile } from './friends.js';
 
 /**
@@ -46,7 +46,19 @@ export async function loadFriendFeed({ friends, session }) {
       }
 
       const entries = await readPublicIndex(podUrl, session?.fetch);
-      return entries.map((entry) => ({
+      // A contacts index you cannot read is skipped. It must not mark the
+      // person unreachable when their public index loaded.
+      let contacts = [];
+      try {
+        contacts = await readContactsIndex(podUrl, session?.fetch);
+      } catch {
+        contacts = [];
+      }
+      const tagged = [
+        ...entries.map((entry) => ({ ...entry, audience: 'public' })),
+        ...contacts.map((entry) => ({ ...entry, audience: 'contacts' })),
+      ];
+      return tagged.map((entry) => ({
         ...entry,
         ownerWebId: friend.webId,
         ownerName: friend.name || friend.webId,

@@ -17,12 +17,12 @@ export const ONBOARDING_STEPS = [
   {
     id: 'webid',
     title: 'Your WebID is how people follow you',
-    body: 'Send this address to someone. They paste it into Discover. There is no directory that lists people.',
+    body: 'Send this address to someone. They paste it into Discover. A public profile can also be found through a published follow list. There is no central phone book.',
   },
   {
     id: 'visibility',
-    title: 'New posts are private',
-    body: 'A private post stays in your Pod. Share it when you want it in a friend’s feed. If sharing fails, Podsta says so instead of pretending it worked.',
+    title: 'Who can find you?',
+    body: 'Hidden is the default. Contacts only means people you approve, not everyone you follow. Public lists you through published follow lists, and public posts are readable by anyone. If a change fails, Podsta says so instead of pretending it worked.',
   },
   {
     id: 'compose',

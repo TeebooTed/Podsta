@@ -7,24 +7,25 @@ import {
   ALLOWED_IMAGE_TYPES,
 } from '../lib/vocab.js';
 import { formatBytes } from '../lib/utils.js';
+import { ceilingNote, composerChoices, DEFAULT_LEVEL } from '../lib/discoverability.js';
 
 /**
  * Unified composer for both photo and text posts.
  *
  * UX:
  *  - Two tabs: "Photo" (file upload + caption) and "Text" (title + body).
- *  - On submit, calls `onSubmit({ type, file, caption, title, body, makePublic })`.
- *  - "Make this public" checkbox controls whether we share immediately.
+ *  - On submit, calls `onSubmit({ type, file, caption, title, body, audience })`.
+ *  - Audience is Only me, Contacts, or Public, capped by discoverability.
  *  - Drag and drop is supported for the photo tab.
  */
-export default function Composer({ open, onClose, onSubmit, defaultMakePublic = false }) {
+export default function Composer({ open, onClose, onSubmit, discoverability = DEFAULT_LEVEL }) {
   const [mode, setMode] = useState('photo'); // 'photo' | 'text'
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [caption, setCaption] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [makePublic, setMakePublic] = useState(defaultMakePublic);
+  const [audience, setAudience] = useState('private');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -41,8 +42,14 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
       setError(null);
       setSubmitting(false);
       setDragOver(false);
+      setAudience('private');
     }
   }, [open]);
+
+  useEffect(() => {
+    const allowed = composerChoices(discoverability).some((option) => option.id === audience && option.enabled);
+    if (!allowed) setAudience('private');
+  }, [discoverability, audience]);
 
   // Manage object URL lifecycle.
   useEffect(() => {
@@ -85,7 +92,7 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
         caption: caption.trim(),
         title: title.trim(),
         body: body.trim(),
-        makePublic,
+        audience,
       });
       onClose();
     } catch (err) {
@@ -255,23 +262,37 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
         </p>
       )}
 
-      {/* Footer: visibility toggle + submit */}
-      <div className="mt-5 pt-4 border-t border-ink-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={makePublic}
-            onChange={(e) => setMakePublic(e.target.checked)}
-            className="mt-0.5 w-4 h-4 accent-accent shrink-0"
-          />
-          <span>
-            <span className="text-ink-100">Share publicly</span>
-            <span className="block text-ink-300 text-xs">
-              {makePublic ? 'Visible to anyone with the link' : 'Private to you until you share it'}
-            </span>
-          </span>
-        </label>
-        <div className="flex gap-2 justify-end">
+      {/* Footer: visibility + submit */}
+      <div className="mt-5 pt-4 border-t border-ink-700 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <fieldset className="min-w-0">
+          <legend className="text-sm text-ink-100 mb-2">Who can see this post</legend>
+          <div className="flex flex-col gap-2">
+            {composerChoices(discoverability).map((option) => (
+              <label
+                key={option.id}
+                className={`flex items-start gap-2 text-sm min-h-8 ${option.enabled ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
+              >
+                <input
+                  type="radio"
+                  name="post-audience"
+                  value={option.id}
+                  checked={audience === option.id}
+                  disabled={!option.enabled}
+                  onChange={() => setAudience(option.id)}
+                  className="mt-0.5 accent-accent shrink-0"
+                />
+                <span>
+                  <span className="text-ink-100">{option.label}</span>
+                  <span className="block text-ink-200 text-xs">{option.description}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {ceilingNote(discoverability) && (
+            <p className="text-xs text-ink-200 mt-2">{ceilingNote(discoverability)}</p>
+          )}
+        </fieldset>
+        <div className="flex gap-2 justify-end shrink-0">
           <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>
             Cancel
           </button>

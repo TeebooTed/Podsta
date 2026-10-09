@@ -8,6 +8,7 @@ import EmptyState from './EmptyState.jsx';
 import { relativeTime } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { safeHttpUrl } from '../lib/urls.js';
+import { audienceAllowed, ceilingNote, AUDIENCE_OPTIONS } from '../lib/discoverability.js';
 
 function TileImage({ post, session }) {
   const [src, setSrc] = useState(null);
@@ -56,7 +57,8 @@ export default function PostGrid({
   session,
   podUrl,
   onCompose,
-  onTogglePublic,
+  onSetAudience,
+  discoverability = 'hidden',
   onEdit,
   onDelete,
   togglingUrls,
@@ -85,18 +87,37 @@ export default function PostGrid({
 
   const actions = (post) => (
     <div className="mt-4 flex flex-wrap gap-2 justify-center">
-      <button
-        type="button"
-        onClick={() => onTogglePublic(post)}
-        disabled={togglingUrls?.has(post.url)}
-        className="btn-secondary text-xs"
-      >
-        {togglingUrls?.has(post.url) ? 'Working…' : post.isPublic ? 'Make private' : 'Share publicly'}
-      </button>
+      <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Who can see this post">
+        {AUDIENCE_OPTIONS.map((option) => {
+          const allowed = audienceAllowed(discoverability, option.id);
+          const selected = (post.audience || (post.isPublic ? 'public' : 'private')) === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={selected}
+              disabled={!allowed || togglingUrls?.has(post.url)}
+              onClick={() => {
+                if (!selected) onSetAudience(post, option.id);
+              }}
+              className={`min-h-8 px-3 rounded-lg text-xs font-medium border ${
+                selected
+                  ? 'bg-accent text-ink-950 border-accent'
+                  : 'bg-transparent text-ink-100 border-ink-600'
+              } disabled:opacity-50`}
+            >
+              {togglingUrls?.has(post.url) && selected ? 'Working…' : option.label}
+            </button>
+          );
+        })}
+      </div>
+      {ceilingNote(discoverability) && (
+        <p className="w-full text-xs text-ink-200 text-center">{ceilingNote(discoverability)}</p>
+      )}
       <button type="button" onClick={() => setEditingPost(post)} className="btn-secondary text-xs">
         Edit
       </button>
-      {post.isPublic && (
+      {(post.audience || (post.isPublic ? 'public' : 'private')) !== 'private' && (
         <button type="button" onClick={() => setCommentsPost(post)} className="btn-secondary text-xs">
           Comments
         </button>
@@ -154,6 +175,8 @@ export default function PostGrid({
             post.type === 'photo'
               ? post.caption || 'Photo'
               : post.title || post.body?.slice(0, 80) || 'Note';
+          const audience = post.audience || (post.isPublic ? 'public' : 'private');
+          const visibility = audience === 'public' ? 'Public' : audience === 'contacts' ? 'Contacts' : 'Private';
           return (
             <li key={post.url}>
               <button
@@ -163,7 +186,7 @@ export default function PostGrid({
                   setOpenUrl(post.url);
                 }}
                 className="relative block w-full aspect-square bg-ink-800 overflow-hidden text-left"
-                aria-label={`${post.isPublic ? 'Public' : 'Private'} post: ${label}`}
+                aria-label={`${visibility} post: ${label}`}
               >
                 {post.type === 'photo' ? (
                   <TileImage post={post} session={session} />
@@ -174,9 +197,9 @@ export default function PostGrid({
                     </span>
                   </span>
                 )}
-                {!post.isPublic && (
+                {audience !== 'public' && (
                   <span className="absolute top-1 left-1 text-[10px] uppercase tracking-wide bg-ink-950/80 text-ink-100 px-1.5 py-0.5 rounded">
-                    Private
+                    {audience === 'contacts' ? 'Contacts' : 'Private'}
                   </span>
                 )}
               </button>

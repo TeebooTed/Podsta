@@ -8,13 +8,15 @@ import {
   uploadPhoto,
   createTextPost,
   sharePost,
-  unsharePost,
+  setPostAudience,
   editPhotoCaption,
   editTextPost,
   deletePost,
 } from './lib/posts.js';
 import { loadFriends, addFriend, removeFriend } from './lib/friends.js';
 import { loadProfile, saveProfile } from './lib/profile.js';
+import { applyDiscoverability } from './lib/applyDiscoverability.js';
+import { loadContactMembers, saveContactMembers } from './lib/contactsGroup.js';
 import { hasFinishedOnboarding, markOnboardingDone } from './lib/onboarding.js';
 import LoginPage from './pages/LoginPage.jsx';
 import HomePage from './pages/HomePage.jsx';
@@ -47,9 +49,17 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
 
   // ── App state (only meaningful when logged in) ────────────
-  const [profile, setProfile] = useState({ name: '', bio: '', avatarUrl: '' });
+  const [profile, setProfile] = useState({
+    name: '',
+    bio: '',
+    avatarUrl: '',
+    discoverability: 'hidden',
+    discoverabilityInferred: true,
+  });
   const [posts, setPosts] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [contactBusy, setContactBusy] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -91,11 +101,13 @@ export default function App() {
           } else {
             // Load profile, posts, friends in parallel.
             setLoadingPosts(true);
-            const [prof, postsList, friendsList] = await Promise.all([
+            const [prof, postsList, friendsList, contactList] = await Promise.all([
               loadProfile({ podUrl: pod, session: s }).catch(() => ({
                 name: '',
                 bio: '',
                 avatarUrl: '',
+                discoverability: 'hidden',
+                discoverabilityInferred: true,
               })),
               loadOwnPosts({ podUrl: pod, session: s }).catch((err) => {
                 console.error('Posts load failed:', err);
@@ -103,6 +115,7 @@ export default function App() {
                 return [];
               }),
               loadFriends({ podUrl: pod, session: s }).catch(() => []),
+              loadContactMembers({ podUrl: pod, session: s }).catch(() => []),
               lockExistingComments({
                 podUrl: pod,
                 ownerWebId: s.info.webId,
@@ -115,6 +128,7 @@ export default function App() {
             setProfile(prof);
             setPosts(postsList);
             setFriends(friendsList);
+            setContacts(contactList);
             setLoadingPosts(false);
             if (!hasFinishedOnboarding(window.localStorage, s.info.webId)) {
               setOnboardingOpen(true);
@@ -147,7 +161,7 @@ export default function App() {
 
   // ── Compose handler ───────────────────────────────────────
   const handleCompose = useCallback(
-    async ({ type, file, caption, title, body, makePublic }) => {
+    async ({ type, file, caption, title, body, audience = 'private' }) => {
       if (!podUrl || !session) throw new Error('Not signed in');
 
       let postUrl;
@@ -159,7 +173,7 @@ export default function App() {
 
       let shareFailed = false;
       let shareMessage = '';
-      if (makePublic) {
+      if (audience === 'public' || audience === 'contacts') {
         const justCreated = {
           url: postUrl,
           type,
@@ -171,6 +185,7 @@ export default function App() {
         try {
           await sharePost({
             post: justCreated,
+            audience,
             podUrl,
             ownerWebId: session.info.webId,
             session,
@@ -181,46 +196,45 @@ export default function App() {
         }
       }
 
-      const toast = postedToast({ makePublic, shareFailed, shareMessage });
+      const toast = postedToast({
+        audience,
+        makePublic: audience === 'public',
+        shareFailed,
+        shareMessage,
+      });
       showToast(toast.message, toast.type);
       await reloadPosts();
     },
     [podUrl, session, reloadPosts, showToast],
   );
 
-  // ── Toggle public / private ───────────────────────────────
-  const handleTogglePublic = useCallback(
-    async (post) => {
+  // ── Per-post audience. No success toast until the write returns. ──
+  const handleSetAudience = useCallback(
+    async (post, audience) => {
       if (!podUrl || !session) return;
+      const current = post.audience || (post.isPublic ? 'public' : 'private');
+      if (current === audience) return;
       setTogglingUrls((s) => new Set(s).add(post.url));
-
-      // Optimistic update.
-      setPosts((prev) =>
-        prev.map((p) => (p.url === post.url ? { ...p, isPublic: !p.isPublic } : p)),
-      );
-
       try {
-        if (post.isPublic) {
-          await unsharePost({
-            post,
-            podUrl,
-            ownerWebId: session.info.webId,
-            session,
-          });
-          showToast('Made private');
-        } else {
-          await sharePost({
-            post,
-            podUrl,
-            ownerWebId: session.info.webId,
-            session,
-          });
-          showToast('Now public — friends can see it');
-        }
+        await setPostAudience({
+          post,
+          audience,
+          level: profile.discoverability,
+          podUrl,
+          ownerWebId: session.info.webId,
+          session,
+        });
+        const message =
+          audience === 'public'
+            ? 'Now public'
+            : audience === 'contacts'
+              ? 'Shared with your contacts'
+              : 'Now only you';
+        showToast(message);
       } catch (err) {
         showToast(`Could not change visibility: ${err.message}`, 'error');
-        await reloadPosts();
       } finally {
+        await reloadPosts();
         setTogglingUrls((s) => {
           const n = new Set(s);
           n.delete(post.url);
@@ -228,7 +242,7 @@ export default function App() {
         });
       }
     },
-    [podUrl, session, showToast, reloadPosts],
+    [podUrl, session, profile.discoverability, showToast, reloadPosts],
   );
 
   // ── Edit ──────────────────────────────────────────────────
@@ -296,19 +310,24 @@ export default function App() {
       if (!podUrl || !session) return;
       setAddingWebId(webId);
       try {
-        const profile = await addFriend({ podUrl, session, webId });
-        setFriends((prev) => {
-          if (prev.some((f) => f.webId === profile.webId)) return prev;
-          return [...prev, profile];
+        const added = await addFriend({
+          podUrl,
+          session,
+          webId,
+          discoverability: profile.discoverability,
         });
-        showToast(`Now following ${profile.name || 'user'}`);
+        setFriends((prev) => {
+          if (prev.some((f) => f.webId === added.webId)) return prev;
+          return [...prev, added];
+        });
+        showToast(`Now following ${added.name || 'user'}`);
       } catch (err) {
         showToast(`Could not follow: ${err.message}`, 'error');
       } finally {
         setAddingWebId(null);
       }
     },
-    [podUrl, session, showToast],
+    [podUrl, session, profile.discoverability, showToast],
   );
 
   const handleRemoveFriend = useCallback(
@@ -334,9 +353,16 @@ export default function App() {
     await logout();
     setSession(null);
     setPodUrl(null);
-    setProfile({ name: '', bio: '', avatarUrl: '' });
+    setProfile({
+      name: '',
+      bio: '',
+      avatarUrl: '',
+      discoverability: 'hidden',
+      discoverabilityInferred: true,
+    });
     setPosts([]);
     setFriends([]);
+    setContacts([]);
     setOnboardingOpen(false);
     navigate('/');
   }, [navigate]);
@@ -363,6 +389,91 @@ export default function App() {
     if (session?.info?.webId) markOnboardingDone(window.localStorage, session.info.webId);
     setOnboardingOpen(false);
   }, [session]);
+
+  const handleSaveDiscoverability = useCallback(
+    async (level, draft) => {
+      if (!podUrl || !session) throw new Error('Not signed in');
+      const nextProfile = {
+        name: draft?.name ?? profile.name ?? '',
+        bio: draft?.bio ?? profile.bio ?? '',
+        avatarUrl: draft?.avatarUrl ?? profile.avatarUrl ?? '',
+      };
+      try {
+        await applyDiscoverability({
+          podUrl,
+          session,
+          ownerWebId: session.info.webId,
+          level,
+          profile: nextProfile,
+          posts,
+        });
+      } catch (err) {
+        try {
+          setProfile(await loadProfile({ podUrl, session }));
+        } catch {
+          // Keep the last profile we successfully loaded.
+        }
+        await reloadPosts();
+        throw err;
+      }
+      setProfile(await loadProfile({ podUrl, session }));
+      await reloadPosts();
+    },
+    [podUrl, session, profile, posts, reloadPosts],
+  );
+
+  const handleAddContact = useCallback(
+    async (webId) => {
+      if (!podUrl || !session) return;
+      setContactBusy(true);
+      try {
+        const next = [...new Set([...contacts, webId])];
+        const saved = await saveContactMembers({ podUrl, session, webIds: next });
+        setContacts(saved);
+      } finally {
+        setContactBusy(false);
+      }
+    },
+    [podUrl, session, contacts],
+  );
+
+  const handleRemoveContact = useCallback(
+    async (webId) => {
+      if (!podUrl || !session) return;
+      setContactBusy(true);
+      try {
+        const saved = await saveContactMembers({
+          podUrl,
+          session,
+          webIds: contacts.filter((id) => id !== webId),
+        });
+        setContacts(saved);
+      } catch (err) {
+        showToast(`Could not remove that contact: ${err.message}`, 'error');
+      } finally {
+        setContactBusy(false);
+      }
+    },
+    [podUrl, session, contacts, showToast],
+  );
+
+  const handleAddFollowing = useCallback(async () => {
+    if (!podUrl || !session) return;
+    setContactBusy(true);
+    try {
+      const saved = await saveContactMembers({
+        podUrl,
+        session,
+        webIds: [...contacts, ...friends.map((friend) => friend.webId)],
+      });
+      setContacts(saved);
+      showToast(saved.length ? 'Added the people you follow' : 'You are not following anyone yet');
+    } catch (err) {
+      showToast(`Could not add the people you follow: ${err.message}`, 'error');
+    } finally {
+      setContactBusy(false);
+    }
+  }, [podUrl, session, contacts, friends, showToast]);
 
   const handleSaveName = useCallback(
     async (name) => {
@@ -460,7 +571,13 @@ export default function App() {
                 loading={loadingPosts}
                 friends={friends}
                 onCompose={() => setComposerOpen(true)}
-                onTogglePublic={handleTogglePublic}
+                onSetAudience={handleSetAudience}
+                onSaveDiscoverability={handleSaveDiscoverability}
+                contacts={contacts}
+                onAddContact={handleAddContact}
+                onRemoveContact={handleRemoveContact}
+                onAddFollowing={handleAddFollowing}
+                contactBusy={contactBusy}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 togglingUrls={togglingUrls}
@@ -491,13 +608,16 @@ export default function App() {
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
         onSubmit={handleCompose}
+        discoverability={profile.discoverability || 'hidden'}
       />
 
       {onboardingOpen && podUrl && (
         <Onboarding
           webId={session.info.webId}
           initialName={profile.name || ''}
+          initialLevel={profile.discoverability || 'hidden'}
           onSaveName={handleSaveName}
+          onSaveDiscoverability={(level) => handleSaveDiscoverability(level)}
           onCompose={() => setComposerOpen(true)}
           onDone={finishOnboarding}
           showToast={showToast}
