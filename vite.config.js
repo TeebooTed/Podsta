@@ -27,7 +27,7 @@ export default defineConfig({
             '@inrupt/solid-client-authn-browser',
             '@inrupt/vocab-common-rdf',
           ],
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'react-vendor': ['react', 'react-dom'],
         },
       },
     },

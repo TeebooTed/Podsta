@@ -12,6 +12,7 @@ import {
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, PODSTA } from './vocab.js';
 import { makePublic } from './acl.js';
+import { withTimeout } from './timeoutFetch.js';
 
 /**
  * THE KEY INSIGHT for cross-pod feeds:
@@ -53,10 +54,9 @@ function entryThingUrl(podUrl, postUrl) {
  * some providers); omit it for anonymous fetch.
  */
 export async function readPublicIndex(podUrl, fetchFn) {
+  const timed = withTimeout(fetchFn || fetch);
   try {
-    const ds = fetchFn
-      ? await getSolidDataset(indexUrl(podUrl), { fetch: fetchFn })
-      : await getSolidDataset(indexUrl(podUrl));
+    const ds = await getSolidDataset(indexUrl(podUrl), { fetch: timed });
     return getThingAll(ds)
       .map((t) => ({
         url: getStringNoLocale(t, SCHEMA.url) || '',
@@ -91,8 +91,9 @@ export async function addToPublicIndex(podUrl, entry, ownerWebId, session) {
   thing = setStringNoLocale(thing, SCHEMA.url, entry.url);
   thing = setStringNoLocale(thing, PODSTA.PostType, entry.type);
   thing = setStringNoLocale(thing, SCHEMA.dateCreated, entry.dateCreated || new Date().toISOString());
-  if (entry.title) thing = setStringNoLocale(thing, SCHEMA.name, entry.title);
-  if (entry.caption) thing = setStringNoLocale(thing, SCHEMA.caption, entry.caption);
+  // Always write title and caption, including empty strings, so an edit can clear them.
+  thing = setStringNoLocale(thing, SCHEMA.name, entry.title || '');
+  thing = setStringNoLocale(thing, SCHEMA.caption, entry.caption || '');
 
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(indexUrl(podUrl), ds, { fetch: session.fetch });

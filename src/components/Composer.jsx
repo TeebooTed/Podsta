@@ -172,8 +172,10 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
                   className="w-full max-h-96 object-contain"
                 />
                 <button
+                  type="button"
                   onClick={() => setFile(null)}
-                  className="absolute top-2 right-2 px-3 py-1.5 bg-ink-950/80 backdrop-blur-sm rounded-lg text-xs hover:bg-ink-950"
+                  className="absolute top-2 right-2 min-h-8 px-3 py-1.5 bg-ink-950/80 backdrop-blur-sm rounded-lg text-xs hover:bg-ink-950"
+                  aria-label="Replace photo"
                 >
                   Replace
                 </button>
@@ -183,13 +185,14 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
               </p>
 
               <div>
-                <label className="block text-xs font-medium text-ink-300 mb-1.5">
+                <label htmlFor="composer-caption" className="block text-xs font-medium text-ink-200 mb-1.5">
                   Caption
-                  <span className="text-ink-400 ml-2 font-normal">
+                  <span className="text-ink-300 ml-2 font-normal">
                     {caption.length}/{MAX_CAPTION_LENGTH}
                   </span>
                 </label>
                 <input
+                  id="composer-caption"
                   type="text"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION_LENGTH))}
@@ -214,10 +217,11 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
       {mode === 'text' && (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-ink-300 mb-1.5">
+            <label htmlFor="composer-title" className="block text-xs font-medium text-ink-200 mb-1.5">
               Title (optional)
             </label>
             <input
+              id="composer-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value.slice(0, 200))}
@@ -227,13 +231,14 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-ink-300 mb-1.5">
+            <label htmlFor="composer-body" className="block text-xs font-medium text-ink-200 mb-1.5">
               What's on your mind?
-              <span className="text-ink-400 ml-2 font-normal">
+              <span className="text-ink-300 ml-2 font-normal">
                 {body.length}/{MAX_TEXT_LENGTH}
               </span>
             </label>
             <textarea
+              id="composer-body"
               value={body}
               onChange={(e) => setBody(e.target.value.slice(0, MAX_TEXT_LENGTH))}
               placeholder="Write something worth reading…"
@@ -251,24 +256,26 @@ export default function Composer({ open, onClose, onSubmit, defaultMakePublic = 
       )}
 
       {/* Footer: visibility toggle + submit */}
-      <div className="mt-5 pt-4 border-t border-ink-700 flex items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+      <div className="mt-5 pt-4 border-t border-ink-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
           <input
             type="checkbox"
             checked={makePublic}
             onChange={(e) => setMakePublic(e.target.checked)}
-            className="w-4 h-4 accent-accent"
+            className="mt-0.5 w-4 h-4 accent-accent shrink-0"
           />
-          <span className="text-ink-200">Share publicly</span>
-          <span className="text-ink-400 text-xs">
-            ({makePublic ? 'visible to everyone' : 'private to you'})
+          <span>
+            <span className="text-ink-100">Share publicly</span>
+            <span className="block text-ink-300 text-xs">
+              {makePublic ? 'Visible to anyone with the link' : 'Private to you until you share it'}
+            </span>
           </span>
         </label>
-        <div className="flex gap-2">
-          <button onClick={onClose} className="btn-secondary" disabled={submitting}>
+        <div className="flex gap-2 justify-end">
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>
             Cancel
           </button>
-          <button onClick={handleSubmit} className="btn-primary" disabled={submitting}>
+          <button type="button" onClick={handleSubmit} className="btn-primary" disabled={submitting}>
             {submitting ? 'Posting…' : 'Post'}
           </button>
         </div>

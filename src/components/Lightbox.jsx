@@ -1,5 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { getFile } from '@inrupt/solid-client';
 import { relativeTime } from '../lib/utils.js';
+import { withTimeout } from '../lib/timeoutFetch.js';
+import { useFocusTrap } from '../hooks/useFocusTrap.js';
 
 /**
  * Full-screen photo lightbox with:
@@ -7,7 +10,7 @@ import { relativeTime } from '../lib/utils.js';
  *   - Mouse-wheel and double-click zoom
  *   - Touch swipe between photos and pinch-zoom on mobile
  */
-export default function Lightbox({ posts, index, onClose, onNavigate }) {
+export default function Lightbox({ posts, index, onClose, onNavigate, session }) {
   const post = posts[index];
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -15,6 +18,8 @@ export default function Lightbox({ posts, index, onClose, onNavigate }) {
   const pinchStart = useRef(null);
   const panStart = useRef(null);
   const [imgUrl, setImgUrl] = useState(null);
+  const panelRef = useRef(null);
+  useFocusTrap(true, panelRef);
 
   // Reset zoom when changing photos.
   useEffect(() => {
@@ -22,19 +27,43 @@ export default function Lightbox({ posts, index, onClose, onNavigate }) {
     setPan({ x: 0, y: 0 });
   }, [index]);
 
-  // Resolve image URL: own posts have a Blob, feed posts have a public URL.
+  // Public photos use their URL. Private photos are fetched only while the lightbox is open.
   useEffect(() => {
     if (!post) {
       setImgUrl(null);
-      return;
+      return undefined;
     }
     if (post.mediaBlob) {
       const u = URL.createObjectURL(post.mediaBlob);
       setImgUrl(u);
       return () => URL.revokeObjectURL(u);
     }
-    setImgUrl(post.mediaUrl || post.url);
-  }, [post]);
+    const direct = post.mediaUrl || post.url;
+    if (post.isPublic) {
+      setImgUrl(direct);
+      return undefined;
+    }
+    let cancelled = false;
+    let objectUrl;
+    (async () => {
+      try {
+        if (!session?.fetch) {
+          setImgUrl(direct);
+          return;
+        }
+        const file = await getFile(direct, { fetch: withTimeout(session.fetch, 30000) });
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(file);
+        setImgUrl(objectUrl);
+      } catch {
+        if (!cancelled) setImgUrl(direct);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [post, session]);
 
   // Keyboard navigation.
   useEffect(() => {
@@ -118,6 +147,10 @@ export default function Lightbox({ posts, index, onClose, onNavigate }) {
 
   return (
     <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo viewer"
       className="fixed inset-0 z-50 bg-ink-950/95 backdrop-blur-md flex flex-col animate-fade-in"
       onClick={zoom === 1 ? onClose : undefined}
       onTouchStart={onTouchStart}
@@ -131,7 +164,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate }) {
         </div>
         <button
           onClick={onClose}
-          className="px-4 py-1.5 bg-ink-800 rounded-lg hover:bg-ink-700 text-sm"
+          className="min-h-8 px-4 py-1.5 bg-ink-800 rounded-lg hover:bg-ink-700 text-sm"
           aria-label="Close"
         >
           Close (Esc)

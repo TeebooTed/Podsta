@@ -129,7 +129,7 @@ export default function HomePage({
               onClick={() => setFilter(opt.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition border ${
                 filter === opt.id
-                  ? 'bg-accent text-ink-50 border-accent'
+                  ? 'bg-accent text-ink-950 border-accent'
                   : 'bg-ink-800/60 text-ink-300 border-ink-700 hover:border-ink-600'
               }`}
             >
@@ -139,10 +139,11 @@ export default function HomePage({
         </div>
         <input
           type="search"
+          aria-label="Search captions and posts"
           placeholder="Search captions and posts…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input-field max-w-xs"
+          className="input-field w-full sm:max-w-xs"
         />
       </div>
 
@@ -170,6 +171,7 @@ export default function HomePage({
                 }}
                 toggling={togglingUrls.has(post.url)}
                 deleting={deletingUrls.has(post.url)}
+                session={session}
               />
             ))}
           </div>
@@ -181,6 +183,7 @@ export default function HomePage({
         <Lightbox
           posts={photoPosts}
           index={lightboxIndex}
+          session={session}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
         />
@@ -201,6 +204,7 @@ export default function HomePage({
           open
           post={commentsPost}
           ownerPodUrl={podUrl}
+          canComment
           session={session}
           onClose={() => setCommentsPost(null)}
           showToast={showToast}

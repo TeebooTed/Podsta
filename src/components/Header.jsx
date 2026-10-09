@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Avatar from './Avatar.jsx';
 import { shortWebId } from '../lib/utils.js';
+import { safeHttpUrl } from '../lib/urls.js';
 
 const TABS = [
   { id: 'home', label: 'Home', shortcut: 'h' },
@@ -12,6 +13,7 @@ const TABS = [
 export default function Header({ session, profile, podUrl, currentTab, onTabChange, onLogout, onCompose }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const safePod = safeHttpUrl(podUrl);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -92,9 +94,9 @@ export default function Header({ session, profile, podUrl, currentTab, onTabChan
                 >
                   Edit profile
                 </button>
-                {podUrl && (
+                {safePod && (
                   <a
-                    href={podUrl}
+                    href={safePod}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block px-4 py-2.5 text-sm hover:bg-ink-800 transition"

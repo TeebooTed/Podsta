@@ -9,9 +9,14 @@ import {
   getThingAll,
   setStringNoLocale,
   getStringNoLocale,
+  getPodUrlAll,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, FOAF } from './vocab.js';
-import { getPodUrlAll } from '@inrupt/solid-client';
+import { normalizeWebId } from './webId.js';
+import { withTimeout } from './timeoutFetch.js';
+import { asPodRoot, safeHttpUrl } from './urls.js';
+
+export { normalizeWebId };
 
 /**
  * Friends are stored as a Turtle file in the user's own pod listing WebIDs
@@ -29,48 +34,29 @@ function friendThingUrl(podUrl, webId) {
 }
 
 /**
- * Normalize a WebID — accept bare URLs and add #me if missing.
- */
-export function normalizeWebId(input) {
-  if (!input) return null;
-  let s = input.trim();
-  if (!s.startsWith('http://') && !s.startsWith('https://')) {
-    s = 'https://' + s;
-  }
-  // Common pattern: profiles live at /profile/card#me
-  if (!s.includes('#') && s.includes('/profile/card')) {
-    s = s + '#me';
-  }
-  return s;
-}
-
-/**
  * Load a stranger's profile (display name + avatar + pod URL) from their WebID.
  * Used both when adding a friend and when rendering friend feed cards.
  */
 export async function resolveProfile(webId, fetchFn) {
+  const timed = withTimeout(fetchFn || fetch);
   try {
-    const ds = fetchFn
-      ? await getSolidDataset(webId, { fetch: fetchFn })
-      : await getSolidDataset(webId);
+    const ds = await getSolidDataset(webId, { fetch: timed });
     const thing = getThing(ds, webId);
     const name =
       (thing && (getStringNoLocale(thing, FOAF.name) || getStringNoLocale(thing, SCHEMA.name))) ||
       webId.split('/').filter(Boolean).slice(-2)[0] ||
       'Unknown';
-    const avatarUrl = (thing && getStringNoLocale(thing, SCHEMA.image)) || '';
+    const avatarUrl = safeHttpUrl((thing && getStringNoLocale(thing, SCHEMA.image)) || '') || '';
 
     let podUrl = null;
     try {
-      const pods = fetchFn
-        ? await getPodUrlAll(webId, { fetch: fetchFn })
-        : await getPodUrlAll(webId);
-      podUrl = pods[0] || null;
+      const pods = await getPodUrlAll(webId, { fetch: timed });
+      podUrl = asPodRoot(pods[0] || '');
     } catch {
       // Some WebIDs don't expose pim:storage; fall back to deriving from WebID.
       try {
         const u = new URL(webId);
-        podUrl = `${u.protocol}//${u.host}/`;
+        podUrl = asPodRoot(`${u.protocol}//${u.host}/`);
       } catch {
         podUrl = null;
       }

@@ -3,6 +3,7 @@ import Avatar from '../components/Avatar.jsx';
 import { saveProfile, uploadAvatar } from '../lib/profile.js';
 import { ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from '../lib/vocab.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
+import { safeHttpUrl } from '../lib/urls.js';
 
 /**
  * Profile editor — name, bio, avatar.
@@ -108,7 +109,7 @@ export default function ProfilePage({
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploadingAvatar}
-              className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent hover:bg-accent-light text-ink-50 rounded-full flex items-center justify-center text-sm shadow-lg transition disabled:opacity-50"
+              className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent hover:bg-accent-light text-ink-950 rounded-full flex items-center justify-center text-sm shadow-lg transition disabled:opacity-50"
               title="Change avatar"
               aria-label="Change avatar"
             >
@@ -179,11 +180,11 @@ export default function ProfilePage({
               Share this with friends so they can follow you.
             </p>
           </div>
-          {podUrl && (
+          {safeHttpUrl(podUrl) && (
             <div>
-              <p className="text-xs text-ink-400 mb-1">Pod URL</p>
+              <p className="text-xs text-ink-300 mb-1">Pod URL</p>
               <a
-                href={podUrl}
+                href={safeHttpUrl(podUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs font-mono text-accent hover:text-accent-light break-all"
@@ -193,7 +194,7 @@ export default function ProfilePage({
             </div>
           )}
           <div>
-            <p className="text-xs text-ink-400 mb-1">Identity provider</p>
+            <p className="text-xs text-ink-300 mb-1">WebID host</p>
             <code className="text-xs font-mono text-ink-200">
               {shortWebId(session?.info?.webId)}
             </code>
