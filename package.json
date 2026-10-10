@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Podsta — A decentralized social network for text and photo posts, built on Solid Pods",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
