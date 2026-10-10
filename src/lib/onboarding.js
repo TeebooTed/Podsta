@@ -17,7 +17,7 @@ export const ONBOARDING_STEPS = [
   {
     id: 'webid',
     title: 'Your WebID is how people follow you',
-    body: 'Send this address to someone. They paste it into Discover. A public profile can also be found through a published follow list. There is no central phone book.',
+    body: 'Share the invite link or the QR code. People see a short @name. The link itself still contains your WebID, which is the real address. A bare @name is not a global registry.',
   },
   {
     id: 'visibility',

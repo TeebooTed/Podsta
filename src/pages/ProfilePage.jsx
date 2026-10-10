@@ -5,8 +5,11 @@ import { saveProfile, uploadAvatar } from '../lib/profile.js';
 import DiscoverabilitySettings from '../components/DiscoverabilitySettings.jsx';
 import { DEFAULT_LEVEL } from '../lib/discoverability.js';
 import { ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from '../lib/vocab.js';
-import { shortWebId, copyToClipboard } from '../lib/utils.js';
+import { copyToClipboard } from '../lib/utils.js';
 import { safeHttpUrl } from '../lib/urls.js';
+import { displayHandle } from '../lib/handles.js';
+import { inviteUrl } from '../lib/invite.js';
+import InviteQr from '../components/InviteQr.jsx';
 
 /**
  * Your profile: name, bio, avatar, then your own posts as a grid.
@@ -104,9 +107,19 @@ export default function ProfilePage({
     }
   };
 
+  const ownWebId = session?.info?.webId || '';
+  const ownHandle = displayHandle(ownWebId);
+  const ownInvite =
+    ownWebId && typeof window !== 'undefined' ? inviteUrl(window.location.origin, ownWebId) : '';
+
   const copyWebId = async () => {
-    const ok = await copyToClipboard(session.info.webId);
+    const ok = await copyToClipboard(ownWebId);
     showToast(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
+  };
+
+  const copyInvite = async () => {
+    const ok = await copyToClipboard(ownInvite);
+    showToast(ok ? 'Invite link copied' : 'Copy failed', ok ? 'success' : 'error');
   };
 
   const publicCount = posts.filter((p) => p.audience === 'public' || p.isPublic).length;
@@ -205,6 +218,34 @@ export default function ProfilePage({
         </div>
       </section>
 
+      <section className="card p-6 sm:p-8" aria-labelledby="invite-heading">
+        <h2 id="invite-heading" className="display-serif text-2xl mb-2">
+          Invite
+        </h2>
+        <p className="text-sm text-ink-100 leading-relaxed mb-4">
+          Send this link or the QR code. It opens your profile with a Follow button.
+          {ownHandle.qualified ? ` People see ${ownHandle.qualified}.` : ''} A short name is guessed from the WebID. Podsta does not keep a handle registry. A Hidden or Contacts profile still hides posts from anyone you have not allowed.
+        </p>
+        {ownHandle.qualified && <p className="display-serif text-3xl mb-3">{ownHandle.qualified}</p>}
+        <div className="flex flex-col sm:flex-row gap-5 items-start">
+          {ownInvite && <InviteQr url={ownInvite} />}
+          <div className="min-w-0 flex-1 space-y-3">
+            <div>
+              <p className="text-xs text-ink-200 mb-1">Invite link</p>
+              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all block">{ownInvite}</code>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={copyInvite} className="btn-primary">
+                Copy invite link
+              </button>
+              <button type="button" onClick={copyWebId} className="btn-secondary">
+                Copy WebID
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section aria-labelledby="posts-heading">
         <h2 id="posts-heading" className="display-serif text-2xl mb-3">
           Posts
@@ -231,9 +272,7 @@ export default function ProfilePage({
           <div>
             <p className="text-xs text-ink-300 mb-1">WebID</p>
             <div className="flex items-center gap-2 flex-wrap">
-              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all">
-                {session?.info?.webId}
-              </code>
+              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all">{ownWebId}</code>
               <button type="button" onClick={copyWebId} className="btn-ghost text-xs py-1 px-2">
                 Copy
               </button>
@@ -254,8 +293,11 @@ export default function ProfilePage({
             </div>
           )}
           <div>
-            <p className="text-xs text-ink-300 mb-1">WebID host</p>
-            <code className="text-xs font-mono text-ink-200">{shortWebId(session?.info?.webId)}</code>
+            <p className="text-xs text-ink-200 mb-1">Short name</p>
+            <code className="text-xs font-mono text-ink-100">{ownHandle.qualified || ownWebId}</code>
+            <p className="text-xs text-ink-200 mt-1">
+              Guessed from the WebID. Podsta does not keep a handle registry, so the invite link is the address that follows you.
+            </p>
           </div>
         </div>
       </section>

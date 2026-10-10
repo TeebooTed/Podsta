@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import Avatar from '../components/Avatar.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import { discoverViaFriends, listingsFor } from '../lib/discover.js';
-import { normalizeWebId } from '../lib/friends.js';
-import { shortWebId, copyToClipboard } from '../lib/utils.js';
+import { copyToClipboard } from '../lib/utils.js';
 import { personPath } from '../lib/navigation.js';
+import { displayHandle, parsePersonInput } from '../lib/handles.js';
 
 /**
  * Find people by WebID. The directory lists people reached through a public
@@ -53,9 +53,9 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
 
   const handleManualAdd = async (e) => {
     e?.preventDefault?.();
-    const webId = normalizeWebId(manualInput);
+    const webId = parsePersonInput(manualInput);
     if (!webId) {
-      showToast('Enter a WebID that starts with https://', 'error');
+      showToast('Enter a WebID, or a handle like @ada or @ada@solidweb.org', 'error');
       return;
     }
     setManualBusy(true);
@@ -82,7 +82,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
             <span className="text-xs bg-ink-700 text-ink-200 px-2 py-0.5 rounded">{badge}</span>
           )}
         </div>
-        <p className="text-xs text-ink-300 truncate font-mono mt-0.5">{shortWebId(p.webId)}</p>
+        <p className="text-xs text-ink-200 truncate mt-0.5">{displayHandle(p.webId).qualified || p.webId}</p>
         {p.viaName && <p className="text-xs text-ink-300 mt-0.5">via {p.viaName}</p>}
         {p.bio && <p className="text-xs text-ink-200 mt-1.5 line-clamp-2">{p.bio}</p>}
         <Link to={personPath(p.webId)} className="inline-flex items-center min-h-8 text-xs text-ink-100 underline mt-1">
@@ -128,12 +128,10 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
 
       <section className="card p-5">
         <h2 className="display-serif text-2xl mb-1">Follow someone</h2>
-        <p className="text-sm text-ink-300 mb-4">
-          A WebID looks like{' '}
-          <code className="text-xs bg-ink-900 px-1.5 py-0.5 rounded font-mono">
-            https://alice.solidcommunity.net/profile/card#me
-          </code>
-          .
+        <p className="text-sm text-ink-100 mb-4 leading-relaxed">
+          Type <span className="font-medium">@ada</span> for someone on Solid Community,{' '}
+          <span className="font-medium">@ada@another.host</span> for a different Pod host, or paste a WebID.
+          A short name is only a guess from the address. Podsta does not keep a handle registry.
         </p>
         <form onSubmit={handleManualAdd} className="flex flex-col sm:flex-row gap-2">
           <label htmlFor="webid-input" className="sr-only">
@@ -141,10 +139,14 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
           </label>
           <input
             id="webid-input"
-            type="url"
+            type="text"
+            inputMode="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={manualInput}
             onChange={(e) => setManualInput(e.target.value)}
-            placeholder="https://example.com/profile/card#me"
+            placeholder="@ada or https://ada.solidcommunity.net/profile/card#me"
             className="input-field flex-1 font-mono text-xs"
           />
           <button type="submit" disabled={manualBusy || !manualInput} className="btn-primary">

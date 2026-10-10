@@ -7,6 +7,8 @@ import {
 import { getPodUrlAll } from '@inrupt/solid-client';
 import { asPodRoot } from './urls.js';
 import { withTimeout } from './timeoutFetch.js';
+import { sameOriginRedirect } from './invite.js';
+import { RECOMMENDED_PROVIDER } from './provider.js';
 
 /**
  * Resume any in-flight OIDC flow on app boot.
@@ -21,11 +23,11 @@ export async function restoreSession() {
  * Kick off the OIDC login flow.
  * The user is redirected to their identity provider; on return, restoreSession() picks up.
  */
-export async function login(oidcIssuer = 'https://solidcommunity.net') {
-  const redirectUrl = window.location.origin + '/';
+export async function login(oidcIssuer = RECOMMENDED_PROVIDER.issuer, redirectUrl) {
+  const origin = window.location.origin;
   await inruptLogin({
     oidcIssuer,
-    redirectUrl,
+    redirectUrl: sameOriginRedirect(redirectUrl || `${origin}/`, origin),
     clientName: 'Podsta',
   });
 }
