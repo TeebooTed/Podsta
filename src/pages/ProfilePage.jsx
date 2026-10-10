@@ -4,6 +4,7 @@ import PostGrid from '../components/PostGrid.jsx';
 import { saveProfile, uploadAvatar } from '../lib/profile.js';
 import DiscoverabilitySettings from '../components/DiscoverabilitySettings.jsx';
 import { DEFAULT_LEVEL } from '../lib/discoverability.js';
+import { useLikes } from '../hooks/useLikes.js';
 import { ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from '../lib/vocab.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { safeHttpUrl } from '../lib/urls.js';
@@ -108,6 +109,25 @@ export default function ProfilePage({
   };
 
   const ownWebId = session?.info?.webId || '';
+  const likes = useLikes({
+    enabled: Boolean(session?.info?.isLoggedIn && podUrl),
+    session,
+    podUrl,
+    webId: ownWebId,
+    posts,
+  });
+
+  const onToggleLike = async (post) => {
+    try {
+      const result = await likes.toggle({ ...post, ownerWebId: ownWebId, audience: post.audience });
+      if (!result) return;
+      if (!result.liked) showToast('Like removed');
+      else if (result.notified) showToast('Liked');
+      else showToast('Liked on your Pod. The count did not update.', 'info');
+    } catch (err) {
+      showToast(err.message || 'Could not save that like', 'error');
+    }
+  };
   const ownHandle = displayHandle(ownWebId);
   const ownInvite =
     ownWebId && typeof window !== 'undefined' ? inviteUrl(window.location.origin, ownWebId) : '';
@@ -263,6 +283,9 @@ export default function ProfilePage({
           togglingUrls={togglingUrls}
           deletingUrls={deletingUrls}
           showToast={showToast}
+          likeFor={(post) => likes.view(post)}
+          onToggleLike={onToggleLike}
+          likeBusyUrl={likes.busyUrl}
         />
       </section>
 

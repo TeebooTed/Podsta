@@ -10,11 +10,13 @@ import { loadFriendFeed } from '../lib/feed.js';
 import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
+import { useLikes } from '../hooks/useLikes.js';
+import { samePerson } from '../lib/webId.js';
 
 /**
  * Home is the following feed: one column, newest first.
  */
-export default function HomePage({ friends, session, ownPostCount = 0, onRemoveFriend, onCompose, showToast }) {
+export default function HomePage({ friends, session, podUrl, ownPostCount = 0, onRemoveFriend, onCompose, showToast }) {
   const [feedEntries, setFeedEntries] = useState([]);
   const [unreachable, setUnreachable] = useState(0);
   const [hydrated, setHydrated] = useState({});
@@ -26,6 +28,33 @@ export default function HomePage({ friends, session, ownPostCount = 0, onRemoveF
   const [pendingUnfollow, setPendingUnfollow] = useState(null);
   const hydratedRef = useRef({});
   const copy = emptyFeedCopy();
+  const likes = useLikes({
+    enabled: Boolean(session?.info?.isLoggedIn && podUrl),
+    session,
+    podUrl,
+    webId: session?.info?.webId || '',
+    posts: feedEntries.map((entry) => ({
+      url: entry.url,
+      ownerWebId: entry.ownerWebId,
+      ownerPodUrl: entry.ownerPodUrl,
+      audience: entry.audience || 'public',
+      isPublic: entry.audience !== 'contacts',
+    })),
+  });
+
+  const onToggleLike = async (post) => {
+    try {
+      const result = await likes.toggle(post);
+      if (!result) return;
+      if (!result.liked) showToast('Like removed');
+      else if (result.notified) showToast('Liked');
+      else if (!post.ownerWebId || samePerson(post.ownerWebId, session?.info?.webId)) {
+        showToast('Liked on your Pod. The count did not update.', 'info');
+      } else showToast('Liked on your Pod. They will see it when their app next checks.', 'info');
+    } catch (err) {
+      showToast(err.message || 'Could not save that like', 'error');
+    }
+  };
 
   const reload = useCallback(() => {
     hydratedRef.current = {};
@@ -101,6 +130,8 @@ export default function HomePage({ friends, session, ownPostCount = 0, onRemoveF
       images: entry.images || [],
       mediaUrl: entry.images?.[0] || entry.url,
       mediaBlob: null,
+      ownerWebId: entry.ownerWebId,
+      ownerPodUrl: entry.ownerPodUrl,
     };
     if (entry.type === 'text' && hydrated[entry.url]) {
       base.body = hydrated[entry.url].body;
@@ -251,6 +282,9 @@ export default function HomePage({ friends, session, ownPostCount = 0, onRemoveF
                 onCopyLink={(_, ok) =>
                   showToast(ok ? 'Link copied' : 'Copy failed', ok ? 'success' : 'error')
                 }
+                like={likes.view(post)}
+                likeBusy={likes.busyUrl === post.url}
+                onToggleLike={onToggleLike}
                 onOpenLightbox={() => {
                   if (post.type === 'photo') {
                     const idx = photoPosts.findIndex((p) => p.url === post.url);

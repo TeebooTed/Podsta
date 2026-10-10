@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
 import PhotoCarousel from './PhotoCarousel.jsx';
+import LikeControl from './LikeControl.jsx';
 import { photoUrls } from '../lib/album.js';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 
@@ -32,6 +33,9 @@ export default function PostCard({
   toggling,
   deleting,
   session,
+  like,
+  likeBusy = false,
+  onToggleLike,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -124,7 +128,16 @@ export default function PostCard({
       )}
 
       {/* Footer */}
-      <div className="px-4 py-3 mt-auto flex items-center gap-2 border-t border-ink-800/50">
+      <div className="px-4 py-3 mt-auto flex flex-wrap items-center gap-2 border-t border-ink-800/50">
+        {onToggleLike && (
+          <LikeControl
+            liked={like?.liked}
+            count={like?.count}
+            names={like?.names}
+            busy={likeBusy}
+            onToggle={() => onToggleLike(post)}
+          />
+        )}
         {mode === 'own' ? (
           <>
             {/* Visibility toggle */}

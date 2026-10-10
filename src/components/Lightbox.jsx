@@ -184,7 +184,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
 
       {/* Image area */}
       <div
-        className="flex-1 relative flex items-center justify-center px-4 overflow-hidden"
+        className="flex-1 min-h-0 relative flex items-center justify-center px-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Prev */}
@@ -209,7 +209,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
               transition: zoom === 1 ? 'transform 0.2s' : 'none',
               cursor: zoom > 1 ? 'grab' : 'zoom-in',
             }}
-            className="lightbox-image max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
+            className="lightbox-image max-h-full max-w-full object-contain rounded-lg shadow-2xl"
             draggable={false}
           />
         ) : (
@@ -229,7 +229,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
       </div>
 
       {/* Caption / metadata */}
-      <div className="p-6 max-w-3xl mx-auto w-full text-center" onClick={(e) => e.stopPropagation()}>
+      <div className="shrink-0 p-4 sm:p-6 max-w-3xl mx-auto w-full text-center" onClick={(e) => e.stopPropagation()}>
         {post.caption && <p className="text-ink-100 leading-relaxed text-balance">{post.caption}</p>}
         {frames.length > 1 && (
           <div className="mt-3 flex items-center justify-center gap-2">
