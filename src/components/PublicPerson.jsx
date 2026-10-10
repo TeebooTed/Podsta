@@ -77,6 +77,7 @@ export default function PublicPerson({
   const following = friends.some((friend) => friend.webId === webId);
   const notice = person ? strangerNotice(person) : '';
   const heading = (person?.profileShared && person.name) || names.handle || 'Profile';
+  const avatarName = (person?.profileShared && person.name) || names.user || heading;
   const posts = person?.posts || [];
   const photos = posts
     .filter((post) => post.type === 'photo')
@@ -98,7 +99,7 @@ export default function PublicPerson({
       ) : (
         <section className="card p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row gap-5 items-start">
-            <Avatar src={person?.profileShared ? person.avatarUrl : ''} name={heading} size="xl" />
+            <Avatar src={person?.profileShared ? person.avatarUrl : ''} name={avatarName} size="xl" />
             <div className="min-w-0 flex-1">
               <h1 className="display-serif text-4xl break-words">{heading}</h1>
               {names.qualified && (

@@ -555,13 +555,17 @@ export default function App() {
                     friends={[]}
                     signedIn={false}
                     addingWebId={null}
-                    onAddFriend={(webId) => {
-                      window.sessionStorage.removeItem(SIGNUP_KEY);
-                      rememberFollow(window.sessionStorage, webId);
-                      return login(
-                        RECOMMENDED_PROVIDER.issuer,
-                        inviteUrl(window.location.origin, webId),
-                      );
+                    onAddFriend={async (webId) => {
+                      try {
+                        window.sessionStorage.removeItem(SIGNUP_KEY);
+                        rememberFollow(window.sessionStorage, webId);
+                        await login(
+                          RECOMMENDED_PROVIDER.issuer,
+                          inviteUrl(window.location.origin, webId),
+                        );
+                      } catch (err) {
+                        showToast(err?.message || 'Could not open Solid Community.', 'error');
+                      }
                     }}
                   />
                 </div>

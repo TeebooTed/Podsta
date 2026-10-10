@@ -16,6 +16,7 @@ import {
   FOLLOW_KEY,
 } from '../src/lib/invite.js';
 import { RECOMMENDED_PROVIDER, SIGNUP_STEPS, OTHER_PROVIDERS } from '../src/lib/provider.js';
+import { registrationBodyWithUnexpiringSecret } from '../src/lib/auth.js';
 import { ONBOARDING_STEPS } from '../src/lib/onboarding.js';
 import { sectionFromPath } from '../src/lib/navigation.js';
 
@@ -105,6 +106,18 @@ test('a stranger view does not read the contacts index', () => {
   assert.equal(source.includes('contacts-index'), false);
   assert.equal(source.includes('contactsIndex'), false);
   assert.match(source, /readPublicIndex/);
+});
+
+test('a non-expiring Solid client secret is not stored as already expired', () => {
+  const fixed = registrationBodyWithUnexpiringSecret({
+    client_id: 'abc',
+    client_secret_expires_at: 0,
+  });
+  assert.equal(fixed.client_id, 'abc');
+  assert.ok(fixed.client_secret_expires_at > Math.floor(Date.now() / 1000));
+  const untouched = { client_secret_expires_at: 1893456000 };
+  assert.equal(registrationBodyWithUnexpiringSecret(untouched), untouched);
+  assert.equal(registrationBodyWithUnexpiringSecret(null), null);
 });
 
 test('new people are sent to Solid Community, and a short name is not described as registered', () => {

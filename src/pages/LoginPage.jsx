@@ -46,7 +46,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
         <div className="card p-7">
           <h2 className="display-serif text-2xl mb-2 text-balance">Sign in with your Pod</h2>
           <p className="text-sm text-ink-100 mb-5 leading-relaxed">
-            Podsta does not have its own accounts. Your posts live in a Solid Pod you control.
+            Podsta does not have its own accounts. Your posts live in a Solid Pod you control.{' '}
             {RECOMMENDED_PROVIDER.label} is the place to start. It uses Web Access Control, which this beta can share with.
           </p>
 

@@ -49,9 +49,9 @@ export default function SignupPage({ onBegin, busy = false, error = '' }) {
                 <span className="shrink-0 w-8 h-8 rounded-full bg-accent text-ink-950 font-medium flex items-center justify-center">
                   {index + 1}
                 </span>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-sm font-medium text-ink-50">{step.title}</h2>
-                  <p className="text-sm text-ink-100 leading-relaxed mt-1">{step.body}</p>
+                  <p className="text-sm text-ink-100 leading-relaxed mt-1 break-words">{step.body}</p>
                 </div>
               </li>
             ))}
