@@ -33,9 +33,16 @@ import {
   parseMemberIris,
   parseNotice,
   resolveContained,
+  responseDisposition,
   serializeContactRequests,
 } from '../src/lib/contactRequest.js';
-import { badgeLabel, badgeText, buildNotifications, collectNotifications } from '../src/lib/notifications.js';
+import {
+  badgeLabel,
+  badgeText,
+  buildNotifications,
+  collectNotifications,
+  mergeNotificationPoll,
+} from '../src/lib/notifications.js';
 
 const ME = 'https://me.example/profile/card#me';
 const ADA = 'https://ada.example/profile/card#me';
@@ -185,8 +192,27 @@ test('an inbox listing and a contacts group can be read back', () => {
     'https://pod.example/inbox/note-1.ttl',
     'https://pod.example/inbox/note-2.ttl',
   ]);
+  const css = [
+    '@prefix ldp: <http://www.w3.org/ns/ldp#>.',
+    '@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.',
+    '<> a ldp:Container, ldp:BasicContainer;',
+    '    dc:modified "2026-10-10T03:12:06.334Z"^^xsd:dateTime;',
+    '    posix:mtime 1791601926.',
+    '<7c537daa-6bb8-4b1a-a921-45348bb3960d> a ldp:Resource, <http://www.w3.org/ns/iana/media-types/text/turtle#Resource>;',
+    '    posix:mtime "2026-10-10T03:12:06.334Z"^^xsd:dateTime.',
+    '<> ldp:contains <7c537daa-6bb8-4b1a-a921-45348bb3960d>.',
+  ].join('\n');
+  assert.deepEqual(resolveContained('https://pod.example/inbox/', parseContainedUrls(css)), [
+    'https://pod.example/inbox/7c537daa-6bb8-4b1a-a921-45348bb3960d',
+  ]);
   const group = '<> <http://www.w3.org/2006/vcard/ns#hasMember> <https://ada.example/profile/card#me> .';
   assert.deepEqual(parseMemberIris(group), [ADA]);
+  assert.equal(responseDisposition(404), 'absent');
+  assert.equal(responseDisposition(401), 'absent');
+  assert.equal(responseDisposition(0), 'unreadable');
+  assert.equal(responseDisposition(304), 'unreadable');
+  assert.equal(responseDisposition(429), 'unreadable');
+  assert.equal(responseDisposition(200), 'read');
 });
 
 test('notifications skip your own comments and keep one request', () => {
@@ -223,6 +249,18 @@ test('notifications skip your own comments and keep one request', () => {
   );
   assert.equal(items.filter((item) => item.kind === 'contact-request').length, 1);
   assert.equal(items.find((item) => item.kind === 'comment').detail, 'hello');
+  const unnamed = buildNotifications({
+    webId: ME,
+    requests: [
+      {
+        authorWebId: 'https://ada.solidcommunity.net/profile/card#me',
+        recipientWebId: ME,
+        created: '2026-04-01T00:00:00.000Z',
+        authorName: 'profile',
+      },
+    ],
+  });
+  assert.equal(unnamed[0].title, '@ada asked to be a contact');
   assert.equal(badgeLabel(0), 'Notifications');
   assert.equal(badgeLabel(2), 'Notifications, 2 new');
   assert.equal(badgeText(12), '9+');
@@ -261,6 +299,14 @@ test('a followed pod can deliver a request when the inbox is empty', async () =>
   assert.ok(kinds.includes('contact-approval'));
   assert.deepEqual(result.outgoingTargets, [BOB]);
   assert.equal(result.failedAll, false);
+});
+
+test('a failed check keeps notifications the previous check already found', () => {
+  const kept = [{ id: 'contact-request:ada', kind: 'contact-request', created: '2026-04-01T00:00:00.000Z' }];
+  const merged = mergeNotificationPoll(kept, [], { failed: 1 });
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].id, kept[0].id);
+  assert.deepEqual(mergeNotificationPoll(kept, [], { failed: 0 }), []);
 });
 
 test('a private contacts group is not treated as an approval', async () => {

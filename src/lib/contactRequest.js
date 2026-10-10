@@ -172,34 +172,73 @@ export function parseMemberIris(turtle) {
   return [...new Set(iris)];
 }
 
+/**
+ * 401 and 403 are private. 404 is absent. Those are empty, not failures.
+ * 304, 429, and a CORS-hidden response (status 0) must not look like an empty file,
+ * or a flaky check wipes notifications that the previous check already found.
+ */
+export function responseDisposition(status) {
+  if (status === 404 || status === 401 || status === 403) return 'absent';
+  if (!status || status === 304 || status === 429) return 'unreadable';
+  return 'read';
+}
+
 async function readText(url, fetchFn) {
-  const response = await (fetchFn || fetch)(url, { headers: { Accept: 'text/turtle' } });
-  return response;
+  try {
+    return await (fetchFn || fetch)(url, {
+      headers: { Accept: 'text/turtle' },
+      cache: 'no-store',
+    });
+  } catch (err) {
+    // This host often omits CORS headers on 401, 404, and 429. The browser then
+    // reports a network error for a file that is absent, private, or rate-limited.
+    if (err?.name === 'TypeError' || err?.name === 'AbortError') {
+      return { ok: false, status: 0, text: async () => '' };
+    }
+    throw err;
+  }
+}
+
+async function readPublicFirst(url, fetchFn) {
+  // These files are world-readable on purpose. A session fetch adds
+  // Authorization and can fail a CORS preflight that a plain GET survives.
+  const plain = await readText(url, fetch);
+  if (plain.ok) return plain;
+  if (!fetchFn || fetchFn === fetch) return plain;
+  return readText(url, fetchFn);
 }
 
 export async function readContactRequests(podUrl, fetchFn) {
-  const response = await readText(contactRequestsUrl(podUrl), fetchFn);
-  if (response.status === 404 || response.status === 401 || response.status === 403) return [];
-  if (!response.ok) throw new Error(`Contact requests responded ${response.status}`);
+  const response = await readPublicFirst(contactRequestsUrl(podUrl), fetchFn);
+  const disposition = responseDisposition(response.status);
+  if (disposition === 'absent') return [];
+  if (disposition === 'unreadable' || !response.ok) {
+    throw new Error(`Contact requests responded ${response.status}`);
+  }
   return parseContactRequests(await response.text());
 }
 
 export async function readGroupMembers(podUrl, fetchFn) {
-  const response = await readText(`${podUrl}${PATHS.contactsGroup}`, fetchFn);
-  if (response.status === 404 || response.status === 401 || response.status === 403) return [];
-  if (!response.ok) throw new Error(`Contacts group responded ${response.status}`);
+  const response = await readPublicFirst(`${podUrl}${PATHS.contactsGroup}`, fetchFn);
+  const disposition = responseDisposition(response.status);
+  if (disposition === 'absent') return [];
+  if (disposition === 'unreadable' || !response.ok) {
+    throw new Error(`Contacts group responded ${response.status}`);
+  }
   return parseMemberIris(await response.text());
 }
 
 export async function readInboxNotices(inboxUrl, fetchFn, limit = 15) {
   const response = await readText(inboxUrl, fetchFn);
-  if (response.status === 404 || response.status === 401 || response.status === 403) return [];
-  if (!response.ok) throw new Error(`Inbox responded ${response.status}`);
+  const disposition = responseDisposition(response.status);
+  if (disposition === 'absent') return [];
+  if (disposition === 'unreadable' || !response.ok) throw new Error(`Inbox responded ${response.status}`);
   const contained = resolveContained(inboxUrl, parseContainedUrls(await response.text())).slice(-limit);
   const notices = [];
   for (const url of contained) {
     try {
       const item = await readText(url, fetchFn);
+      if (responseDisposition(item.status) === 'absent') continue;
       if (!item.ok) continue;
       const notice = parseNotice(await item.text());
       if (notice?.authorWebId) notices.push(notice);

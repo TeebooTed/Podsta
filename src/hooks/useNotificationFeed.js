@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { collectNotifications } from '../lib/notifications.js';
+import { collectNotifications, mergeNotificationPoll } from '../lib/notifications.js';
 import { nextPollDelay } from '../lib/pollSchedule.js';
 import { acknowledge as acknowledgeSeen, baselineSeen, readSeen, unseenItems, writeSeen } from '../lib/seenState.js';
 import { openSolidChannel } from '../lib/solidChannel.js';
@@ -9,7 +9,25 @@ import { PATHS } from '../lib/vocab.js';
 /**
  * Poll while the tab is visible. A Solid notification channel, when the
  * provider accepts the session, only asks for an earlier poll.
+ *
+ * One in-flight check is shared per person and list. React StrictMode mounts
+ * the effect twice; two checks at once get the Pod host to answer 429 and the
+ * browser hides that response, which used to look like an empty inbox.
  */
+const checksInFlight = new Map();
+
+function collectOnce(key, run) {
+  const current = checksInFlight.get(key);
+  if (current) return current;
+  const flight = Promise.resolve()
+    .then(run)
+    .finally(() => {
+      if (checksInFlight.get(key) === flight) checksInFlight.delete(key);
+    });
+  checksInFlight.set(key, flight);
+  return flight;
+}
+
 export function useNotificationFeed({ enabled, session, podUrl, webId, friends, posts }) {
   const [items, setItems] = useState([]);
   const [seen, setSeen] = useState({ initialized: false, ids: [] });
@@ -45,6 +63,7 @@ export function useNotificationFeed({ enabled, session, podUrl, webId, friends, 
 
   useEffect(() => {
     if (!enabled || !session?.info?.isLoggedIn || !podUrl || !webId) {
+      itemsRef.current = [];
       setItems([]);
       setSeen({ initialized: false, ids: [] });
       setOutgoingTargets([]);
@@ -81,25 +100,29 @@ export function useNotificationFeed({ enabled, session, podUrl, webId, friends, 
       running = true;
       setChecking(true);
       try {
-        const result = await collectNotifications({
-          webId,
-          podUrl,
-          friends,
-          posts,
-          session,
-        });
+        const result = await collectOnce(`${webId}\n${friendKey}\n${postKey}`, () =>
+          collectNotifications({
+            webId,
+            podUrl,
+            friends,
+            posts,
+            session,
+          }),
+        );
         if (closed) return;
+        const merged = mergeNotificationPoll(itemsRef.current, result.items, result);
+        itemsRef.current = merged;
         const stored = readSeen(window.localStorage, webId);
-        const nextSeen = stored.initialized ? stored : baselineSeen(result.items);
-        if (!stored.initialized) {
+        const clean = !result.failed;
+        const nextSeen = stored.initialized ? stored : clean ? baselineSeen(merged) : stored;
+        if (!stored.initialized && clean) {
           try {
             writeSeen(window.localStorage, webId, nextSeen);
           } catch {
             // Keep the baseline in memory for this tab.
           }
         }
-        itemsRef.current = result.items;
-        setItems(result.items);
+        setItems(merged);
         setSeen(nextSeen);
         setOutgoingTargets(result.outgoingTargets || []);
         failed = Boolean(result.failedAll);
@@ -126,7 +149,12 @@ export function useNotificationFeed({ enabled, session, podUrl, webId, friends, 
         if (closed) return;
         if (queued) {
           queued = false;
-          tick();
+          // A wake that arrives mid-check must wait. An immediate second check
+          // is what the Pod host answers with 429.
+          const pause = failed ? Math.min(waitMs, 8000) : 1500;
+          timer = setTimeout(() => {
+            if (!closed) tick();
+          }, pause);
         } else {
           schedule();
         }

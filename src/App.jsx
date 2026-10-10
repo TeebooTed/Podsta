@@ -79,6 +79,7 @@ export default function App() {
   const [sentRequests, setSentRequests] = useState([]);
   const [approvingWebId, setApprovingWebId] = useState('');
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [libraryReady, setLibraryReady] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [welcomeWebId, setWelcomeWebId] = useState('');
@@ -149,6 +150,7 @@ export default function App() {
             setPosts(postsList);
             setFriends(friendsList);
             setContacts(contactList);
+            setLibraryReady(true);
             setLoadingPosts(false);
             if (consumeSignup(window.sessionStorage)) {
               setWelcomeWebId(s.info.webId);
@@ -385,6 +387,7 @@ export default function App() {
     setPosts([]);
     setFriends([]);
     setContacts([]);
+    setLibraryReady(false);
     setOnboardingOpen(false);
     navigate('/');
   }, [navigate]);
@@ -517,7 +520,7 @@ export default function App() {
   }, [podUrl, session, contacts, friends, showToast]);
 
   const notifications = useNotificationFeed({
-    enabled: Boolean(session?.info?.isLoggedIn && podUrl),
+    enabled: Boolean(session?.info?.isLoggedIn && podUrl && libraryReady),
     session,
     podUrl,
     webId: session?.info?.webId || '',

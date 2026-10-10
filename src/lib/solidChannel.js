@@ -7,6 +7,8 @@
  * and then reads receiveFrom. Unauthenticated calls are rejected.
  */
 
+import { withTimeout } from './timeoutFetch.js';
+
 const STREAMING_TYPE = 'http://www.w3.org/ns/solid/notifications#StreamingHTTPChannel2023';
 const WEBSOCKET_TYPE = 'http://www.w3.org/ns/solid/notifications#WebSocketChannel2023';
 
@@ -179,9 +181,10 @@ function disconnected(reason) {
  */
 export async function openSolidChannel({ fetchFn, resourceUrl, onWake, signal }) {
   if (!fetchFn || !resourceUrl) return disconnected('missing');
+  const quick = withTimeout(fetchFn, 8000);
   let links;
   try {
-    links = await discover(fetchFn, resourceUrl, signal);
+    links = await discover(quick, resourceUrl, signal);
   } catch (err) {
     if (err?.name === 'AbortError') throw err;
     return disconnected('discover-failed');
@@ -189,7 +192,7 @@ export async function openSolidChannel({ fetchFn, resourceUrl, onWake, signal })
 
   if (links.streamingHttp) {
     try {
-      const receiveFrom = await subscribe(fetchFn, links.streamingHttp, resourceUrl, STREAMING_TYPE, signal);
+      const receiveFrom = await subscribe(quick, links.streamingHttp, resourceUrl, STREAMING_TYPE, signal);
       const streamController = new AbortController();
       const onAbort = () => streamController.abort();
       if (signal) {
@@ -217,7 +220,7 @@ export async function openSolidChannel({ fetchFn, resourceUrl, onWake, signal })
 
   if (links.websocket && typeof WebSocket === 'function') {
     try {
-      const receiveFrom = await subscribe(fetchFn, links.websocket, resourceUrl, WEBSOCKET_TYPE, signal);
+      const receiveFrom = await subscribe(quick, links.websocket, resourceUrl, WEBSOCKET_TYPE, signal);
       if (!receiveFrom.startsWith('wss:') && !receiveFrom.startsWith('ws:')) return disconnected('not-a-socket');
       const socket = new WebSocket(receiveFrom);
       socket.onmessage = () => onWake?.();

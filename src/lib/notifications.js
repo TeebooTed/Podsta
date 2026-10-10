@@ -11,6 +11,7 @@ import {
   serverInboxUrl,
 } from './contactRequest.js';
 import { sourceOutcome } from './pollSchedule.js';
+import { withTimeout } from './timeoutFetch.js';
 
 /**
  * Notifications Podsta can see without a server of its own:
@@ -45,8 +46,10 @@ export function badgeText(count) {
 }
 
 function actorName(webId, fallback) {
-  if (fallback && fallback !== webId) return fallback;
-  return displayHandle(webId).handle || 'Someone';
+  const handle = displayHandle(webId).handle || 'Someone';
+  // resolveProfile uses the path segment "profile" when a card has no name.
+  if (!fallback || fallback === webId || fallback === 'profile' || fallback === 'Unknown') return handle;
+  return fallback;
 }
 
 function dedupeAndSort(items) {
@@ -55,6 +58,22 @@ function dedupeAndSort(items) {
     if (!item?.id) continue;
     const previous = map.get(item.id);
     if (!previous || (item.created || '') > (previous.created || '')) map.set(item.id, item);
+  }
+  return [...map.values()].sort((a, b) => (b.created || '').localeCompare(a.created || ''));
+}
+
+/**
+ * A failed source must not erase items the previous check already showed.
+ * A clean check replaces the list, including when the Pods really have nothing.
+ */
+export function mergeNotificationPoll(previous, next, outcome) {
+  if (!outcome?.failed) return next || [];
+  const map = new Map();
+  for (const item of previous || []) {
+    if (item?.id) map.set(item.id, item);
+  }
+  for (const item of next || []) {
+    if (item?.id) map.set(item.id, item);
   }
   return [...map.values()].sort((a, b) => (b.created || '').localeCompare(a.created || ''));
 }
@@ -135,6 +154,16 @@ export function buildNotifications({
   return dedupeAndSort(items).slice(0, NOTIFICATION_LIMITS.posts);
 }
 
+function fallbackPod(webId) {
+  try {
+    const url = new URL(webId);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    return `${url.protocol}//${url.host}/`;
+  } catch {
+    return null;
+  }
+}
+
 async function mark(results, run) {
   try {
     const value = await run();
@@ -161,7 +190,7 @@ export async function collectNotifications({
   podUrlForWebId = async (id, fetchImpl) => (await resolveProfile(id, fetchImpl)).podUrl,
   limits = NOTIFICATION_LIMITS,
 }) {
-  const fetchImpl = fetchFn || session?.fetch;
+  const fetchImpl = withTimeout(fetchFn || session?.fetch);
   const results = [];
   const cappedFriends = (friends || []).slice(0, limits.friends);
 
@@ -194,8 +223,9 @@ export async function collectNotifications({
       if (friend.podUrl) return friend.podUrl;
       return podUrlForWebId(friend.webId, fetchImpl);
     });
-    if (!located.ok || !located.value) continue;
-    const file = await mark(results, () => readRequests(located.value, fetchImpl));
+    const pod = located.value || fallbackPod(friend.webId);
+    if (!pod) continue;
+    const file = await mark(results, () => readRequests(pod, fetchImpl));
     if (!file.ok) continue;
     for (const entry of file.value || []) {
       if (!samePerson(entry.recipientWebId, webId)) continue;
