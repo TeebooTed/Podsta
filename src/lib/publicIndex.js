@@ -9,6 +9,8 @@ import {
   getThingAll,
   setStringNoLocale,
   getStringNoLocale,
+  addUrl,
+  getUrlAll,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, PODSTA } from './vocab.js';
 import { makeGroupReadable, makePublic } from './acl.js';
@@ -64,6 +66,7 @@ async function readIndex(podUrl, path, fetchFn) {
         dateCreated: getStringNoLocale(t, SCHEMA.dateCreated) || '',
         title: getStringNoLocale(t, SCHEMA.name) || '',
         caption: getStringNoLocale(t, SCHEMA.caption) || '',
+        images: getUrlAll(t, SCHEMA.image),
       }))
       .filter((e) => e.url)
       .sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
@@ -107,13 +110,18 @@ async function addToIndex(podUrl, path, entry, session, lock) {
   }
 
   const thingUrl = entryThingUrl(podUrl, entry.url, path);
-  let thing = getThing(ds, thingUrl) ?? createThing({ url: thingUrl });
+  const previous = getThing(ds, thingUrl);
+  if (previous) ds = removeThing(ds, previous);
+  let thing = createThing({ url: thingUrl });
   thing = setStringNoLocale(thing, SCHEMA.url, entry.url);
   thing = setStringNoLocale(thing, PODSTA.PostType, entry.type);
   thing = setStringNoLocale(thing, SCHEMA.dateCreated, entry.dateCreated || new Date().toISOString());
   // Always write title and caption, including empty strings, so an edit can clear them.
   thing = setStringNoLocale(thing, SCHEMA.name, entry.title || '');
   thing = setStringNoLocale(thing, SCHEMA.caption, entry.caption || '');
+  for (const image of entry.images || []) {
+    if (image) thing = addUrl(thing, SCHEMA.image, image);
+  }
 
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(url, ds, { fetch: session.fetch });

@@ -5,7 +5,7 @@ import { lockExistingComments } from './lib/acl.js';
 import { postedToast } from './lib/shareFeedback.js';
 import {
   loadOwnPosts,
-  uploadPhoto,
+  createPhotoAlbum,
   createTextPost,
   sharePost,
   setPostAudience,
@@ -177,12 +177,23 @@ export default function App() {
 
   // ── Compose handler ───────────────────────────────────────
   const handleCompose = useCallback(
-    async ({ type, file, caption, title, body, audience = 'private' }) => {
+    async ({ type, file, files, caption, title, body, audience = 'private', onProgress, alreadyUploaded }) => {
       if (!podUrl || !session) throw new Error('Not signed in');
 
       let postUrl;
+      let images = [];
       if (type === 'photo') {
-        postUrl = await uploadPhoto({ podUrl, session, file, caption });
+        const chosen = files?.length ? files : file ? [file] : [];
+        const created = await createPhotoAlbum({
+          podUrl,
+          session,
+          files: chosen,
+          caption,
+          onProgress,
+          alreadyUploaded,
+        });
+        postUrl = created.url;
+        images = created.images;
       } else {
         postUrl = await createTextPost({ podUrl, session, title, body });
       }
@@ -193,6 +204,7 @@ export default function App() {
         const justCreated = {
           url: postUrl,
           type,
+          images,
           caption: type === 'photo' ? caption : '',
           body: type === 'text' ? body : '',
           title: type === 'text' ? title : '',

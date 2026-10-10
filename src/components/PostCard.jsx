@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getFile } from '@inrupt/solid-client';
 import Avatar from './Avatar.jsx';
+import PhotoCarousel from './PhotoCarousel.jsx';
+import { photoUrls } from '../lib/album.js';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
-import { withTimeout } from '../lib/timeoutFetch.js';
 
 /**
  * PostCard renders ONE post (photo or text) in feed-style.
@@ -33,64 +33,11 @@ export default function PostCard({
   deleting,
   session,
 }) {
-  const [imgUrl, setImgUrl] = useState(null);
-  const [visible, setVisible] = useState(mode === 'feed'); // feed images load by URL directly, no observer needed
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef(null);
   const menuRef = useRef(null);
-
-  // Lazy-load own-photo blob URLs only when visible.
-  useEffect(() => {
-    if (mode !== 'own' || post.type !== 'photo') return;
-    const el = cardRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
-      { rootMargin: '300px' },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [mode, post.type]);
-
-  // Public files use the Pod URL. Private and contacts-only files need the session,
-  // because a plain image request is anonymous and those ACLs will refuse it.
-  useEffect(() => {
-    if (post.type !== 'photo') return undefined;
-    if (mode === 'own' && !visible) return undefined;
-    if (post.mediaBlob) {
-      const url = URL.createObjectURL(post.mediaBlob);
-      setImgUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    if (post.isPublic) {
-      setImgUrl(post.mediaUrl || post.url);
-      return undefined;
-    }
-    let cancelled = false;
-    let objectUrl;
-    (async () => {
-      try {
-        if (!session?.fetch) return;
-        const file = await getFile(post.url, { fetch: withTimeout(session.fetch, 30000) });
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(file);
-        setImgUrl(objectUrl);
-      } catch {
-        if (!cancelled) setImgUrl(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [mode, post, visible, session]);
 
   // Close menu on outside click.
   useEffect(() => {
@@ -105,7 +52,7 @@ export default function PostCard({
   const dateStr = relativeTime(post.dateCreated);
   const isLong = post.type === 'text' && post.body && post.body.length > 280;
 
-  const photoSrc = post.type === 'photo' ? (post.isPublic && mode !== 'own' ? post.mediaUrl || post.url : imgUrl) : null;
+  const images = photoUrls(post);
 
   return (
     <article
@@ -139,27 +86,13 @@ export default function PostCard({
 
       {/* Media or body */}
       {post.type === 'photo' ? (
-        <button
-          type="button"
-          className="relative block w-full bg-ink-900 cursor-zoom-in"
-          onClick={() => onOpenLightbox?.()}
-          aria-label={post.caption ? `Open photo: ${post.caption}` : 'Open photo'}
-        >
-          {photoSrc ? (
-            <img
-              src={photoSrc}
-              alt={post.caption || 'Photo'}
-              loading="lazy"
-              className="w-full max-h-[600px] object-cover"
-              onError={(e) => {
-                // For feed images that fail (e.g. friend deleted post), hide.
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="w-full aspect-[4/3] skeleton"></div>
-          )}
-        </button>
+        <PhotoCarousel
+          urls={images}
+          alt={post.caption ? `Open photo: ${post.caption}` : 'Open photo'}
+          session={session}
+          isPublic={Boolean(post.isPublic)}
+          onOpen={() => onOpenLightbox?.()}
+        />
       ) : (
         <div className="px-5 py-4">
           {post.title && (

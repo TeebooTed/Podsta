@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { loadPublicPost } from '../lib/posts.js';
+import { photoUrls } from '../lib/album.js';
+import PhotoCarousel from '../components/PhotoCarousel.jsx';
 import { safeHttpUrl } from '../lib/urls.js';
 import { relativeTime } from '../lib/utils.js';
 import { PATHS } from '../lib/navigation.js';
@@ -82,8 +84,14 @@ export default function PostPage({ session, posts }) {
       )}
       {!loading && post && (
         <>
-          {post.type === 'photo' && post.isPublic !== false && (post.mediaUrl || post.url) && (
-            <img src={post.mediaUrl || post.url} alt={post.caption || 'Photo'} className="w-full rounded-xl bg-ink-800" />
+          {post.type === 'photo' && post.isPublic !== false && photoUrls(post).length > 0 && (
+            <PhotoCarousel
+              urls={photoUrls(post)}
+              alt={post.caption || 'Photo'}
+              session={session}
+              isPublic
+              fit="contain"
+            />
           )}
           {post.type === 'photo' && post.isPublic === false && (
             <p className="text-sm text-ink-200">This photo is private on your Pod. Open your profile to see it.</p>

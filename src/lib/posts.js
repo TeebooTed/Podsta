@@ -11,8 +11,12 @@ import {
   getThing,
   setStringNoLocale,
   getStringNoLocale,
+  addUrl,
+  getUrlAll,
 } from '@inrupt/solid-client';
-import { PATHS, SCHEMA, PODSTA, ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from './vocab.js';
+import { PATHS, SCHEMA, PODSTA, ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES, MAX_ALBUM_PHOTOS } from './vocab.js';
+import { audienceResourceUrls, isAlbumPost, photoUrls } from './album.js';
+import { overallRatio, putPhotoFile, uploadRatio } from './uploadProgress.js';
 import { applyAudience, isPublic, lockCommentsToOwner, makeGroupReadable, makePublic } from './acl.js';
 import {
   addToContactsIndex,
@@ -95,6 +99,93 @@ export async function uploadPhoto({ podUrl, session, file, caption }) {
   return photoUrl;
 }
 
+function photoSlug(file, index) {
+  const safe = (file?.name || 'photo').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60);
+  return `${Date.now()}-${index}-${safe}`;
+}
+
+/**
+ * One or more photos become a single post file plus the image files.
+ * `alreadyUploaded` lets a retry continue after a failure instead of sending
+ * the same bytes again. Progress stays under 100% until the post file is saved.
+ */
+export async function createPhotoAlbum({
+  podUrl,
+  session,
+  files,
+  caption,
+  onProgress,
+  alreadyUploaded = [],
+}) {
+  const list = Array.from(files || []).filter(Boolean);
+  if (!list.length) throw new Error('Choose a photo');
+  if (list.length > MAX_ALBUM_PHOTOS) throw new Error(`Choose up to ${MAX_ALBUM_PHOTOS} photos`);
+  for (const file of list) {
+    const problem = validatePhotoFile(file);
+    if (problem) throw new Error(problem);
+  }
+
+  const container = `${podUrl}${PATHS.photos}`;
+  await ensureContainer(container, session);
+  const uploaded = [...alreadyUploaded];
+
+  for (let index = uploaded.length; index < list.length; index += 1) {
+    const file = list[index];
+    const photoUrl = `${container}${photoSlug(file, index)}`;
+    try {
+      await putPhotoFile({
+        url: photoUrl,
+        file,
+        fetchFn: session.fetch,
+        onBytes: (sent, total) => {
+          onProgress?.({
+            index,
+            count: list.length,
+            ratio: overallRatio(index, list.length, uploadRatio(sent, total)),
+            phase: 'upload',
+          });
+        },
+      });
+      uploaded.push(photoUrl);
+    } catch (err) {
+      const error = new Error(err?.message || 'Upload failed');
+      error.uploaded = uploaded;
+      error.failedAt = index;
+      throw error;
+    }
+  }
+
+  onProgress?.({
+    index: Math.max(0, list.length - 1),
+    count: list.length,
+    ratio: overallRatio(Math.max(0, list.length - 1), list.length, 0.9),
+    phase: 'save',
+  });
+
+  const postsContainer = `${podUrl}${PATHS.posts}`;
+  await ensureContainer(postsContainer, session);
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const postUrl = `${postsContainer}${id}.ttl`;
+  let ds = createSolidDataset();
+  let thing = createThing({ url: postUrl });
+  thing = setStringNoLocale(thing, PODSTA.PostType, 'photo');
+  thing = setStringNoLocale(thing, SCHEMA.dateCreated, new Date().toISOString());
+  if (caption?.trim()) thing = setStringNoLocale(thing, SCHEMA.caption, caption.trim());
+  for (const image of uploaded) thing = addUrl(thing, SCHEMA.image, image);
+  ds = setThing(ds, thing);
+  try {
+    await saveSolidDatasetAt(postUrl, ds, { fetch: session.fetch });
+  } catch (err) {
+    const error = new Error(err?.message || 'The photos uploaded, but the post was not saved');
+    error.uploaded = uploaded;
+    error.failedAt = list.length;
+    throw error;
+  }
+
+  onProgress?.({ index: list.length - 1, count: list.length, ratio: 1, phase: 'done' });
+  return { url: postUrl, images: uploaded };
+}
+
 async function loadPhotoCaption(photoUrl, fetchFn) {
   const timed = withTimeout(fetchFn || fetch);
   try {
@@ -125,13 +216,13 @@ async function storeAudience(resourceUrl, thingUrl, audience, session) {
   await saveSolidDatasetAt(resourceUrl, ds, { fetch: session.fetch });
 }
 
-export async function loadOwnPhotos({ podUrl, session }) {
+export async function loadOwnPhotos({ podUrl, session, exclude }) {
   const container = `${podUrl}${PATHS.photos}`;
   let urls = [];
   try {
     const ds = await getSolidDataset(container, { fetch: session.fetch });
-    urls = getContainedResourceUrlAll(ds).filter((u) =>
-      /\.(jpg|jpeg|png|gif|webp)$/i.test(u),
+    urls = getContainedResourceUrlAll(ds).filter(
+      (u) => /\.(jpg|jpeg|png|gif|webp)$/i.test(u) && !exclude?.has(u),
     );
   } catch (err) {
     if (isNotFound(err)) return [];
@@ -161,6 +252,7 @@ export async function loadOwnPhotos({ podUrl, session }) {
         dateCreated,
         isPublic: pub,
         audience,
+        images: [url],
         mediaUrl: url,
         mediaBlob: null,
       };
@@ -200,6 +292,25 @@ async function loadTextPost(postUrl, fetchFn) {
     const ds = await getSolidDataset(postUrl, { fetch: timed });
     const thing = getThing(ds, postUrl);
     if (!thing) return null;
+    const kind = getStringNoLocale(thing, PODSTA.PostType) || 'text';
+    const images = getUrlAll(thing, SCHEMA.image);
+    const dateCreated = getStringNoLocale(thing, SCHEMA.dateCreated) || '';
+    const audience = getStringNoLocale(thing, PODSTA.audience) || '';
+    if (kind === 'photo') {
+      return {
+        id: postUrl,
+        url: postUrl,
+        type: 'photo',
+        body: '',
+        title: '',
+        caption: getStringNoLocale(thing, SCHEMA.caption) || '',
+        dateCreated,
+        audience,
+        images,
+        mediaUrl: images[0] || null,
+        mediaBlob: null,
+      };
+    }
     return {
       id: postUrl,
       url: postUrl,
@@ -207,8 +318,9 @@ async function loadTextPost(postUrl, fetchFn) {
       body: getStringNoLocale(thing, SCHEMA.body) || '',
       title: getStringNoLocale(thing, SCHEMA.name) || '',
       caption: '',
-      dateCreated: getStringNoLocale(thing, SCHEMA.dateCreated) || '',
-      audience: getStringNoLocale(thing, PODSTA.audience) || '',
+      dateCreated,
+      audience,
+      images: [],
       mediaUrl: null,
       mediaBlob: null,
     };
@@ -250,10 +362,9 @@ export async function loadOwnTextPosts({ podUrl, session }) {
 // ─────────────────────────────────────────────────────────────
 
 export async function loadOwnPosts({ podUrl, session }) {
-  const [photos, texts] = await Promise.all([
-    loadOwnPhotos({ podUrl, session }),
-    loadOwnTextPosts({ podUrl, session }),
-  ]);
+  const texts = await loadOwnTextPosts({ podUrl, session });
+  const exclude = new Set(texts.flatMap((post) => post.images || []));
+  const photos = await loadOwnPhotos({ podUrl, session, exclude });
   return [...photos, ...texts].sort((a, b) =>
     (b.dateCreated || '').localeCompare(a.dateCreated || ''),
   );
@@ -266,7 +377,7 @@ export async function loadOwnPosts({ podUrl, session }) {
 // ─────────────────────────────────────────────────────────────
 
 async function rememberAudience(post, audience, session) {
-  if (post.type === 'photo') {
+  if (post.type === 'photo' && !isAlbumPost(post)) {
     await storeAudience(`${post.url}.meta`, post.url, audience, session);
     return;
   }
@@ -287,9 +398,7 @@ export async function sharePost({ post, podUrl, ownerWebId, session, audience = 
   // still reflects the old rule, so the UI does not claim the new audience.
   await rememberAudience(post, audience, session);
 
-  const urlsToShare = [post.url];
-  if (post.type === 'photo') urlsToShare.push(`${post.url}.meta`);
-  await applyAudience(urlsToShare, audience, { ownerWebId, groupUrl, session });
+  await applyAudience(audienceResourceUrls(post), audience, { ownerWebId, groupUrl, session });
 
   // Comments stay owner-only. This also replaces an older public Append grant.
   const commentsContainer = `${podUrl}${PATHS.comments}`;
@@ -307,9 +416,7 @@ export async function sharePost({ post, podUrl, ownerWebId, session, audience = 
 }
 
 export async function unsharePost({ post, podUrl, ownerWebId, session }) {
-  const urls = [post.url];
-  if (post.type === 'photo') urls.push(`${post.url}.meta`);
-  await applyAudience(urls, 'private', { ownerWebId, groupUrl: groupFragment(podUrl), session });
+  await applyAudience(audienceResourceUrls(post), 'private', { ownerWebId, groupUrl: groupFragment(podUrl), session });
   await removeFromPublicIndex(podUrl, post.url, session);
   await removeFromContactsIndex(podUrl, post.url, session);
   try {
@@ -341,6 +448,39 @@ export async function setPostAudience({ post, audience, level, podUrl, ownerWebI
 
 export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, session }) {
   const caption = (newCaption || '').trim();
+  if (isAlbumPost(post)) {
+    let ds;
+    try {
+      ds = await getSolidDataset(post.url, { fetch: session.fetch });
+    } catch {
+      ds = createSolidDataset();
+    }
+    let thing = getThing(ds, post.url) ?? createThing({ url: post.url });
+    thing = setStringNoLocale(thing, PODSTA.PostType, 'photo');
+    thing = setStringNoLocale(thing, SCHEMA.caption, caption);
+    if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
+      thing = setStringNoLocale(thing, SCHEMA.dateCreated, post.dateCreated || new Date().toISOString());
+    }
+    const existing = new Set(getUrlAll(thing, SCHEMA.image));
+    for (const image of photoUrls(post)) {
+      if (!existing.has(image)) thing = addUrl(thing, SCHEMA.image, image);
+    }
+    ds = setThing(ds, thing);
+    await saveSolidDatasetAt(post.url, ds, { fetch: session.fetch });
+    const audience = effectiveAudience({ stored: post.audience, isPublic: post.isPublic });
+    if (audience === 'private') return;
+    try {
+      const entry = publicIndexEntryFromPost({ ...post, caption, audience }, { caption });
+      if (audience === 'public') {
+        await addToPublicIndex(podUrl, entry, ownerWebId, session);
+      } else {
+        await addToContactsIndex(podUrl, entry, ownerWebId, groupFragment(podUrl), session);
+      }
+    } catch (err) {
+      throw new Error(`The caption was saved, but the shared index was not updated: ${err.message}`);
+    }
+    return;
+  }
   let ds;
   try {
     ds = await getSolidDataset(`${post.url}.meta`, { fetch: session.fetch });
@@ -419,12 +559,15 @@ export async function deletePost({ post, podUrl, session }) {
   }
 
   // Cleanup siblings — best-effort, don't fail the whole operation if these 404.
-  if (post.type === 'photo') {
+  await deleteFile(`${post.url}.acl`, { fetch: session.fetch }).catch(() => {});
+  if (isAlbumPost(post)) {
+    for (const image of photoUrls(post)) {
+      await deleteFile(image, { fetch: session.fetch }).catch(() => {});
+      await deleteFile(`${image}.acl`, { fetch: session.fetch }).catch(() => {});
+    }
+  } else if (post.type === 'photo') {
     await deleteFile(`${post.url}.meta`, { fetch: session.fetch }).catch(() => {});
-    await deleteFile(`${post.url}.acl`, { fetch: session.fetch }).catch(() => {});
     await deleteFile(`${post.url}.meta.acl`, { fetch: session.fetch }).catch(() => {});
-  } else {
-    await deleteFile(`${post.url}.acl`, { fetch: session.fetch }).catch(() => {});
   }
 }
 
@@ -433,6 +576,11 @@ export async function deletePost({ post, podUrl, session }) {
 // ─────────────────────────────────────────────────────────────
 
 export async function loadPublicPost({ url, type, fetchFn }) {
+  if (typeof url === 'string' && url.endsWith('.ttl')) {
+    const post = await loadTextPost(url, fetchFn);
+    if (!post) return null;
+    return { ...post, isPublic: true };
+  }
   if (type === 'photo') {
     const meta = await loadPhotoCaption(url, fetchFn);
     return {
@@ -443,11 +591,11 @@ export async function loadPublicPost({ url, type, fetchFn }) {
       body: '',
       title: '',
       dateCreated: meta.dateCreated || '',
+      images: [url],
       mediaUrl: url,
-      mediaBlob: null, // friend-feed photos load via the URL directly, not blob
+      mediaBlob: null,
       isPublic: true,
     };
-  } else {
-    return await loadTextPost(url, fetchFn);
   }
+  return loadTextPost(url, fetchFn);
 }
