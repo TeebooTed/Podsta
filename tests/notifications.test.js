@@ -5,6 +5,7 @@ import { PHONE_NAV, DESKTOP_NAV } from '../src/lib/navigation.js';
 import {
   acknowledge,
   baselineSeen,
+  nextSeenAfterPoll,
   readSeen,
   seenStorageKey,
   trimSeen,
@@ -36,6 +37,7 @@ import {
   responseDisposition,
   serializeContactRequests,
 } from '../src/lib/contactRequest.js';
+import { readPublicIndex } from '../src/lib/publicIndex.js';
 import {
   badgeLabel,
   badgeText,
@@ -82,6 +84,19 @@ test('the first check is a baseline so old posts do not light the badge', () => 
     ['post:c'],
   );
   assert.match(seenStorageKey(ME), /podsta\.notifications\.seen:/);
+});
+
+test('a partial check still baselines, and a total failure does not', () => {
+  const request = [{ id: 'request:ada' }];
+  const partial = nextSeenAfterPoll({ initialized: false, ids: [] }, request, { failed: 1, failedAll: false });
+  assert.equal(partial.initialized, true);
+  assert.deepEqual(partial.ids, ['request:ada']);
+  const kept = nextSeenAfterPoll(partial, [...request, { id: 'post:new' }], { failed: 0, failedAll: false });
+  assert.deepEqual(kept.ids, ['request:ada']);
+  const blocked = nextSeenAfterPoll({ initialized: false, ids: [] }, [], { failed: 2, failedAll: true });
+  assert.equal(blocked.initialized, false);
+  const clean = nextSeenAfterPoll({ initialized: false, ids: [] }, [{ id: 'post:old' }], { failed: 0 });
+  assert.deepEqual(clean.ids, ['post:old']);
 });
 
 test('seen state ignores a broken record and caps old ids', () => {
@@ -299,6 +314,16 @@ test('a followed pod can deliver a request when the inbox is empty', async () =>
   assert.ok(kinds.includes('contact-approval'));
   assert.deepEqual(result.outgoingTargets, [BOB]);
   assert.equal(result.failedAll, false);
+});
+
+test('a feed index read does not reuse the browser cache', async () => {
+  let cache = '';
+  const fetchFn = async (_url, init = {}) => {
+    cache = init.cache || '';
+    return new Response('missing', { status: 404 });
+  };
+  assert.deepEqual(await readPublicIndex('https://ada.example/', fetchFn), []);
+  assert.equal(cache, 'no-store');
 });
 
 test('a failed check keeps notifications the previous check already found', () => {

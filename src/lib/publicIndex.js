@@ -53,8 +53,13 @@ function entryThingUrl(podUrl, postUrl, path = PATHS.publicIndex) {
  * Pass `fetchFn` to use authenticated fetch (slightly higher rate limits on
  * some providers); omit it for anonymous fetch.
  */
+function freshFetch(fetchFn) {
+  const base = typeof fetchFn === 'function' ? fetchFn : fetch;
+  return (input, init = {}) => base(input, { ...init, cache: 'no-store' });
+}
+
 async function readIndex(podUrl, path, fetchFn) {
-  const timed = withTimeout(fetchFn || fetch);
+  const timed = withTimeout(freshFetch(fetchFn));
   try {
     const ds = await getSolidDataset(indexUrl(podUrl, path), { fetch: timed });
     return getThingAll(ds)

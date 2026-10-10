@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { collectNotifications, mergeNotificationPoll } from '../lib/notifications.js';
 import { nextPollDelay } from '../lib/pollSchedule.js';
-import { acknowledge as acknowledgeSeen, baselineSeen, readSeen, unseenItems, writeSeen } from '../lib/seenState.js';
+import { acknowledge as acknowledgeSeen, nextSeenAfterPoll, readSeen, unseenItems, writeSeen } from '../lib/seenState.js';
 import { openSolidChannel } from '../lib/solidChannel.js';
 import { serverInboxUrl } from '../lib/contactRequest.js';
 import { PATHS } from '../lib/vocab.js';
@@ -113,9 +113,8 @@ export function useNotificationFeed({ enabled, session, podUrl, webId, friends, 
         const merged = mergeNotificationPoll(itemsRef.current, result.items, result);
         itemsRef.current = merged;
         const stored = readSeen(window.localStorage, webId);
-        const clean = !result.failed;
-        const nextSeen = stored.initialized ? stored : clean ? baselineSeen(merged) : stored;
-        if (!stored.initialized && clean) {
+        const nextSeen = nextSeenAfterPoll(stored, merged, result);
+        if (!stored.initialized && nextSeen.initialized) {
           try {
             writeSeen(window.localStorage, webId, nextSeen);
           } catch {

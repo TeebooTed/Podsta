@@ -5,8 +5,9 @@
  * A check should not need another Pod write, and it still works when the Pod
  * is slow. It does not follow the person to another browser.
  *
- * The first successful check is a baseline: everything already there is marked
- * seen, so old posts do not light the badge.
+ * The first check that can see anything is a baseline: those items are marked
+ * seen, so old posts do not light the badge. A later item still does.
+ * A check that fails completely does not become the baseline.
  */
 
 export const SEEN_LIMIT = 400;
@@ -51,6 +52,26 @@ export function baselineSeen(items) {
     initialized: true,
     ids: [...new Set((items || []).map((item) => item?.id).filter(Boolean))],
   };
+}
+
+/**
+ * Keep an existing baseline. Otherwise mark what this check could see.
+ * A partial check still counts: a contact request can land while the inbox
+ * times out, and the next post should light the badge. A total failure does
+ * not, so an empty error is not treated as "you have seen everything".
+ */
+export function nextSeenAfterPoll(stored, items, outcome) {
+  if (stored?.initialized) {
+    return {
+      initialized: true,
+      ids: Array.isArray(stored.ids) ? stored.ids : [],
+    };
+  }
+  const clean = !outcome?.failed;
+  const failedAll = Boolean(outcome?.failedAll);
+  const hasItems = (items || []).some((item) => item?.id);
+  if (clean || (hasItems && !failedAll)) return baselineSeen(items);
+  return emptySeen();
 }
 
 /**
