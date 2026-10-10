@@ -74,4 +74,4 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the Pod layout, access rule
 
 ## License
 
-This repository does not contain a `LICENSE` file. The previous README said MIT. That sentence was not backed by a license file, so this copy does not repeat it. Choosing a license is Matthew's decision.
+[MIT](LICENSE). Copyright 2026 Matthew Nielsen.
