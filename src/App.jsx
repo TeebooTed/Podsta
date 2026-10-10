@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { restoreSession, logout, findPodUrl } from './lib/auth.js';
+import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { restoreSession, logout, findPodUrl, login } from './lib/auth.js';
 import { lockExistingComments } from './lib/acl.js';
 import { postedToast } from './lib/shareFeedback.js';
 import {
@@ -18,7 +18,18 @@ import { loadProfile, saveProfile } from './lib/profile.js';
 import { applyDiscoverability } from './lib/applyDiscoverability.js';
 import { loadContactMembers, saveContactMembers } from './lib/contactsGroup.js';
 import { hasFinishedOnboarding, markOnboardingDone } from './lib/onboarding.js';
+import {
+  consumeFollow,
+  consumeSignup,
+  inviteUrl,
+  rememberFollow,
+  rememberSignup,
+  SIGNUP_KEY,
+} from './lib/invite.js';
+import { displayHandle } from './lib/handles.js';
+import { RECOMMENDED_PROVIDER } from './lib/provider.js';
 import LoginPage from './pages/LoginPage.jsx';
+import SignupPage from './pages/SignupPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import DiscoverPage from './pages/DiscoverPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -28,6 +39,7 @@ import Header from './components/Header.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import Composer from './components/Composer.jsx';
+import Modal from './components/Modal.jsx';
 import Toast from './components/Toast.jsx';
 
 /**
@@ -63,7 +75,9 @@ export default function App() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [welcomeWebId, setWelcomeWebId] = useState('');
   const navigate = useNavigate();
+  const followedPending = useRef(false);
 
   // ── Per-resource in-flight trackers (so cards know to disable buttons) ──
   const [togglingUrls, setTogglingUrls] = useState(new Set());
@@ -130,7 +144,9 @@ export default function App() {
             setFriends(friendsList);
             setContacts(contactList);
             setLoadingPosts(false);
-            if (!hasFinishedOnboarding(window.localStorage, s.info.webId)) {
+            if (consumeSignup(window.sessionStorage)) {
+              setWelcomeWebId(s.info.webId);
+            } else if (!hasFinishedOnboarding(window.localStorage, s.info.webId)) {
               setOnboardingOpen(true);
             }
           }
@@ -385,6 +401,25 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [session, navigate]);
 
+  useEffect(() => {
+    if (!session?.info?.isLoggedIn || !podUrl || followedPending.current) return;
+    const pending = consumeFollow(window.sessionStorage);
+    if (!pending || pending === session.info.webId) return;
+    followedPending.current = true;
+    handleAddFriend(pending);
+    navigate(`/people?webid=${encodeURIComponent(pending)}`);
+  }, [session, podUrl, handleAddFriend, navigate]);
+
+  const startLogin = useCallback((issuer, redirectUrl) => {
+    window.sessionStorage.removeItem(SIGNUP_KEY);
+    return login(issuer, redirectUrl);
+  }, []);
+
+  const startSignup = useCallback(() => {
+    rememberSignup(window.sessionStorage);
+    return login(RECOMMENDED_PROVIDER.issuer, `${window.location.origin}/start`);
+  }, []);
+
   const finishOnboarding = useCallback(() => {
     if (session?.info?.webId) markOnboardingDone(window.localStorage, session.info.webId);
     setOnboardingOpen(false);
@@ -503,7 +538,50 @@ export default function App() {
   if (!session?.info?.isLoggedIn) {
     return (
       <>
-        <LoginPage error={authError} />
+        <Routes>
+          <Route path="/start" element={<SignupPage onBegin={startSignup} error={authError || ''} />} />
+          <Route
+            path="/invite"
+            element={
+              <div className="min-h-screen px-4 pt-6 pb-16">
+                <div className="max-w-3xl mx-auto">
+                  <p className="mb-6">
+                    <Link to="/" className="display-serif text-3xl text-ink-50">
+                      Podsta
+                    </Link>
+                  </p>
+                  <PersonPage
+                    session={null}
+                    friends={[]}
+                    signedIn={false}
+                    addingWebId={null}
+                    onAddFriend={async (webId) => {
+                      try {
+                        window.sessionStorage.removeItem(SIGNUP_KEY);
+                        rememberFollow(window.sessionStorage, webId);
+                        await login(
+                          RECOMMENDED_PROVIDER.issuer,
+                          inviteUrl(window.location.origin, webId),
+                        );
+                      } catch (err) {
+                        showToast(err?.message || 'Could not open Solid Community.', 'error');
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <LoginPage
+                error={authError}
+                onLogin={(issuer) => startLogin(issuer, `${window.location.origin}/`)}
+              />
+            }
+          />
+        </Routes>
         {toast && (
           <Toast
             key={toast.key}
@@ -598,6 +676,8 @@ export default function App() {
             }
           />
           <Route path="/post" element={<PostPage session={session} posts={posts} />} />
+          <Route path="/invite" element={<PersonPage session={session} friends={friends} onAddFriend={handleAddFriend} addingWebId={addingWebId} />} />
+          <Route path="/start" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -611,7 +691,36 @@ export default function App() {
         discoverability={profile.discoverability || 'hidden'}
       />
 
-      {onboardingOpen && podUrl && (
+      <Modal
+        open={Boolean(welcomeWebId)}
+        onClose={() => {
+          const id = welcomeWebId;
+          setWelcomeWebId('');
+          if (id && !hasFinishedOnboarding(window.localStorage, id)) setOnboardingOpen(true);
+        }}
+        title="We found your WebID"
+      >
+        <div className="px-6 py-5 space-y-3">
+          <p className="text-sm text-ink-100 leading-relaxed">
+            Solid Community sent you back signed in. This is the address Podsta will use.
+          </p>
+          <p className="display-serif text-3xl">{displayHandle(welcomeWebId).qualified || welcomeWebId}</p>
+          <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all block">{welcomeWebId}</code>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              const id = welcomeWebId;
+              setWelcomeWebId('');
+              if (id && !hasFinishedOnboarding(window.localStorage, id)) setOnboardingOpen(true);
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      </Modal>
+
+      {onboardingOpen && podUrl && !welcomeWebId && (
         <Onboarding
           webId={session.info.webId}
           initialName={profile.name || ''}

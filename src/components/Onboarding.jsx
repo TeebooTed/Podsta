@@ -1,6 +1,8 @@
 import { useId, useRef, useState } from 'react';
 import { ONBOARDING_STEPS } from '../lib/onboarding.js';
 import { DEFAULT_LEVEL, LEVEL_OPTIONS } from '../lib/discoverability.js';
+import { displayHandle } from '../lib/handles.js';
+import { inviteUrl } from '../lib/invite.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
 
@@ -124,10 +126,23 @@ export default function Onboarding({
         )}
 
         {current.id === 'webid' && (
-          <div className="mb-5 flex flex-col sm:flex-row gap-2">
-            <code className="text-xs font-mono bg-ink-900 px-3 py-2 rounded break-all flex-1">{webId}</code>
-            <button type="button" onClick={copy} className="btn-secondary shrink-0">
-              Copy WebID
+          <div className="mb-5 space-y-3">
+            <p className="display-serif text-2xl">{displayHandle(webId).qualified || webId}</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <code className="text-xs font-mono bg-ink-900 px-3 py-2 rounded break-all flex-1">{webId}</code>
+              <button type="button" onClick={copy} className="btn-secondary shrink-0">
+                Copy WebID
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const ok = await copyToClipboard(inviteUrl(window.location.origin, webId));
+                showToast?.(ok ? 'Invite link copied' : 'Copy failed', ok ? 'success' : 'error');
+              }}
+              className="btn-primary"
+            >
+              Copy invite link
             </button>
           </div>
         )}

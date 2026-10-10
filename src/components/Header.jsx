@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
-import { shortWebId } from '../lib/utils.js';
+import { displayHandle } from '../lib/handles.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { DESKTOP_NAV, PATHS } from '../lib/navigation.js';
 
@@ -77,7 +77,7 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose }
               <div className="absolute right-0 top-full mt-2 w-64 card overflow-hidden animate-slide-down">
                 <div className="px-4 py-3 border-b border-ink-700">
                   <p className="font-medium text-ink-50 truncate">{profile?.name || 'Anonymous'}</p>
-                  <p className="text-xs text-ink-300 truncate font-mono">{shortWebId(session?.info?.webId)}</p>
+                  <p className="text-xs text-ink-200 truncate">{displayHandle(session?.info?.webId).qualified || session?.info?.webId}</p>
                 </div>
                 <button
                   type="button"
