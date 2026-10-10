@@ -29,7 +29,7 @@ export default function PostPage({ session, posts, podUrl, showToast }) {
     setError(false);
     (async () => {
       let post = null;
-      for (let attempt = 0; attempt < 3 && !post; attempt += 1) {
+      for (let attempt = 0; attempt < 5 && !post; attempt += 1) {
         if (cancelled) return;
         try {
           post = await loadPublicPost({
@@ -40,7 +40,7 @@ export default function PostPage({ session, posts, podUrl, showToast }) {
         } catch {
           post = null;
         }
-        if (!post && attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        if (!post && attempt < 4) await new Promise((resolve) => setTimeout(resolve, 3000 * (attempt + 1)));
       }
       if (cancelled) return;
       if (!post || (!post.body && !post.caption && post.type === 'text')) {
