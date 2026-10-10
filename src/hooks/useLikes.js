@@ -8,6 +8,18 @@ import {
 } from '../lib/likes.js';
 import { samePerson } from '../lib/webId.js';
 
+const ownReads = new Map();
+
+function readOwnLikes(podUrl, fetchFn) {
+  const current = ownReads.get(podUrl);
+  if (current) return current;
+  const pending = loadOwnLikes(podUrl, fetchFn).finally(() => {
+    if (ownReads.get(podUrl) === pending) ownReads.delete(podUrl);
+  });
+  ownReads.set(podUrl, pending);
+  return pending;
+}
+
 /**
  * Own likes come from this Pod. Counts come from the author's published list.
  */
@@ -30,7 +42,14 @@ export function useLikes({ enabled, session, podUrl, webId, posts }) {
     const seen = generation.current;
     (async () => {
       try {
-        const own = await loadOwnLikes(podUrl, session.fetch);
+        let own;
+        try {
+          own = await readOwnLikes(podUrl, session.fetch);
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          if (closed || seen !== generation.current) return;
+          own = await readOwnLikes(podUrl, session.fetch);
+        }
         if (closed || seen !== generation.current) return;
         setEntries(own);
         setEntriesConfirmed(true);
