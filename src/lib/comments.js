@@ -399,11 +399,20 @@ export async function saveOwnComments({ podUrl, session, entries }) {
 }
 
 export async function loadHides(podUrl, fetchFn) {
-  const response = await readText(commentHidesUrl(podUrl), fetchFn);
-  if (response.status === 404) return [];
-  if (response.status === 0 || response.status === 401 || response.status === 403) {
+  let response;
+  try {
+    response = await retryTransient(async () => {
+      const next = await readText(commentHidesUrl(podUrl), fetchFn);
+      if (next.status === 0 || next.status === 429 || next.status === 503) {
+        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
+      }
+      return next;
+    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 4000 * attempt)) });
+  } catch {
     throw new Error('Could not read hidden comments');
   }
+  if (response.status === 404) return [];
+  if (response.status === 401 || response.status === 403) throw new Error('Could not read hidden comments');
   if (!response.ok) throw new Error(`Hidden comments responded ${response.status}`);
   return parseHides(await response.text());
 }
@@ -592,13 +601,13 @@ export function refreshOwnedCommentSets(args) {
   const key = args?.podUrl || '';
   const wanted = (args?.posts || []).map((post) => post?.url).filter(Boolean);
   const done = commentRefreshDone.get(key);
-  if (done && Date.now() - done.at < 90000 && wanted.every((url) => done.urls.has(url))) {
+  if (done && Date.now() - done.at < 15000 && wanted.every((url) => done.urls.has(url))) {
     return Promise.resolve(done.published);
   }
   const previous = commentRefreshTail.get(key) || Promise.resolve();
   const run = previous.then(() => {
     const latest = commentRefreshDone.get(key);
-    if (latest && Date.now() - latest.at < 90000 && wanted.every((url) => latest.urls.has(url))) {
+    if (latest && Date.now() - latest.at < 15000 && wanted.every((url) => latest.urls.has(url))) {
       return latest.published;
     }
     return refreshOwnedCommentSetsNow(args);
