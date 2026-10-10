@@ -10,6 +10,7 @@ import {
   presentLikes,
   serializeLikes,
   setOwnLike,
+  loadOwnLikes,
 } from '../src/lib/likes.js';
 
 const ADA = 'https://ada.example/profile/card#me';
@@ -71,6 +72,13 @@ function turtleResponse(status, body = '') {
     headers: { 'Content-Type': 'text/turtle' },
   });
 }
+
+test('an unreadable likes file is not treated as an empty list', async () => {
+  const fetchFn = async () => new Response('no', { status: 401 });
+  await assert.rejects(() => loadOwnLikes('https://ada.example/', fetchFn), /Could not read your likes/);
+  const missing = async () => new Response('no', { status: 404 });
+  assert.deepEqual(await loadOwnLikes('https://ada.example/', missing), []);
+});
 
 test('a missing likes file is created without reading it, and an existing file is not replaced', async () => {
   const calls = [];

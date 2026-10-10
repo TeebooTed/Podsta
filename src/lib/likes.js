@@ -180,8 +180,11 @@ async function readText(url, fetchFn) {
 
 export async function loadOwnLikes(podUrl, fetchFn) {
   const response = await readText(ownLikesUrl(podUrl), fetchFn);
-  if (response.status === 0) throw new Error('Could not read your likes');
-  if (response.status === 404 || response.status === 401 || response.status === 403) return [];
+  // 401 and 403 are not an empty list. Treating them as empty would replace likes we could not see.
+  if (response.status === 0 || response.status === 401 || response.status === 403) {
+    throw new Error('Could not read your likes');
+  }
+  if (response.status === 404) return [];
   if (!response.ok) throw new Error(`Likes responded ${response.status}`);
   return parseLikes(await response.text());
 }
