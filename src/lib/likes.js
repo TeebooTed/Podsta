@@ -7,6 +7,7 @@ import { samePerson, normalizeWebId } from './webId.js';
 import { groupFragment } from './discoverability.js';
 import { resolveProfile } from './friends.js';
 import { filterBlocked, loadBlocks } from './blocks.js';
+import { retryTransient } from './timeoutFetch.js';
 
 /**
  * A like is stored in the liker's Pod. The public cannot write the owner's Pod.
@@ -191,7 +192,18 @@ export async function loadOwnLikes(podUrl, fetchFn) {
 }
 
 export async function loadLikeSet({ ownerPodUrl, postUrl, fetchFn }) {
-  const response = await readText(likeSetUrl(ownerPodUrl, postUrl), fetchFn);
+  let response;
+  try {
+    response = await retryTransient(async () => {
+      const next = await readText(likeSetUrl(ownerPodUrl, postUrl), fetchFn);
+      if (next.status === 0 || next.status === 429 || next.status === 503) {
+        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
+      }
+      return next;
+    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)) });
+  } catch {
+    return { webIds: [], readable: false };
+  }
   if (response.status === 404) return { webIds: [], readable: false, missing: true };
   if (response.status === 401 || response.status === 403 || response.status === 0) {
     return { webIds: [], readable: false };
@@ -387,8 +399,19 @@ export function containedLikeUrls(turtle, inboxUrl) {
     .filter(Boolean);
 }
 
-export async function readInboxLikes(inboxUrl, fetchFn, limit = 15) {
-  const response = await readText(inboxUrl, fetchFn);
+export async function readInboxLikes(inboxUrl, fetchFn, limit = 40) {
+  let response;
+  try {
+    response = await retryTransient(async () => {
+      const next = await readText(inboxUrl, fetchFn);
+      if (next.status === 0 || next.status === 429 || next.status === 503) {
+        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
+      }
+      return next;
+    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)) });
+  } catch {
+    return [];
+  }
   if (!response.ok) return [];
   const contained = containedLikeUrls(await response.text(), inboxUrl).slice(-limit);
   const notices = [];
