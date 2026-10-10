@@ -4,6 +4,8 @@ Podsta is a static React app. After sign-in, the browser talks to Solid Pods wit
 
 The stack is React 18, React Router 6, Vite 5, and Tailwind 3. Routes live in `src/lib/navigation.js`: `/` (Home), `/discover`, `/profile`, `/people?webid=`, `/post?url=`, `/start`, `/invite`, `/notifications`.
 
+GitHub Pages serves the production build at `/Podsta/`. Vite's `base` is `/Podsta/` only in that workflow. Unknown paths use a copy of `index.html` named `404.html`, and the Solid client id document is `solid-client-id.json` on that origin. Sign-in there always returns to the home URL. Local development stays at `/`.
+
 ## Pod layout
 
 Paths are relative to the Pod root (`src/lib/vocab.js`).

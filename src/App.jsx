@@ -27,6 +27,7 @@ import {
   rememberSignup,
   SIGNUP_KEY,
 } from './lib/invite.js';
+import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { displayHandle } from './lib/handles.js';
 import { retryTransient } from './lib/timeoutFetch.js';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
@@ -442,7 +443,7 @@ export default function App() {
 
   const startSignup = useCallback(() => {
     rememberSignup(window.sessionStorage);
-    return login(RECOMMENDED_PROVIDER.issuer, `${window.location.origin}/start`);
+    return login(RECOMMENDED_PROVIDER.issuer, appUrl('/start'));
   }, []);
 
   const finishOnboarding = useCallback(() => {
@@ -644,7 +645,7 @@ export default function App() {
                         rememberFollow(window.sessionStorage, webId);
                         await login(
                           RECOMMENDED_PROVIDER.issuer,
-                          inviteUrl(window.location.origin, webId),
+                          inviteUrl(currentAppRoot(), webId),
                         );
                       } catch (err) {
                         showToast(err?.message || 'Could not open Solid Community.', 'error');
@@ -656,11 +657,26 @@ export default function App() {
             }
           />
           <Route
+            path="/post"
+            element={
+              <div className="min-h-screen px-4 pt-6 pb-16">
+                <div className="max-w-3xl mx-auto">
+                  <p className="mb-6">
+                    <Link to="/" className="display-serif text-3xl text-ink-50">
+                      Podsta
+                    </Link>
+                  </p>
+                  <PostPage session={null} posts={[]} podUrl="" showToast={showToast} />
+                </div>
+              </div>
+            }
+          />
+          <Route
             path="*"
             element={
               <LoginPage
                 error={authError}
-                onLogin={(issuer) => startLogin(issuer, `${window.location.origin}/`)}
+                onLogin={(issuer) => startLogin(issuer, appUrl('/'))}
               />
             }
           />
