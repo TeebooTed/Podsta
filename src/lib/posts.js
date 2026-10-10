@@ -577,7 +577,7 @@ export async function deletePost({ post, podUrl, session }) {
 // LOAD A SINGLE PUBLIC POST FROM ANOTHER POD (for friend feeds)
 // ─────────────────────────────────────────────────────────────
 
-export async function loadPublicPost({ url, type, fetchFn }) {
+async function loadPublicPostOnce({ url, type, fetchFn }) {
   if (typeof url === 'string' && url.endsWith('.ttl')) {
     const post = await loadTextPost(url, fetchFn);
     if (!post) return null;
@@ -600,4 +600,14 @@ export async function loadPublicPost({ url, type, fetchFn }) {
     };
   }
   return loadTextPost(url, fetchFn);
+}
+
+/**
+ * A public post should still open when the signed-in fetch is refused.
+ * The anonymous read is the same one a logged-out visitor can do.
+ */
+export async function loadPublicPost({ url, type, fetchFn }) {
+  const loaded = await loadPublicPostOnce({ url, type, fetchFn });
+  if (loaded || !fetchFn) return loaded;
+  return loadPublicPostOnce({ url, type });
 }

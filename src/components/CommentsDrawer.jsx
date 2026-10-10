@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   addComment,
   blockPerson,
@@ -9,6 +9,7 @@ import {
   editOwnComment,
   hideComment,
   loadThread,
+  refreshOwnedCommentSets,
 } from '../lib/comments.js';
 import { addReport } from '../lib/blocks.js';
 import { relativeTime } from '../lib/utils.js';
@@ -51,20 +52,30 @@ export default function CommentsDrawer({
   const isAuthor = Boolean(me && authorWebId) && samePerson(me, authorWebId);
   const signedIn = Boolean(session?.info?.isLoggedIn && me && viewerPodUrl);
 
-  const reload = () => {
-    if (!post?.url || !ownerPodUrl) return Promise.resolve();
-    return loadThread({
+  const reload = useCallback(async () => {
+    if (!post?.url || !ownerPodUrl) return;
+    if (isAuthor && viewerPodUrl && session?.fetch) {
+      try {
+        await refreshOwnedCommentSets({
+          podUrl: viewerPodUrl,
+          session,
+          posts: [{ ...post, ownerWebId: authorWebId || me }],
+        });
+      } catch {
+        // The list below still shows whatever is already published.
+      }
+    }
+    const { comments: next, error } = await loadThread({
       ownerPodUrl,
       postUrl: post.url,
       fetchFn: session?.fetch,
       viewerPodUrl,
       viewerWebId: me,
       isAuthor,
-    }).then(({ comments: next, error }) => {
-      setComments(next);
-      setLoadError(error);
     });
-  };
+    setComments(next);
+    setLoadError(error);
+  }, [post, ownerPodUrl, isAuthor, viewerPodUrl, session, authorWebId, me]);
 
   useEffect(() => {
     if (!open || !post?.url) return undefined;
@@ -74,18 +85,9 @@ export default function CommentsDrawer({
     setStatus('');
     setEditingId('');
     setPendingId('');
-    loadThread({
-      ownerPodUrl,
-      postUrl: post.url,
-      fetchFn: session?.fetch,
-      viewerPodUrl,
-      viewerWebId: me,
-      isAuthor,
-    })
-      .then(({ comments: next, error }) => {
-        if (cancelled) return;
-        setComments(next);
-        setLoadError(error);
+    reload()
+      .catch(() => {
+        if (!cancelled) setLoadError('unavailable');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -93,7 +95,7 @@ export default function CommentsDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, post, ownerPodUrl, viewerPodUrl, session, me, isAuthor]);
+  }, [open, post?.url, reload]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -313,7 +315,7 @@ export default function CommentsDrawer({
             <p className="text-ink-100 text-sm text-center py-8">
               Comments on this post are not available to you.
             </p>
-          ) : loadError ? (
+          ) : loadError === 'partial' ? null : loadError ? (
             <p className="text-ink-100 text-sm text-center py-8" role="alert">
               Could not load comments. The Pod did not respond, or refused the request.
             </p>

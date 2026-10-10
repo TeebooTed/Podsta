@@ -27,28 +27,38 @@ export default function PostPage({ session, posts, podUrl, showToast }) {
     let cancelled = false;
     setLoading(true);
     setError(false);
-    loadPublicPost({ url, type: url.match(/\.(jpe?g|png|gif|webp)$/i) ? 'photo' : 'text', fetchFn: session?.fetch })
-      .then((post) => {
+    (async () => {
+      let post = null;
+      for (let attempt = 0; attempt < 3 && !post; attempt += 1) {
         if (cancelled) return;
-        if (!post || (!post.body && !post.caption && post.type === 'text')) {
-          setLoaded(post && post.type === 'photo' ? post : null);
-          setError(!post);
-        } else {
-          setLoaded(post);
+        try {
+          post = await loadPublicPost({
+            url,
+            type: url.match(/\.(jpe?g|png|gif|webp)$/i) ? 'photo' : 'text',
+            fetchFn: session?.fetch,
+          });
+        } catch {
+          post = null;
         }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+        if (!post && attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+      }
+      if (cancelled) return;
+      if (!post || (!post.body && !post.caption && post.type === 'text')) {
+        setLoaded(post && post.type === 'photo' ? post : null);
+        setError(!post);
+      } else {
+        setLoaded(post);
+        setError(false);
+      }
+      setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
   }, [url, own, session]);
 
   const post = own || loaded;
+  const onOwnPod = Boolean(podUrl && url.startsWith(podUrl));
   const original = safeHttpUrl(url);
 
   if (!url) {
@@ -117,7 +127,7 @@ export default function PostPage({ session, posts, podUrl, showToast }) {
           open
           post={{
             ...post,
-            ownerWebId: post.ownerWebId || (own ? session?.info?.webId : ''),
+            ownerWebId: post.ownerWebId || (own || onOwnPod ? session?.info?.webId : ''),
             audience: post.audience || (post.isPublic ? 'public' : 'private'),
           }}
           ownerPodUrl={

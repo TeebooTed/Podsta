@@ -70,8 +70,8 @@ These were the open questions on 9 October. The answers that shipped:
 2. **Stay on React.** Yes.
 3. **Design.** Keep Fraunces, ink, and the coral accent. Home is the following feed. Profile is the grid. Phone has a bottom bar.
 4. **Finding people.** Copy a WebID, follow a WebID, invite links. No registry. The follow list is public only when the profile is Public.
-5. **Comments.** Owner-only. No public Append.
+5. **Comments.** The commenter writes their own Pod and notifies the author. The old `podsta/comments/` container stays owner-only. No public Append.
 6. **Default visibility.** Private posts, Hidden profile.
 7. **Home.** The following feed. Your posts are on Profile.
 
-Still Matthew's call, not decided by this repo: a license. There is no `LICENSE` file. See the README.
+The license is MIT. See `LICENSE` and the README.

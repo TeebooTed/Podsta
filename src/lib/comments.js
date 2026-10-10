@@ -351,9 +351,12 @@ async function writeTurtle(url, turtle, session) {
     });
   } catch (err) {
     if (err?.name === 'TypeError' || err?.name === 'AbortError') {
-      throw new Error('The Pod did not respond');
+      throw new TypeError('The Pod did not respond');
     }
     throw err;
+  }
+  if (response.status === 429 || response.status === 503) {
+    throw new TypeError(`The Pod responded ${response.status}`);
   }
   if (!response.ok) throw new Error(`The Pod responded ${response.status || 'network'}`);
   return response;
@@ -374,7 +377,8 @@ async function lockPrivate(url, session, podUrl) {
 export async function loadOwnComments(podUrl, fetchFn) {
   const response = await readText(ownCommentsUrl(podUrl), fetchFn);
   if (response.status === 404) return [];
-  if (response.status === 0 || response.status === 401 || response.status === 403) {
+  if (response.status === 0) throw new TypeError('The Pod did not respond');
+  if (response.status === 401 || response.status === 403) {
     throw new Error('Could not read your comments');
   }
   if (!response.ok) throw new Error(`Comments responded ${response.status}`);
@@ -383,7 +387,13 @@ export async function loadOwnComments(podUrl, fetchFn) {
 
 export async function saveOwnComments({ podUrl, session, entries }) {
   const url = ownCommentsUrl(podUrl);
-  await retryTransient(() => writeTurtle(url, serializeOwnComments(entries), session));
+  try {
+    await retryTransient(() => writeTurtle(url, serializeOwnComments(entries), session), { attempts: 5 });
+  } catch (err) {
+    if (/429/.test(err?.message || '')) throw new Error('The Pod is busy. Try again in a moment.');
+    if (err?.name === 'TypeError') throw new Error('The Pod did not respond');
+    throw err;
+  }
   await lockPrivate(url, session, podUrl);
   return entries;
 }
@@ -400,7 +410,7 @@ export async function loadHides(podUrl, fetchFn) {
 
 export async function saveHides({ podUrl, session, entries }) {
   const url = commentHidesUrl(podUrl);
-  await writeTurtle(url, serializeHides(entries), session);
+  await retryTransient(() => writeTurtle(url, serializeHides(entries), session), { attempts: 4 });
   await lockPrivate(url, session, podUrl);
   return entries;
 }
@@ -480,30 +490,75 @@ export async function postCommentNotice({ session, ownerPodUrl, postUrl, id, tex
     action,
     created: new Date().toISOString(),
   });
-  let response;
   try {
-    response = await session.fetch(`${ownerPodUrl}inbox/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/turtle' },
-      body: turtle,
-    });
+    const response = await retryTransient(async () => {
+      let next;
+      try {
+        next = await session.fetch(`${ownerPodUrl}inbox/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/turtle' },
+          body: turtle,
+        });
+      } catch (err) {
+        if (err?.name === 'TypeError' || err?.name === 'AbortError') throw new TypeError('The Pod did not respond');
+        throw err;
+      }
+      if (next.status === 429 || next.status === 503) throw new TypeError(`The Pod responded ${next.status}`);
+      return next;
+    }, { attempts: 4 });
+    return {
+      ok: Boolean(response?.ok || response?.status === 201 || response?.status === 204),
+      status: response?.status || 0,
+    };
   } catch {
     return { ok: false, status: 0 };
   }
-  return { ok: Boolean(response?.ok || response?.status === 201 || response?.status === 204), status: response?.status || 0 };
+}
+
+function inboxPause(attempt) {
+  return new Promise((resolve) => setTimeout(resolve, 4000 * attempt));
+}
+
+async function readCommentNotice(url, fetchFn) {
+  const once = () => readText(url, fetchFn);
+  let item = await once();
+  if (item.status === 0 || item.status === 429 || item.status === 503) {
+    await inboxPause(1);
+    item = await once();
+  }
+  if (!item.ok) {
+    return { notice: null, limited: item.status === 0 || item.status === 429 || item.status === 503 };
+  }
+  return { notice: parseCommentNotice(await item.text()), limited: false };
 }
 
 export async function readInboxComments(inboxUrl, fetchFn, limit = 30) {
-  const response = await readText(inboxUrl, fetchFn);
+  let response;
+  try {
+    response = await retryTransient(async () => {
+      const next = await readText(inboxUrl, fetchFn);
+      if (next.status === 0 || next.status === 429 || next.status === 503) {
+        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
+      }
+      return next;
+    }, { attempts: 5, wait: inboxPause });
+  } catch {
+    return [];
+  }
   if (!response.ok) return [];
   const contained = containedLikeUrls(await response.text(), inboxUrl).slice(-limit);
   const notices = [];
-  for (const url of contained) {
+  let limitedInARow = 0;
+  for (let index = contained.length - 1; index >= 0; index -= 1) {
     try {
-      const item = await readText(url, fetchFn);
-      if (!item.ok) continue;
-      const notice = parseCommentNotice(await item.text());
-      if (notice) notices.push(notice);
+      const result = await readCommentNotice(contained[index], fetchFn);
+      if (result.notice) notices.push(result.notice);
+      if (result.limited) {
+        limitedInARow += 1;
+        if (limitedInARow >= 3) break;
+      } else {
+        limitedInARow = 0;
+      }
     } catch {
       // One inbox item does not hide the rest.
     }
@@ -519,7 +574,23 @@ async function readBlocked(podUrl, fetchFn) {
   }
 }
 
-export async function refreshOwnedCommentSets({ podUrl, session, posts }) {
+const commentRefreshTail = new Map();
+
+export function refreshOwnedCommentSets(args) {
+  const key = args?.podUrl || '';
+  const previous = commentRefreshTail.get(key) || Promise.resolve();
+  const run = previous.then(() => refreshOwnedCommentSetsNow(args));
+  commentRefreshTail.set(
+    key,
+    run.then(
+      () => {},
+      () => {},
+    ),
+  );
+  return run;
+}
+
+async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
   const me = session.info.webId;
   const notices = await readInboxComments(`${podUrl}inbox/`, session.fetch);
   const blocked = await readBlocked(podUrl, session.fetch);
@@ -620,7 +691,7 @@ export async function addComment({ podUrl, session, post, ownerPodUrl, text, id 
   const postUrl = assertTurtleIri(post?.url);
   const commentId = id || newCommentId();
   const now = new Date().toISOString();
-  const existing = await loadOwnComments(podUrl, session.fetch);
+  const existing = await retryTransient(() => loadOwnComments(podUrl, session.fetch));
   const entry = { id: commentId, postUrl, text: body, date: now, modified: now, author: session.info.webId };
   await saveOwnComments({ podUrl, session, entries: [...existing, entry] });
   const me = session.info.webId;
@@ -654,7 +725,7 @@ export async function addComment({ podUrl, session, post, ownerPodUrl, text, id 
 export async function editOwnComment({ podUrl, session, post, ownerPodUrl, id, text }) {
   if (!session?.info?.webId) throw new Error('Sign in to edit a comment');
   const body = cleanText(text);
-  const existing = await loadOwnComments(podUrl, session.fetch);
+  const existing = await retryTransient(() => loadOwnComments(podUrl, session.fetch));
   let current = existing.find((entry) => entry.id === id);
   const author = Boolean(post?.ownerWebId) && samePerson(session.info.webId, post.ownerWebId);
   if (!current && author && post?.url) {
@@ -704,7 +775,7 @@ export async function editOwnComment({ podUrl, session, post, ownerPodUrl, id, t
 
 export async function deleteOwnComment({ podUrl, session, post, ownerPodUrl, id }) {
   if (!session?.info?.webId) throw new Error('Sign in to delete a comment');
-  const existing = await loadOwnComments(podUrl, session.fetch);
+  const existing = await retryTransient(() => loadOwnComments(podUrl, session.fetch));
   let current = existing.find((entry) => entry.id === id);
   const author = Boolean(post?.ownerWebId) && samePerson(session.info.webId, post.ownerWebId);
   if (!current && author && post?.url) {
@@ -768,7 +839,6 @@ export async function hideComment({ podUrl, session, post, comment }) {
 
 export async function loadThread({ ownerPodUrl, postUrl, fetchFn, viewerPodUrl, viewerWebId, isAuthor = false }) {
   const published = await loadPublishedComments({ ownerPodUrl, postUrl, fetchFn });
-  if (published.failed) return { comments: [], error: 'unavailable' };
   if (published.forbidden && !isAuthor) return { comments: [], error: 'private' };
   let hiddenIds = [];
   let blocked = null;
@@ -801,7 +871,7 @@ export async function loadThread({ ownerPodUrl, postUrl, fetchFn, viewerPodUrl, 
   }
   return {
     comments: presentThread({ published: comments, hiddenIds, own, blocked, viewerWebId }),
-    error: null,
+    error: published.failed ? 'partial' : null,
   };
 }
 
