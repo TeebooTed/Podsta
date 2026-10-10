@@ -1,7 +1,7 @@
 import { displayHandle } from './handles.js';
 import { samePerson } from './webId.js';
 import { loadFriendFeed } from './feed.js';
-import { loadComments } from './comments.js';
+import { loadComments, refreshOwnedCommentSets } from './comments.js';
 import { personPath, postPath } from './navigation.js';
 import { resolveProfile } from './friends.js';
 import {
@@ -20,7 +20,8 @@ import { withTimeout } from './timeoutFetch.js';
  *   - contact requests written on a followed Pod, or posted to your inbox
  *   - approvals, when their contacts group lists you or their inbox notice arrived
  *
- * Other people still cannot comment: the comments file is owner-only.
+ * A comment notification appears after the author's app copies the inbox notice
+ * onto the post. Other people cannot write the author's Pod.
  * A request from someone you do not follow is visible only if their inbox post landed.
  */
 
@@ -107,7 +108,7 @@ export function buildNotifications({
       if (!comment?.text || samePerson(comment.author, webId)) continue;
       const name = actorName(comment.author, comment.authorName);
       items.push({
-        id: `comment:${thread.postUrl}:${comment.author}:${comment.date || ''}`,
+        id: `comment:${thread.postUrl}:${comment.id || `${comment.author}:${comment.date || ''}`}`,
         kind: 'comment',
         created: comment.date || '',
         actorWebId: comment.author || '',
@@ -184,6 +185,7 @@ export async function collectNotifications({
   fetchFn,
   loadFeed = loadFriendFeed,
   loadCommentsForPost = loadComments,
+  refreshComments = refreshOwnedCommentSets,
   readRequests = readContactRequests,
   readMembers = readGroupMembers,
   readInbox = readInboxNotices,
@@ -201,6 +203,9 @@ export async function collectNotifications({
     .filter((post) => post?.url)
     .sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''))
     .slice(0, limits.comments);
+  if (session?.fetch && podUrl && newestPosts.length) {
+    await mark(results, () => refreshComments({ podUrl, session, posts: newestPosts }));
+  }
   const commentThreads = [];
   for (const post of newestPosts) {
     const loaded = await mark(results, () =>

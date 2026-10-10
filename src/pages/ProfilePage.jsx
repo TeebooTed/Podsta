@@ -109,12 +109,14 @@ export default function ProfilePage({
   };
 
   const ownWebId = session?.info?.webId || '';
+  const [blockRevision, setBlockRevision] = useState(0);
   const likes = useLikes({
     enabled: Boolean(session?.info?.isLoggedIn && podUrl),
     session,
     podUrl,
     webId: ownWebId,
     posts,
+    blockRevision,
   });
 
   const onToggleLike = async (post) => {
@@ -283,6 +285,7 @@ export default function ProfilePage({
           togglingUrls={togglingUrls}
           deletingUrls={deletingUrls}
           showToast={showToast}
+          onBlocksChanged={() => setBlockRevision((value) => value + 1)}
           likeFor={(post) => likes.view(post)}
           onToggleLike={onToggleLike}
           likeBusyUrl={likes.busyUrl}

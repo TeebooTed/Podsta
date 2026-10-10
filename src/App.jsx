@@ -28,6 +28,7 @@ import {
   SIGNUP_KEY,
 } from './lib/invite.js';
 import { displayHandle } from './lib/handles.js';
+import { retryTransient } from './lib/timeoutFetch.js';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
@@ -130,7 +131,10 @@ export default function App() {
                 discoverability: 'hidden',
                 discoverabilityInferred: true,
               })),
-              loadOwnPosts({ podUrl: pod, session: s }).catch((err) => {
+              retryTransient(() => loadOwnPosts({ podUrl: pod, session: s }), {
+                attempts: 4,
+                wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 4000 * attempt)),
+              }).catch((err) => {
                 console.error('Posts load failed:', err);
                 showToast('Could not load posts', 'error');
                 return [];
@@ -759,7 +763,10 @@ export default function App() {
               />
             }
           />
-          <Route path="/post" element={<PostPage session={session} posts={posts} />} />
+          <Route
+            path="/post"
+            element={<PostPage session={session} posts={posts} podUrl={podUrl} showToast={showToast} />}
+          />
           <Route
             path="/notifications"
             element={

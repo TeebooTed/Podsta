@@ -18,7 +18,13 @@ Paths are relative to the Pod root (`src/lib/vocab.js`).
     posts/
       <timestamp>-<id>.ttl            # a text post, or a photo album
     comments/
-      <hash>.ttl                      # one file per post, owner-only
+      <hash>.ttl                      # older owner-only notes, still private
+    comment-sets/
+      <hash>.ttl                      # comments the author publishes, same audience as the post
+    my-comments.ttl                   # comments this person wrote, private
+    comment-hides.ttl                 # comment ids the author removed, private
+    blocks.ttl                        # WebIDs the author blocked, private
+    reports.ttl                       # private notes about a comment
     like-sets/
       <hash>.ttl                      # who liked one post, same audience as the post
     contacts/
@@ -73,7 +79,19 @@ Someone who is not the author POSTs a `podsta:Like` notice to `{ownerPod}inbox/`
 
 ### Comments
 
-Comments live in the post owner's Pod at `podsta/comments/<hash>.ttl`, one Turtle file for every comment on that post. The comments container is owner-only, including `acl:default`, so a child file does not inherit a public Append grant. The Home drawer tells other people they cannot comment. The comment notification row is ready if a comment from another WebID ever appears. It cannot appear with the current rules.
+A comment is stored in the commenter's Pod at `podsta/my-comments.ttl`, which stays private. The commenter can edit or delete their own rows. They POST a `podsta:Comment` notice to `{authorPod}inbox/` with the text and `add`, `edit`, or `remove`. That notice does not grant them write access to the author's Pod.
+
+The author's app copies notices into `podsta/comment-sets/<hash>.ttl` and gives that file the same audience as the post. Until that copy exists, other people do not see the comment. The commenter still sees their own copy, with a line that it is not on the published list. A missed inbox post says so. It is not described as delivered.
+
+Hide adds the comment id to the private `podsta/comment-hides.ttl` and drops the text from the published file. A later copy of the original notice does not bring it back.
+
+Block stores the WebID in private `podsta/blocks.ttl`. The author's app then leaves that person out of published comment lists and like lists. Report appends a private note in `podsta/reports.ttl`. There is no Podsta server to send a report to.
+
+Names come from `podsta/profile.ttl` only when that file is readable. Otherwise the row shows the handle derived from the WebID.
+
+Older notes in `podsta/comments/<hash>.ttl` stay owner-only. The author's next check copies them into the published list, so they still show. The comments container never receives a public Append grant.
+
+The notification check merges inbox notices before it reads those published lists, so a new comment can light the badge while the author's tab is open.
 
 ### Contact requests
 
@@ -123,7 +141,7 @@ These limits are part of the design, not temporary bugs.
 - The WebID document is hosted by the identity provider. Hidden does not make it private. It is usually world-readable. Anyone who already has the URL can read the address.
 - While Contacts is in use, `podsta/contacts/group.ttl` is world-readable. The Pod server reads it as the requester. The posts themselves stay limited to members.
 - `contact-requests.ttl` is world-readable. The fact of a request is not treated as secret.
-- Comments are owner-only. There is no public Append on that container.
+- The comments container stays owner-only. Other people never get write access to the author's Pod. A published comment list is readable only at the post's audience. Blocks, reports, hides, and the commenter's own file are private.
 - Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
 - Notification seen-state is per browser. It is not in the Pod.
 - The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. The UI renders text as text. There is no `dangerouslySetInnerHTML`.

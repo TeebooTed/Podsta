@@ -25,6 +25,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
   const [reloadKey, setReloadKey] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [commentsPost, setCommentsPost] = useState(null);
+  const [blockRevision, setBlockRevision] = useState(0);
   const [pendingUnfollow, setPendingUnfollow] = useState(null);
   const hydratedRef = useRef({});
   const copy = emptyFeedCopy();
@@ -33,6 +34,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
     session,
     podUrl,
     webId: session?.info?.webId || '',
+    blockRevision,
     posts: feedEntries.map((entry) => ({
       url: entry.url,
       ownerWebId: entry.ownerWebId,
@@ -277,7 +279,12 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
                 ownerHref={`/people?webid=${encodeURIComponent(post._entry.ownerWebId)}`}
                 linkUrl={appPostUrl(window.location.origin, post.url)}
                 onShowComments={(p) =>
-                  setCommentsPost({ ...p, _ownerPodUrl: post._entry.ownerPodUrl })
+                  setCommentsPost({
+                    ...p,
+                    ownerWebId: post._entry.ownerWebId,
+                    audience: post._entry.audience || 'public',
+                    _ownerPodUrl: post._entry.ownerPodUrl,
+                  })
                 }
                 onCopyLink={(_, ok) =>
                   showToast(ok ? 'Link copied' : 'Copy failed', ok ? 'success' : 'error')
@@ -312,10 +319,11 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
           open
           post={commentsPost}
           ownerPodUrl={commentsPost._ownerPodUrl}
-          canComment={false}
+          viewerPodUrl={podUrl}
           session={session}
           onClose={() => setCommentsPost(null)}
           showToast={showToast}
+          onBlocksChanged={() => setBlockRevision((value) => value + 1)}
         />
       )}
     </div>
