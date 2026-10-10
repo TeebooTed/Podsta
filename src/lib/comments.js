@@ -416,10 +416,21 @@ export async function saveHides({ podUrl, session, entries }) {
 }
 
 export async function loadPublishedComments({ ownerPodUrl, postUrl, fetchFn }) {
-  const response = await readText(commentSetUrl(ownerPodUrl, postUrl), fetchFn);
+  let response;
+  try {
+    response = await retryTransient(async () => {
+      const next = await readText(commentSetUrl(ownerPodUrl, postUrl), fetchFn);
+      if (next.status === 0 || next.status === 429 || next.status === 503) {
+        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
+      }
+      return next;
+    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 5000 * attempt)) });
+  } catch {
+    return { comments: [], readable: false, failed: true };
+  }
   if (response.status === 404) return { comments: [], readable: false, missing: true };
   if (response.status === 401 || response.status === 403) return { comments: [], readable: false, forbidden: true };
-  if (response.status === 0 || !response.ok) return { comments: [], readable: false, failed: true };
+  if (!response.ok) return { comments: [], readable: false, failed: true };
   const parsed = parseCommentSet(await response.text());
   return { comments: parsed.comments, readable: true, migrated: parsed.migrated };
 }
@@ -543,9 +554,9 @@ export async function readInboxComments(inboxUrl, fetchFn, limit = 30) {
       return next;
     }, { attempts: 5, wait: inboxPause });
   } catch {
-    return [];
+    throw new Error('Could not read the inbox');
   }
-  if (!response.ok) return [];
+  if (!response.ok) throw new Error('Could not read the inbox');
   const contained = containedLikeUrls(await response.text(), inboxUrl).slice(-limit);
   const notices = [];
   let limitedInARow = 0;
@@ -575,11 +586,23 @@ async function readBlocked(podUrl, fetchFn) {
 }
 
 const commentRefreshTail = new Map();
+const commentRefreshDone = new Map();
 
 export function refreshOwnedCommentSets(args) {
   const key = args?.podUrl || '';
+  const wanted = (args?.posts || []).map((post) => post?.url).filter(Boolean);
+  const done = commentRefreshDone.get(key);
+  if (done && Date.now() - done.at < 90000 && wanted.every((url) => done.urls.has(url))) {
+    return Promise.resolve(done.published);
+  }
   const previous = commentRefreshTail.get(key) || Promise.resolve();
-  const run = previous.then(() => refreshOwnedCommentSetsNow(args));
+  const run = previous.then(() => {
+    const latest = commentRefreshDone.get(key);
+    if (latest && Date.now() - latest.at < 90000 && wanted.every((url) => latest.urls.has(url))) {
+      return latest.published;
+    }
+    return refreshOwnedCommentSetsNow(args);
+  });
   commentRefreshTail.set(
     key,
     run.then(
@@ -592,7 +615,13 @@ export function refreshOwnedCommentSets(args) {
 
 async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
   const me = session.info.webId;
-  const notices = await readInboxComments(`${podUrl}inbox/`, session.fetch);
+  let notices = [];
+  let inboxOk = true;
+  try {
+    notices = await readInboxComments(`${podUrl}inbox/`, session.fetch);
+  } catch {
+    inboxOk = false;
+  }
   const blocked = await readBlocked(podUrl, session.fetch);
   let hides = [];
   try {
@@ -656,6 +685,13 @@ async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
   }
   if (own && imported.length) {
     await saveOwnComments({ podUrl, session, entries: [...own, ...imported] });
+  }
+  if (inboxOk) {
+    commentRefreshDone.set(podUrl, {
+      at: Date.now(),
+      urls: new Set((posts || []).map((post) => post?.url).filter(Boolean)),
+      published,
+    });
   }
   return published;
 }
