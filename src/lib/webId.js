@@ -19,3 +19,10 @@ export function normalizeWebId(input) {
     return null;
   }
 }
+
+/** True when two WebIDs name the same person after normalization. */
+export function samePerson(a, b) {
+  const left = normalizeWebId(a);
+  const right = normalizeWebId(b);
+  return Boolean(left && right && left === right);
+}

@@ -8,7 +8,7 @@ import {
 } from '../src/lib/aclTurtle.js';
 import { publicIndexEntryFromPost } from '../src/lib/indexEntry.js';
 import { postedToast } from '../src/lib/shareFeedback.js';
-import { withTimeout } from '../src/lib/timeoutFetch.js';
+import { retryTransient, withTimeout } from '../src/lib/timeoutFetch.js';
 import { safeHttpUrl } from '../src/lib/urls.js';
 import { normalizeWebId } from '../src/lib/webId.js';
 
@@ -121,5 +121,30 @@ describe('timeouts', () => {
     const hung = () => new Promise(() => {});
     const timed = withTimeout(hung, 20);
     await assert.rejects(timed('https://pod.example/index.ttl'), /aborted|AbortError/);
+  });
+
+  it('retries a rate-limit failure and does not retry a real refusal', async () => {
+    let calls = 0;
+    const value = await retryTransient(
+      async () => {
+        calls += 1;
+        if (calls === 1) {
+          const err = new TypeError('Failed to fetch');
+          throw err;
+        }
+        return 'ok';
+      },
+      { wait: async () => {} },
+    );
+    assert.equal(value, 'ok');
+    assert.equal(calls, 2);
+    await assert.rejects(
+      () => retryTransient(async () => {
+        const err = new Error('no');
+        err.statusCode = 403;
+        throw err;
+      }, { wait: async () => {} }),
+      /no/,
+    );
   });
 });

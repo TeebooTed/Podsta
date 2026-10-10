@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
+import NotifyBell from './NotifyBell.jsx';
 import { displayHandle } from '../lib/handles.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { DESKTOP_NAV, PATHS } from '../lib/navigation.js';
 
-export default function Header({ session, profile, podUrl, onLogout, onCompose }) {
+export default function Header({ session, profile, podUrl, onLogout, onCompose, unseenCount = 0 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose }
         </nav>
 
         <div className="flex items-center gap-2">
+          <NotifyBell unseenCount={unseenCount} />
           <button
             type="button"
             onClick={onCompose}

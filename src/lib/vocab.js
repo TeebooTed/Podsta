@@ -36,6 +36,8 @@ export const PODSTA = {
   PublicIndex: 'https://podsta.app/vocab#PublicIndex',
   audience: 'https://podsta.app/vocab#audience', // "public" | "contacts" | "private"
   discoverability: 'https://podsta.app/vocab#discoverability', // "public" | "contacts" | "hidden"
+  ContactRequest: 'https://podsta.app/vocab#ContactRequest',
+  ContactApproval: 'https://podsta.app/vocab#ContactApproval',
 };
 
 // Pod paths — relative to the user's pod URL.
@@ -51,6 +53,7 @@ export const PATHS = {
   favorites: 'podsta/favorites.ttl',
   profile: 'podsta/profile.ttl',
   inbox: 'podsta/inbox/',
+  contactRequests: 'podsta/contact-requests.ttl',
 };
 
 // Limits
