@@ -122,7 +122,8 @@ export default function ProfilePage({
       const result = await likes.toggle({ ...post, ownerWebId: ownWebId, audience: post.audience });
       if (!result) return;
       if (!result.liked) showToast('Like removed');
-      else showToast('Liked');
+      else if (result.notified) showToast('Liked');
+      else showToast('Liked on your Pod. The count did not update.', 'info');
     } catch (err) {
       showToast(err.message || 'Could not save that like', 'error');
     }

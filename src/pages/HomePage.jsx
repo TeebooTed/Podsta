@@ -11,6 +11,7 @@ import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 import { useLikes } from '../hooks/useLikes.js';
+import { samePerson } from '../lib/webId.js';
 
 /**
  * Home is the following feed: one column, newest first.
@@ -47,7 +48,9 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
       if (!result) return;
       if (!result.liked) showToast('Like removed');
       else if (result.notified) showToast('Liked');
-      else showToast('Liked on your Pod. They will see it when their app next checks.', 'info');
+      else if (!post.ownerWebId || samePerson(post.ownerWebId, session?.info?.webId)) {
+        showToast('Liked on your Pod. The count did not update.', 'info');
+      } else showToast('Liked on your Pod. They will see it when their app next checks.', 'info');
     } catch (err) {
       showToast(err.message || 'Could not save that like', 'error');
     }

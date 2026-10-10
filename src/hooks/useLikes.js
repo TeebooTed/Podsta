@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   loadLikeSet,
   loadOwnLikes,
@@ -13,22 +13,27 @@ import { samePerson } from '../lib/webId.js';
  */
 export function useLikes({ enabled, session, podUrl, webId, posts }) {
   const [entries, setEntries] = useState([]);
+  const [entriesConfirmed, setEntriesConfirmed] = useState(false);
   const [sets, setSets] = useState({});
   const [busyUrl, setBusyUrl] = useState('');
+  const generation = useRef(0);
   const postKey = (posts || []).map((post) => `${post.url}|${post.ownerPodUrl || ''}|${post.ownerWebId || ''}`).join('\n');
 
   useEffect(() => {
     if (!enabled || !session?.fetch || !podUrl || !webId) {
       setEntries([]);
+      setEntriesConfirmed(false);
       setSets({});
       return undefined;
     }
     let closed = false;
+    const seen = generation.current;
     (async () => {
       try {
         const own = await loadOwnLikes(podUrl, session.fetch);
-        if (closed) return;
+        if (closed || seen !== generation.current) return;
         setEntries(own);
+        setEntriesConfirmed(true);
         const mine = (posts || []).filter(
           (post) => post?.url && (!post.ownerWebId || samePerson(post.ownerWebId, webId)),
         );
@@ -51,7 +56,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts }) {
             fetchFn: session.fetch,
           });
         }
-        if (!closed) setSets(next);
+        if (!closed && seen === generation.current) setSets(next);
       } catch {
         // A failed read keeps whatever was already on screen.
       }
@@ -74,6 +79,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts }) {
   const toggle = async (post) => {
     if (!post?.url || busyUrl) return null;
     const liked = !entries.some((entry) => entry.postUrl === post.url);
+    generation.current += 1;
     setBusyUrl(post.url);
     try {
       const result = await setOwnLike({
@@ -82,15 +88,22 @@ export function useLikes({ enabled, session, podUrl, webId, posts }) {
         post: { ...post, ownerWebId: post.ownerWebId || webId },
         ownerPodUrl: post.ownerPodUrl,
         liked,
+        knownEntries: entriesConfirmed ? entries : undefined,
       });
       setEntries(result.entries);
+      setEntriesConfirmed(true);
+      if (Array.isArray(result.webIds)) {
+        setSets((previous) => ({ ...previous, [post.url]: { webIds: result.webIds, readable: true } }));
+      }
       const ownerPod = post.ownerPodUrl || podUrl;
       const published = await loadLikeSet({
         ownerPodUrl: ownerPod,
         postUrl: post.url,
         fetchFn: session.fetch,
-      });
-      setSets((previous) => ({ ...previous, [post.url]: published }));
+      }).catch(() => null);
+      if (published?.readable) {
+        setSets((previous) => ({ ...previous, [post.url]: published }));
+      }
       return result;
     } finally {
       setBusyUrl('');

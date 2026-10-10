@@ -9,6 +9,7 @@ import {
   parseLikes,
   presentLikes,
   serializeLikes,
+  setOwnLike,
 } from '../src/lib/likes.js';
 
 const ADA = 'https://ada.example/profile/card#me';
@@ -51,4 +52,92 @@ test('a later removal drops that person, and names stay hidden until the list is
   assert.equal(likeSetAudience({ audience: 'private' }), 'private');
   assert.equal(likeSetAudience({ audience: 'contacts' }), 'contacts');
   assert.equal(likeSetAudience({ isPublic: true }), 'public');
+});
+
+function mockPod(handler) {
+  return {
+    info: { webId: ADA },
+    fetch: async (url, init = {}) => {
+      const method = init.method || 'GET';
+      const target = String(url);
+      return handler({ method, target, init });
+    },
+  };
+}
+
+function turtleResponse(status, body = '') {
+  return new Response(body, {
+    status,
+    headers: { 'Content-Type': 'text/turtle' },
+  });
+}
+
+test('a missing likes file is created without reading it, and an existing file is not replaced', async () => {
+  const calls = [];
+  const created = mockPod(({ method, target, init }) => {
+    calls.push(`${method} ${target}`);
+    if (method === 'GET' && target.endsWith('/podsta/likes.ttl')) {
+      throw new TypeError('Failed to fetch');
+    }
+    if (method === 'GET') return turtleResponse(404, 'missing');
+    if (method === 'PUT' && target.endsWith('/podsta/likes.ttl')) {
+      assert.equal(init.headers['If-None-Match'], '*');
+    }
+    return turtleResponse(201);
+  });
+  const result = await setOwnLike({
+    podUrl: 'https://ada.example/',
+    session: created,
+    post: { url: POST, ownerWebId: ADA, audience: 'private' },
+    liked: true,
+  });
+  assert.equal(result.liked, true);
+  assert.equal(result.entries[0].postUrl, POST);
+  assert.equal(result.notified, true);
+  assert.ok(result.webIds.includes(ADA));
+  assert.equal(calls.some((call) => call.startsWith('GET') && call.includes('/podsta/likes.ttl')), false);
+  assert.equal(calls.some((call) => call.startsWith('PUT') && call.endsWith('/podsta/likes.ttl')), true);
+
+  const blocked = mockPod(({ method, target }) => {
+    calls.push(`blocked ${method} ${target}`);
+    if (method === 'PUT' && target.endsWith('/podsta/likes.ttl')) return turtleResponse(412, 'exists');
+    return turtleResponse(201);
+  });
+  await assert.rejects(
+    () =>
+      setOwnLike({
+        podUrl: 'https://ada.example/',
+        session: blocked,
+        post: { url: POST, ownerWebId: ADA, audience: 'private' },
+        liked: true,
+      }),
+    /Could not read your likes/,
+  );
+});
+
+test('a known likes list is replaced, and a failed public count still keeps the like', async () => {
+  const calls = [];
+  const session = mockPod(({ method, target }) => {
+    calls.push(`${method} ${target}`);
+    if (method === 'GET' && target.endsWith('/podsta/likes.ttl')) {
+      throw new TypeError('Failed to fetch');
+    }
+    if (target.includes('/podsta/like-sets/') && !target.endsWith('/')) return turtleResponse(500, 'no');
+    if (method === 'GET') return turtleResponse(404, 'missing');
+    return turtleResponse(201);
+  });
+  const result = await setOwnLike({
+    podUrl: 'https://ada.example/',
+    session,
+    post: { url: POST, ownerWebId: ADA, audience: 'private' },
+    liked: true,
+    knownEntries: [{ postUrl: 'https://ada.example/podsta/posts/older.ttl', created: '2026-04-01T00:00:00.000Z' }],
+  });
+  assert.equal(result.liked, true);
+  assert.equal(result.notified, false);
+  assert.equal(result.webIds, null);
+  assert.equal(result.entries.length, 2);
+  assert.equal(calls.some((call) => call.startsWith('GET') && call.includes('/podsta/likes.ttl')), false);
+  const likesPut = calls.find((call) => call.startsWith('PUT') && call.endsWith('/podsta/likes.ttl'));
+  assert.ok(likesPut);
 });

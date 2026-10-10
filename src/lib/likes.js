@@ -204,14 +204,51 @@ async function writeTurtle(url, turtle, session) {
   });
 }
 
+async function lockPrivate(url, session, podUrl) {
+  try {
+    await applyAudience([url], 'private', {
+      ownerWebId: session.info.webId,
+      groupUrl: groupFragment(podUrl),
+      session,
+    });
+  } catch (err) {
+    // The turtle is already stored. An ACL miss must not look like a lost like.
+    // Parent rules on this host stay owner-only until the ACL write succeeds.
+    if (!String(err?.message || '').includes('.acl')) throw err;
+  }
+}
+
 export async function saveOwnLikes({ podUrl, session, entries }) {
   const url = ownLikesUrl(podUrl);
   await writeTurtle(url, serializeLikes(entries), session);
-  await applyAudience([url], 'private', {
-    ownerWebId: session.info.webId,
-    groupUrl: groupFragment(podUrl),
-    session,
-  });
+  await lockPrivate(url, session, podUrl);
+  return url;
+}
+
+/** Create the private likes file only when it is absent. Never replaces an existing list. */
+export async function createLikesFile({ podUrl, session, entries }) {
+  const url = ownLikesUrl(podUrl);
+  let response;
+  try {
+    response = await session.fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'text/turtle',
+        'If-None-Match': '*',
+      },
+      body: serializeLikes(entries),
+    });
+  } catch (err) {
+    if (err?.name === 'TypeError' || err?.name === 'AbortError') {
+      throw new Error('Could not save that like. The Pod did not respond.');
+    }
+    throw err;
+  }
+  if (response.status === 412) {
+    throw new Error('Could not read your likes, so this change was not saved');
+  }
+  if (!response.ok) throw new Error(`Could not save that like (${response.status || 'network'})`);
+  await lockPrivate(url, session, podUrl);
   return url;
 }
 
@@ -250,16 +287,29 @@ export async function postLikeNotice({ session, ownerPodUrl, postUrl, removed = 
   return { ok: Boolean(response?.ok || response?.status === 201), status: response?.status || 0 };
 }
 
-export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked }) {
+export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked, knownEntries }) {
   const me = session?.info?.webId;
   if (!me) throw new Error('Sign in to like a post');
   const postUrl = assertTurtleIri(post?.url);
-  const existing = await loadOwnLikes(podUrl, session.fetch);
-  const without = existing.filter((entry) => entry.postUrl !== postUrl);
-  const entries = liked ? [...without, { postUrl, created: new Date().toISOString() }] : without;
-  await saveOwnLikes({ podUrl, session, entries });
+  let entries;
+  if (Array.isArray(knownEntries)) {
+    // This list was read successfully. Replacing the file cannot drop likes we have not seen.
+    const without = knownEntries.filter((entry) => entry.postUrl !== postUrl);
+    entries = liked ? [...without, { postUrl, created: new Date().toISOString() }] : without;
+    await saveOwnLikes({ podUrl, session, entries });
+  } else if (liked) {
+    // A missing file often fails the CORS preflight, so a read error is not proof the file is empty.
+    // Create it only if absent. An existing file is left untouched.
+    entries = [{ postUrl, created: new Date().toISOString() }];
+    await createLikesFile({ podUrl, session, entries });
+  } else {
+    const existing = await loadOwnLikes(podUrl, session.fetch);
+    entries = existing.filter((entry) => entry.postUrl !== postUrl);
+    await saveOwnLikes({ podUrl, session, entries });
+  }
 
   let notified = false;
+  let webIds = null;
   const mine = Boolean(post?.ownerWebId) && samePerson(me, post.ownerWebId);
   if (!mine) {
     try {
@@ -276,20 +326,25 @@ export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked }) 
     }
   }
   if (mine) {
-    const current = await loadLikeSet({ ownerPodUrl: podUrl, postUrl, fetchFn: session.fetch });
-    const webIds = absorbLikes({
-      existing: current.webIds,
-      self: liked ? [me] : [],
-    }).filter((id) => liked || !samePerson(id, me));
-    await publishLikeSet({
-      ownerPodUrl: podUrl,
-      session,
-      post: { ...post, url: postUrl, ownerWebId: me },
-      webIds,
-    });
-    notified = true;
+    try {
+      const current = await loadLikeSet({ ownerPodUrl: podUrl, postUrl, fetchFn: session.fetch });
+      webIds = absorbLikes({
+        existing: current.webIds,
+        self: liked ? [me] : [],
+      }).filter((id) => liked || !samePerson(id, me));
+      await publishLikeSet({
+        ownerPodUrl: podUrl,
+        session,
+        post: { ...post, url: postUrl, ownerWebId: me },
+        webIds,
+      });
+      notified = true;
+    } catch {
+      notified = false;
+      webIds = null;
+    }
   }
-  return { liked, entries, notified };
+  return { liked, entries, notified, webIds };
 }
 
 export function containedLikeUrls(turtle, inboxUrl) {
