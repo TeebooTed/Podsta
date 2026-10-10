@@ -2,201 +2,76 @@
 
 > Your posts. Your Pod. Your rules.
 
-A fully decentralized social network for **text posts and photos** built on [Solid Pods](https://solidproject.org). No central server, no algorithms, no surveillance. Your data lives in your Pod — you decide what's public, what's private, and you can leave any time.
+Podsta is a photo-and-text app that stores everything in your [Solid Pod](https://solidproject.org). There is no Podsta server and no central directory. The signed-in browser talks to your Pod, and to the Pods of people you follow, with Web Access Control.
 
-This is a complete rebuild of the [original Podsta MVP](https://github.com/TeebooTed/Podsta) with full multi-user support, text posts, cross-pod feeds, and a polished editorial UI.
-
----
+A new profile is Hidden. You choose Contacts or Public later. A post cannot be more open than the profile.
 
 ## Features
 
-- **Photo posts** with captions and a full-screen lightbox viewer (zoom, swipe, pinch).
-- **Text posts** with optional titles and read-more truncation.
-- **Discoverability** for the profile: Hidden (the default), Contacts only, or Public. Contacts are people you approve, kept in a Solid group. Per-post visibility is Only me, Contacts, or Public, and cannot be more open than the profile.
-- **Cross-pod feeds** — public posts via `public-index.ttl`, and contacts-only posts via `contacts-index.ttl` for approved people.
-- **Owner-only comments** on your posts, stored in your Pod. Other people cannot write into that folder.
-- **Discovery** by WebID. Public profiles opt into a listing that shows up through someone else's published follow list. There is no central phone book.
-- **Profile editor** — name, bio, avatar.
-- **Keyboard shortcuts**: `h` for Home, `d` for Discover, `p` for Profile, `n` for a new post.
-- **Mobile-first** layout: a bottom bar on phones (Home, Discover, New post, Profile) and a header bar on larger screens.
-- **PWA-ready** — installable manifest.
+- Home is the following feed. Your own posts live on Profile as a grid.
+- Text posts, and photo posts of up to ten pictures, with a carousel in the feed and in the viewer.
+- Crop and rotate before upload, drag-and-drop on a desktop, and a progress bar that stays short of 100% until the Pod responds. A failed upload can be retried without sending photos that already landed.
+- Per-post audience: Only me, Contacts, or Public, capped by the profile.
+- Owner-only comments. Other people cannot write into that folder.
+- Likes stored in the liker's Pod. The author publishes the count and the names for posts they are willing to show.
+- In-app notifications for new posts from people you follow, comments on your posts, and contact requests or approvals. The app polls. It does not run a notification server.
+- Discover by WebID, with copy-my-WebID, invite links, and a QR code. A short name like `@ada` is derived from the WebID. It is not a registered handle.
+- A sign-up guide for people without a Pod. Solid Community is the recommended host. An existing Web Access Control Pod can sign in directly.
+- Phone layout with Home, Discover, New post, and Profile. Desktop uses the header. Keyboard: `h` home, `d` discover, `p` profile, `n` new post. Shortcuts are ignored while you are typing or a dialog is open.
 
----
+Podsta is not an installable app. `public/manifest.json` is a stub. There is no service worker.
+
+## Screenshots
+
+Signed-out start, and a signed-in feed, from the current build.
+
+![Sign in on a desktop](docs/screenshots/sign-in-desktop.png)
+
+![Sign in on a phone](docs/screenshots/sign-in-phone.png)
+
+![Home feed with a two-photo post](docs/screenshots/home-desktop.png)
+
+![Home feed on a phone](docs/screenshots/home-phone.png)
+
+![Notifications](docs/screenshots/notifications-desktop.png)
+
+![Profile on a phone](docs/screenshots/profile-phone.png)
+
+The guide for someone without a Pod is at `/start`.
+
+![Create a Pod on Solid Community](docs/screenshots/start-desktop.png)
+
+![The same guide on a phone](docs/screenshots/start-phone.png)
 
 ## Quick start
 
-```bash
-# 1. Install dependencies
-npm install
+You need a Solid Pod on a server that uses Web Access Control.
 
-# 2. Start dev server
-npm run dev
+**No Pod yet.** Open Podsta and choose **I don't have a Pod**. The guide sends you to [Solid Community](https://solidcommunity.net). Create the account there with an email and a password. Accounts created after December 2024 sign in with that email. Podsta never sees the password. When the Pod exists, that site sends you back here. Your WebID looks like `https://ada.solidcommunity.net/profile/card#me`, which Podsta shows as `@ada`.
 
-# 3. Open http://localhost:5173 and sign in with a Web Access Control provider
-#    such as https://solidcommunity.net. Inrupt PodSpaces uses access policies
-#    this beta cannot share with.
-```
+**You already have a Pod.** Choose **Sign in**. Solid Community is the recommended host. [solidweb.org](https://solidweb.org) also uses Web Access Control. Inrupt PodSpaces is listed so you can see why it is not supported: it uses access policies this app cannot write.
 
-To build for production:
+After sign-in you can skip the short tour. The profile starts Hidden. Copy your WebID from Home or Discover and send it to someone, or follow a WebID you already know. Invite links use `/invite?webid=`.
+
+## For developers
+
+Node.js 22. That is the version CI uses.
 
 ```bash
-npm run build
-npm run preview   # smoke-test the production bundle locally
+npm ci
+npm run dev       # http://localhost:5173
+npm test          # node --test tests/*.test.js
+npm run lint      # eslint src
+npm run build     # static files in dist/
+npm run preview   # serve the production build
 ```
 
-The contents of `dist/` are a static site — deploy to Vercel, Netlify, GitHub Pages, or any static host.
+`npm run dev` opens a browser tab. Solid sign-in on localhost has to stay on `localhost`, not `127.0.0.1`, because the OIDC client is registered for that origin.
 
----
+`dist/` is a static site. `vercel.json` rewrites every route to `index.html` and sets a Content-Security-Policy, `X-Frame-Options: DENY`, and a referrer policy. Production needs HTTPS. Localhost is the exception Solid allows for development.
 
-## How it works
-
-### Data model
-
-Every Podsta user owns a Solid Pod. Inside it, the app uses these paths:
-
-```
-<pod>/
-  podsta/
-    photos/
-      1729872398-photo.jpg          # binary photo
-      1729872398-photo.jpg.meta     # caption metadata (Turtle)
-      1729872398-photo.jpg.acl      # access control (when public)
-    posts/
-      1729872398-abc123.ttl         # text post (Turtle)
-    comments/
-      8x4kfm.ttl                    # comments file per-post (hashed URL)
-    contacts/
-      friends.ttl                   # WebIDs of people I follow
-      group.ttl                     # vcard group of approved contacts
-    avatars/
-      avatar-1729872398.jpg         # profile picture
-    profile.ttl                     # name, bio, avatar, discoverability
-    listing.ttl                     # opt-in directory card (public profiles)
-    public-index.ttl                # list of public posts
-    contacts-index.ttl              # list of contacts-only posts
-```
-
-### The `public-index.ttl` pattern
-
-The original Podsta MVP tried to enumerate friends' photos by listing each pod's `/photos/` container — but most Pod servers don't expose container listings publicly, so feeds couldn't actually load anyone's posts.
-
-Podsta solves this with a single Turtle file per user, `public-index.ttl`, that **lists the URLs of all their public posts** with denormalized metadata (type, title, caption, timestamp). Every time you share a post, we add an entry; every time you unshare or delete, we remove it. The file itself is publicly readable, so any visitor — authenticated or not — can fetch it and discover what to load.
-
-Friend feeds become a parallel fetch of N small Turtle files instead of N container listings (which don't work) followed by N×M individual file fetches (which is slow).
-
-### Sharing & ACLs
-
-When you mark a post public, we write a Turtle Web Access Control file granting `acl:Read` to `foaf:Agent` (the public class) on:
-
-- The post resource itself
-- For photos with a caption, the `.meta` sidecar
-
-This beta speaks WAC only. A server that uses Access Control Policies, including Inrupt PodSpaces, will not treat these files as permissions. Unsharing replaces the public grant with an owner-only rule and removes the entry from the public index. If any sibling write fails, sharing fails as a whole.
-
-The comments container is owner-only, including `acl:default`, so a previous public Append grant is removed the next time the app runs or a post is shared. Other people cannot add files there.
-
-### Comments
-
-Comments are notes only the post owner can read or write. They live in the owner's Pod at `/podsta/comments/<hash>.ttl`. The container ACL is owner-only. A future version can add social comments once that does not require giving the public write access to the Pod.
-
-### Discovery
-
-People find each other by WebID. Discover shows your WebID with a copy button, and a field to paste someone else's. A Public profile publishes `listing.ttl` and the follow list, so someone who can already read a public follow list can see that card. Hidden and Contacts profiles do not. There is no central phone book. Friends-of-friends uses an 8 second timeout per request.
-
-Contacts only uses a `vcard:Group` and WAC `acl:agentGroup`. The group file is world-readable while that grant is in use, because the Pod server reads it to check membership. The posts stay limited to those people. A WebID document itself is hosted by the identity provider and is usually still readable when the profile is Hidden.
-
----
-
-## Project structure
-
-```
-src/
-  App.jsx                       # Top-level orchestrator
-  main.jsx                      # ReactDOM mount
-  components/
-    Avatar.jsx
-    CommentsDrawer.jsx
-    Composer.jsx                # Unified text+photo composer modal
-    EditPostModal.jsx
-    EmptyState.jsx
-    Header.jsx
-    Lightbox.jsx
-    Modal.jsx
-    PostCard.jsx                # Renders both photo and text posts
-    SkeletonCard.jsx
-    Toast.jsx
-  lib/
-    acl.js                      # WACL Turtle templates
-    auth.js                     # Solid OIDC wrapper
-    comments.js
-    discover.js                 # 3-tier discovery
-    feed.js                     # Cross-pod friend feed loader
-    friends.js                  # Social graph in friends.ttl
-    posts.js                    # Photo + text post CRUD
-    profile.js                  # Name, bio, avatar
-    publicIndex.js              # 🔑 The public-index.ttl pattern
-    utils.js                    # Formatters
-    vocab.js                    # RDF predicates + paths + limits
-  pages/
-    DiscoverPage.jsx
-    HomePage.jsx                # Following feed
-    LoginPage.jsx
-    PersonPage.jsx              # Someone else's public grid
-    PostPage.jsx                # Permalink for one post
-    ProfilePage.jsx             # Editor plus your post grid
-  styles/
-    index.css                   # Tailwind + custom design tokens
-```
-
----
-
-## Design
-
-The visual aesthetic is intentionally editorial and warm — closer to a print magazine than a typical "AI-built" web app. Highlights:
-
-- **Typography**: Fraunces (display serif) + Manrope (body sans) + JetBrains Mono (IDs).
-- **Palette**: Warm dark base (`ink-*` from cream-paper to near-black) with a single sharp accent (`#e85d3c`) and a "live" signal green (`#6ee7b7`) reserved for public-status indicators.
-- **Texture**: Subtle film-grain overlay and soft radial gradient on the body for atmosphere.
-- **Motion**: Restrained — fade-ins, slide-ups, and shimmer skeletons. No jittery animations.
-
-All design tokens live in `tailwind.config.js` and `src/styles/index.css`.
-
----
-
-## Deployment
-
-### Vercel (recommended)
-
-The repo includes `vercel.json` that rewrites all routes to `/` (since this is a SPA). Deploy with:
-
-```bash
-npx vercel --prod
-```
-
-### Static hosting
-
-Run `npm run build` and deploy `dist/` anywhere. Configure your host to serve `index.html` for unknown routes.
-
-### Important: HTTPS only
-
-Solid OIDC requires HTTPS in production. Localhost works for development, but anywhere else needs a TLS certificate.
-
----
-
-## Roadmap / Known limitations
-
-- **No "feed since" timestamps** yet — the feed re-fetches each pod's full index on tab open. For users with many friends, an LRU cache or per-pod ETag check would help.
-- **Comments are flat** — no threading or replies. Each post has one Turtle file; switching to one-file-per-comment would enable individual deletion/moderation.
-- **No notifications** — you don't know when someone comments on your post unless you check. Solid LDN inbox could solve this; not yet wired up.
-- **No like/reaction primitive** — by design for now (less performative pressure on a slow social network).
-- **Pod-server quirks** — this beta's sharing has been written for Web Access Control (Community Solid Server and NSS). It has not been verified against Inrupt's Enterprise Solid Server, which uses Access Control Policies. Use a WAC provider such as solidcommunity.net until ACP support exists.
-
----
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the Pod layout, access rules, and notification polling. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change, and [CHANGELOG.md](CHANGELOG.md) for the 9–10 October work. [docs/IMPROVEMENT_PLAN.md](docs/IMPROVEMENT_PLAN.md) records what shipped and what is still open.
 
 ## License
 
-MIT — do whatever you want with it.
-
-## Credits
-
-Built on top of [`@inrupt/solid-client`](https://docs.inrupt.com/developer-tools/javascript/client-libraries/) and the [Solid Project](https://solidproject.org). Inspired by the original [Podsta MVP](https://github.com/TeebooTed/Podsta).
+This repository does not contain a `LICENSE` file. The previous README said MIT. That sentence was not backed by a license file, so this copy does not repeat it. Choosing a license is Matthew's decision.
