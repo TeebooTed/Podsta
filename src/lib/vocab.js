@@ -58,6 +58,7 @@ export const PATHS = {
 
 // Limits
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 MB
+export const MAX_ALBUM_PHOTOS = 10;
 export const MAX_TEXT_LENGTH = 5000;
 export const MAX_CAPTION_LENGTH = 280;
 export const MAX_COMMENT_LENGTH = 500;

@@ -8,6 +8,7 @@ import { displayHandle } from '../lib/handles.js';
 import { samePerson } from '../lib/webId.js';
 import { strangerNotice } from '../lib/invite.js';
 import { safeHttpUrl } from '../lib/urls.js';
+import { photoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { PATHS as ROUTES } from '../lib/navigation.js';
 
 /**
@@ -89,7 +90,8 @@ export default function PublicPerson({
     .map((post) => ({
       ...post,
       isPublic: true,
-      mediaUrl: post.url,
+      images: photoUrls({ ...post, type: 'photo', mediaUrl: post.images?.[0] || post.url }),
+      mediaUrl: primaryPhotoUrl({ ...post, type: 'photo', mediaUrl: post.images?.[0] || post.url }),
       mediaBlob: null,
       caption: post.caption || '',
     }));
@@ -165,8 +167,13 @@ export default function PublicPerson({
                 }}
                 aria-label={post.type === 'photo' ? post.caption || 'Open photo' : post.title || 'Note'}
               >
-                {post.type === 'photo' && safeHttpUrl(post.url) ? (
-                  <img src={post.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                {post.type === 'photo' &&
+                safeHttpUrl(primaryPhotoUrl({ ...post, type: 'photo', mediaUrl: post.images?.[0] || post.url })) ? (
+                  <img
+                    src={primaryPhotoUrl({ ...post, type: 'photo', mediaUrl: post.images?.[0] || post.url })}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
                 ) : (
                   <span className="absolute inset-0 p-2 flex items-end display-serif text-sm text-ink-100 line-clamp-4">
                     {post.title || post.caption || 'Note'}

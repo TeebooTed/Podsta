@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { getFile } from '@inrupt/solid-client';
+import { photoUrls } from '../lib/album.js';
 import { relativeTime } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
@@ -12,6 +13,9 @@ import { useFocusTrap } from '../hooks/useFocusTrap.js';
  */
 export default function Lightbox({ posts, index, onClose, onNavigate, session, footer = null }) {
   const post = posts[index];
+  const frames = photoUrls(post);
+  const [frame, setFrame] = useState(0);
+  const frameUrl = frames[Math.min(frame, Math.max(frames.length - 1, 0))] || post?.mediaUrl || post?.url || '';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const touchStartX = useRef(null);
@@ -25,6 +29,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
   useEffect(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    setFrame(0);
   }, [index]);
 
   // Public photos use their URL. Private photos are fetched only while the lightbox is open.
@@ -38,7 +43,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
       setImgUrl(u);
       return () => URL.revokeObjectURL(u);
     }
-    const direct = post.mediaUrl || post.url;
+    const direct = frameUrl;
     if (post.isPublic) {
       setImgUrl(direct);
       return undefined;
@@ -63,14 +68,20 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [post, session]);
+  }, [post, session, frameUrl]);
 
   // Keyboard navigation.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft' && index > 0) onNavigate(index - 1);
-      if (e.key === 'ArrowRight' && index < posts.length - 1) onNavigate(index + 1);
+      if (e.key === 'ArrowLeft') {
+        if (frame > 0) setFrame(frame - 1);
+        else if (index > 0) onNavigate(index - 1);
+      }
+      if (e.key === 'ArrowRight') {
+        if (frame < frames.length - 1) setFrame(frame + 1);
+        else if (index < posts.length - 1) onNavigate(index + 1);
+      }
     };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
@@ -78,7 +89,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
     };
-  }, [index, posts.length, onClose, onNavigate]);
+  }, [index, posts.length, onClose, onNavigate, frame, frames.length]);
 
   if (!post) return null;
 
@@ -220,11 +231,32 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
       {/* Caption / metadata */}
       <div className="p-6 max-w-3xl mx-auto w-full text-center" onClick={(e) => e.stopPropagation()}>
         {post.caption && <p className="text-ink-100 leading-relaxed text-balance">{post.caption}</p>}
-        <p className="text-xs text-ink-400 mt-2">{relativeTime(post.dateCreated)}</p>
+        {frames.length > 1 && (
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              className="min-h-11 px-3 rounded-lg bg-ink-800 text-ink-50 text-sm disabled:opacity-40"
+              onClick={() => setFrame((value) => Math.max(0, value - 1))}
+              disabled={frame === 0}
+            >
+              Previous photo
+            </button>
+            <span className="text-sm text-ink-100" aria-live="polite">
+              Photo {Math.min(frame + 1, frames.length)} of {frames.length}
+            </span>
+            <button
+              type="button"
+              className="min-h-11 px-3 rounded-lg bg-ink-800 text-ink-50 text-sm disabled:opacity-40"
+              onClick={() => setFrame((value) => Math.min(frames.length - 1, value + 1))}
+              disabled={frame >= frames.length - 1}
+            >
+              Next photo
+            </button>
+          </div>
+        )}
+        <p className="text-xs text-ink-200 mt-2">{relativeTime(post.dateCreated)}</p>
         {zoom > 1 && (
-          <p className="text-xs text-ink-400 mt-1">
-            Zoom: {Math.round(zoom * 100)}% — double-click to reset
-          </p>
+          <p className="text-xs text-ink-200 mt-1">Zoom: {Math.round(zoom * 100)}%. Double-click to reset.</p>
         )}
         {footer}
       </div>

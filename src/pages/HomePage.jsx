@@ -98,7 +98,8 @@ export default function HomePage({ friends, session, ownPostCount = 0, onRemoveF
       dateCreated: entry.dateCreated,
       isPublic: entry.audience !== 'contacts',
       audience: entry.audience || 'public',
-      mediaUrl: entry.url,
+      images: entry.images || [],
+      mediaUrl: entry.images?.[0] || entry.url,
       mediaBlob: null,
     };
     if (entry.type === 'text' && hydrated[entry.url]) {

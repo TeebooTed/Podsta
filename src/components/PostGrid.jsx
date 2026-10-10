@@ -8,6 +8,7 @@ import EmptyState from './EmptyState.jsx';
 import { relativeTime } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { safeHttpUrl } from '../lib/urls.js';
+import { photoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { audienceAllowed, ceilingNote, AUDIENCE_OPTIONS } from '../lib/discoverability.js';
 
 function TileImage({ post, session }) {
@@ -19,7 +20,7 @@ function TileImage({ post, session }) {
       setSrc(url);
       return () => URL.revokeObjectURL(url);
     }
-    const direct = post.mediaUrl || post.url;
+    const direct = primaryPhotoUrl(post) || post.mediaUrl || post.url;
     if (post.isPublic && safeHttpUrl(direct)) {
       setSrc(direct);
       return undefined;
@@ -171,9 +172,12 @@ export default function PostGrid({
     <>
       <ul className="grid grid-cols-3 gap-1 sm:gap-2">
         {posts.map((post) => {
+          const count = post.type === 'photo' ? photoUrls(post).length : 0;
           const label =
             post.type === 'photo'
-              ? post.caption || 'Photo'
+              ? count > 1
+                ? `${count} photos${post.caption ? `: ${post.caption}` : ''}`
+                : post.caption || 'Photo'
               : post.title || post.body?.slice(0, 80) || 'Note';
           const audience = post.audience || (post.isPublic ? 'public' : 'private');
           const visibility = audience === 'public' ? 'Public' : audience === 'contacts' ? 'Contacts' : 'Private';
@@ -195,6 +199,11 @@ export default function PostGrid({
                     <span className="display-serif text-sm sm:text-base text-ink-100 line-clamp-4">
                       {post.title || post.body}
                     </span>
+                  </span>
+                )}
+                {count > 1 && (
+                  <span className="absolute top-1 right-1 text-[10px] uppercase tracking-wide bg-ink-950/80 text-ink-50 px-1.5 py-0.5 rounded">
+                    {count}
                   </span>
                 )}
                 {audience !== 'public' && (
