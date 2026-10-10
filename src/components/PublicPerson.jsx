@@ -5,6 +5,7 @@ import EmptyState from './EmptyState.jsx';
 import Lightbox from './Lightbox.jsx';
 import { loadStranger } from '../lib/stranger.js';
 import { displayHandle } from '../lib/handles.js';
+import { samePerson } from '../lib/webId.js';
 import { strangerNotice } from '../lib/invite.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { PATHS as ROUTES } from '../lib/navigation.js';
@@ -20,6 +21,10 @@ export default function PublicPerson({
   onFollow,
   followBusy = false,
   signedIn = false,
+  selfWebId = '',
+  onAskContact,
+  askBusy = false,
+  requestedWebIds = [],
 }) {
   const [person, setPerson] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,9 +115,9 @@ export default function PublicPerson({
                 <p className="text-sm text-ink-100 mt-3 leading-relaxed">{person.bio}</p>
               )}
               {notice && <p className="text-sm text-ink-100 mt-3 leading-relaxed">{notice}</p>}
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {following ? (
-                  <span className="text-sm text-signal">Following</span>
+                  <span className="text-sm text-signal self-center">Following</span>
                 ) : (
                   <button
                     type="button"
@@ -123,6 +128,19 @@ export default function PublicPerson({
                     {followBusy ? 'Following…' : signedIn ? 'Follow' : 'Sign in to follow'}
                   </button>
                 )}
+                {signedIn && !samePerson(selfWebId, webId) &&
+                  (requestedWebIds.some((id) => samePerson(id, webId)) ? (
+                    <span className="text-sm text-signal self-center">Request sent</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onAskContact?.(webId)}
+                      disabled={askBusy}
+                      className="btn-secondary"
+                    >
+                      {askBusy ? 'Sending…' : 'Ask to be a contact'}
+                    </button>
+                  ))}
               </div>
             </div>
           </div>

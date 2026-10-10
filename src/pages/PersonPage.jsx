@@ -3,7 +3,16 @@ import PublicPerson from '../components/PublicPerson.jsx';
 import { normalizeWebId } from '../lib/webId.js';
 
 /** In-app profile for someone you opened from Discover or an invite. */
-export default function PersonPage({ session, friends, onAddFriend, addingWebId, signedIn = true }) {
+export default function PersonPage({
+  session,
+  friends,
+  onAddFriend,
+  addingWebId,
+  signedIn = true,
+  onAskContact,
+  askWebId = '',
+  requestedWebIds = [],
+}) {
   const [params] = useSearchParams();
   const webId = normalizeWebId(params.get('webid') || '') || '';
   return (
@@ -14,6 +23,10 @@ export default function PersonPage({ session, friends, onAddFriend, addingWebId,
       onFollow={onAddFriend}
       followBusy={addingWebId === webId}
       signedIn={signedIn}
+      selfWebId={session?.info?.webId || ''}
+      onAskContact={onAskContact}
+      askBusy={askWebId === webId}
+      requestedWebIds={requestedWebIds}
     />
   );
 }

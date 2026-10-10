@@ -17,6 +17,7 @@ import { loadFriends, addFriend, removeFriend } from './lib/friends.js';
 import { loadProfile, saveProfile } from './lib/profile.js';
 import { applyDiscoverability } from './lib/applyDiscoverability.js';
 import { loadContactMembers, saveContactMembers } from './lib/contactsGroup.js';
+import { sendApprovalNotice, sendContactRequest } from './lib/contactRequest.js';
 import { hasFinishedOnboarding, markOnboardingDone } from './lib/onboarding.js';
 import {
   consumeFollow,
@@ -35,12 +36,14 @@ import DiscoverPage from './pages/DiscoverPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import PersonPage from './pages/PersonPage.jsx';
 import PostPage from './pages/PostPage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
 import Header from './components/Header.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import Composer from './components/Composer.jsx';
 import Modal from './components/Modal.jsx';
 import Toast from './components/Toast.jsx';
+import { useNotificationFeed } from './hooks/useNotificationFeed.js';
 
 /**
  * Top-level component. Holds:
@@ -72,6 +75,9 @@ export default function App() {
   const [friends, setFriends] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [contactBusy, setContactBusy] = useState(false);
+  const [askWebId, setAskWebId] = useState('');
+  const [sentRequests, setSentRequests] = useState([]);
+  const [approvingWebId, setApprovingWebId] = useState('');
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -510,6 +516,64 @@ export default function App() {
     }
   }, [podUrl, session, contacts, friends, showToast]);
 
+  const notifications = useNotificationFeed({
+    enabled: Boolean(session?.info?.isLoggedIn && podUrl),
+    session,
+    podUrl,
+    webId: session?.info?.webId || '',
+    friends,
+    posts,
+  });
+
+  const handleAskContact = useCallback(
+    async (webId) => {
+      if (!podUrl || !session) return;
+      setAskWebId(webId);
+      try {
+        const result = await sendContactRequest({ podUrl, session, targetWebId: webId });
+        setSentRequests((prev) => [...prev, result.targetWebId]);
+        if (result.inboxDelivered) {
+          showToast('Contact request sent');
+        } else {
+          showToast(
+            `Request saved on your Pod. ${result.inboxError || 'They will see it if they follow you.'}`,
+            'info',
+          );
+        }
+      } catch (err) {
+        showToast(`Could not send the request: ${err.message}`, 'error');
+      } finally {
+        setAskWebId('');
+      }
+    },
+    [podUrl, session, showToast],
+  );
+
+  const handleApproveRequest = useCallback(
+    async (webId) => {
+      if (!podUrl || !session) return;
+      setApprovingWebId(webId);
+      try {
+        const next = [...new Set([...contacts, webId])];
+        const saved = await saveContactMembers({ podUrl, session, webIds: next });
+        setContacts(saved);
+        const notice = await sendApprovalNotice({ session, targetWebId: webId });
+        if (notice.delivered) showToast('Approved. They have been notified.');
+        else {
+          showToast(
+            `Approved on your Pod. ${notice.error || 'Their inbox did not accept the notice.'}`,
+            'info',
+          );
+        }
+      } catch (err) {
+        showToast(`Could not approve: ${err.message}`, 'error');
+      } finally {
+        setApprovingWebId('');
+      }
+    },
+    [podUrl, session, contacts, showToast],
+  );
+
   const handleSaveName = useCallback(
     async (name) => {
       await saveProfile({
@@ -602,6 +666,7 @@ export default function App() {
         podUrl={podUrl}
         onLogout={handleLogout}
         onCompose={() => setComposerOpen(true)}
+        unseenCount={notifications.unseenCount}
       />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
@@ -672,11 +737,45 @@ export default function App() {
                 friends={friends}
                 onAddFriend={handleAddFriend}
                 addingWebId={addingWebId}
+                onAskContact={handleAskContact}
+                askWebId={askWebId}
+                requestedWebIds={[...notifications.outgoingTargets, ...sentRequests]}
               />
             }
           />
           <Route path="/post" element={<PostPage session={session} posts={posts} />} />
-          <Route path="/invite" element={<PersonPage session={session} friends={friends} onAddFriend={handleAddFriend} addingWebId={addingWebId} />} />
+          <Route
+            path="/notifications"
+            element={
+              <NotificationsPage
+                items={notifications.items}
+                seen={notifications.seen}
+                channelConnected={notifications.channelConnected}
+                failing={notifications.failing}
+                error={notifications.error}
+                checking={notifications.checking}
+                contacts={contacts}
+                onAcknowledge={notifications.acknowledge}
+                onRefresh={notifications.refresh}
+                onApprove={handleApproveRequest}
+                approvingWebId={approvingWebId}
+              />
+            }
+          />
+          <Route
+            path="/invite"
+            element={
+              <PersonPage
+                session={session}
+                friends={friends}
+                onAddFriend={handleAddFriend}
+                addingWebId={addingWebId}
+                onAskContact={handleAskContact}
+                askWebId={askWebId}
+                requestedWebIds={[...notifications.outgoingTargets, ...sentRequests]}
+              />
+            }
+          />
           <Route path="/start" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -8,6 +8,7 @@ export const PATHS = {
   post: '/post',
   start: '/start',
   invite: '/invite',
+  notifications: '/notifications',
 };
 
 export const DESKTOP_NAV = [
@@ -44,6 +45,7 @@ export function sectionFromPath(pathname = '') {
   if (pathname.startsWith(PATHS.post)) return 'post';
   if (pathname.startsWith(PATHS.start)) return 'start';
   if (pathname.startsWith(PATHS.invite)) return 'invite';
+  if (pathname.startsWith(PATHS.notifications)) return 'notifications';
   return 'home';
 }
 
