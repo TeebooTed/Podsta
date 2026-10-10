@@ -3,21 +3,24 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { loadPublicPost } from '../lib/posts.js';
 import { photoUrls } from '../lib/album.js';
 import PhotoCarousel from '../components/PhotoCarousel.jsx';
+import CommentsDrawer from '../components/CommentsDrawer.jsx';
 import { safeHttpUrl } from '../lib/urls.js';
 import { relativeTime } from '../lib/utils.js';
 import { PATHS } from '../lib/navigation.js';
 import EmptyState from '../components/EmptyState.jsx';
+import { samePerson } from '../lib/webId.js';
 
 /**
  * A Podsta address for one post. The raw Pod URL stays available as "Open original".
  */
-export default function PostPage({ session, posts }) {
+export default function PostPage({ session, posts, podUrl, showToast }) {
   const [params] = useSearchParams();
   const url = params.get('url') || '';
   const own = posts.find((p) => p.url === url) || null;
   const [loaded, setLoaded] = useState(null);
   const [loading, setLoading] = useState(!own && Boolean(url));
   const [error, setError] = useState(!url);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   useEffect(() => {
     if (!url || own) return undefined;
@@ -104,8 +107,38 @@ export default function PostPage({ session, posts }) {
               Open original
             </a>
           )}
+          <button type="button" className="btn-secondary mt-4" onClick={() => setCommentsOpen(true)}>
+            Comments
+          </button>
         </>
+      )}
+      {commentsOpen && post && (
+        <CommentsDrawer
+          open
+          post={{
+            ...post,
+            ownerWebId: post.ownerWebId || (own ? session?.info?.webId : ''),
+            audience: post.audience || (post.isPublic ? 'public' : 'private'),
+          }}
+          ownerPodUrl={
+            post.ownerPodUrl ||
+            (own || (session?.info?.webId && samePerson(post.ownerWebId, session.info.webId)) ? podUrl : ownerPodFromUrl(post.url))
+          }
+          viewerPodUrl={podUrl}
+          session={session}
+          showToast={showToast}
+          onClose={() => setCommentsOpen(false)}
+        />
       )}
     </article>
   );
+}
+
+function ownerPodFromUrl(resourceUrl) {
+  try {
+    const url = new URL(resourceUrl);
+    return `${url.protocol}//${url.host}/`;
+  } catch {
+    return '';
+  }
 }

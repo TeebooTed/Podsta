@@ -34,6 +34,9 @@ export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 export const PODSTA = {
   PostType: 'https://podsta.app/vocab#PostType', // "photo" | "text"
   Like: 'https://podsta.app/vocab#Like',
+  Comment: 'https://podsta.app/vocab#Comment',
+  Block: 'https://podsta.app/vocab#Block',
+  Report: 'https://podsta.app/vocab#Report',
   PublicIndex: 'https://podsta.app/vocab#PublicIndex',
   audience: 'https://podsta.app/vocab#audience', // "public" | "contacts" | "private"
   discoverability: 'https://podsta.app/vocab#discoverability', // "public" | "contacts" | "hidden"
@@ -46,6 +49,11 @@ export const PATHS = {
   photos: 'podsta/photos/',
   posts: 'podsta/posts/',
   comments: 'podsta/comments/',
+  myComments: 'podsta/my-comments.ttl',
+  commentSets: 'podsta/comment-sets/',
+  commentHides: 'podsta/comment-hides.ttl',
+  blocks: 'podsta/blocks.ttl',
+  reports: 'podsta/reports.ttl',
   likes: 'podsta/likes.ttl',
   likeSets: 'podsta/like-sets/',
   contacts: 'podsta/contacts/friends.ttl',

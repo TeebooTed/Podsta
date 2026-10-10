@@ -7,6 +7,7 @@ import {
   setOwnLike,
 } from '../lib/likes.js';
 import { samePerson } from '../lib/webId.js';
+import { isBlocked, loadBlocks } from '../lib/blocks.js';
 
 const ownReads = new Map();
 
@@ -23,9 +24,10 @@ function readOwnLikes(podUrl, fetchFn) {
 /**
  * Own likes come from this Pod. Counts come from the author's published list.
  */
-export function useLikes({ enabled, session, podUrl, webId, posts }) {
+export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision = 0 }) {
   const [entries, setEntries] = useState([]);
   const [entriesConfirmed, setEntriesConfirmed] = useState(false);
+  const [blocked, setBlocked] = useState([]);
   const [sets, setSets] = useState({});
   const [busyUrl, setBusyUrl] = useState('');
   const generation = useRef(0);
@@ -53,6 +55,12 @@ export function useLikes({ enabled, session, podUrl, webId, posts }) {
         if (closed || seen !== generation.current) return;
         setEntries(own);
         setEntriesConfirmed(true);
+        try {
+          const blocks = await loadBlocks(podUrl, session.fetch);
+          if (!closed && seen === generation.current) setBlocked(blocks);
+        } catch {
+          // A missed block list must not be treated as "nobody is blocked".
+        }
         const mine = (posts || []).filter(
           (post) => post?.url && (!post.ownerWebId || samePerson(post.ownerWebId, webId)),
         );
@@ -85,11 +93,11 @@ export function useLikes({ enabled, session, podUrl, webId, posts }) {
     };
     // postKey stands in for the post list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, session, podUrl, webId, postKey]);
+  }, [enabled, session, podUrl, webId, postKey, blockRevision]);
 
   const view = (post) =>
     presentLikes({
-      webIds: sets[post?.url]?.webIds || [],
+      webIds: (sets[post?.url]?.webIds || []).filter((id) => !isBlocked(id, blocked)),
       readable: Boolean(sets[post?.url]?.readable),
       mine: entries.some((entry) => entry.postUrl === post?.url),
       me: webId,

@@ -6,6 +6,7 @@ import { displayHandle } from './handles.js';
 import { samePerson, normalizeWebId } from './webId.js';
 import { groupFragment } from './discoverability.js';
 import { resolveProfile } from './friends.js';
+import { filterBlocked, loadBlocks } from './blocks.js';
 
 /**
  * A like is stored in the liker's Pod. The public cannot write the owner's Pod.
@@ -404,18 +405,32 @@ export async function readInboxLikes(inboxUrl, fetchFn, limit = 15) {
   return notices;
 }
 
-export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries }) {
+export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries, blockedWebIds }) {
   const me = session.info.webId;
   const notices = await readInboxLikes(`${podUrl}inbox/`, session.fetch);
+  let blocked = blockedWebIds;
+  if (!blocked) {
+    try {
+      blocked = await loadBlocks(podUrl, session.fetch);
+    } catch {
+      blocked = null;
+    }
+  }
   const published = [];
   for (const post of posts || []) {
     if (!post?.url) continue;
     const incoming = notices.filter((notice) => notice.postUrl === post.url);
     const selfLiked = (ownEntries || []).some((entry) => entry.postUrl === post.url);
-    if (!incoming.length && !selfLiked) continue;
+    if (!incoming.length && !selfLiked && !blocked?.length) continue;
     const current = await loadLikeSet({ ownerPodUrl: podUrl, postUrl: post.url, fetchFn: session.fetch });
+    if (!current.readable && !incoming.length && !selfLiked) continue;
     let webIds = applyLikeNotices(current.webIds, incoming);
     webIds = selfLiked ? absorbLikes({ existing: webIds, self: [me] }) : webIds.filter((id) => !samePerson(id, me));
+    if (blocked) webIds = filterBlocked(webIds, blocked);
+    const sameList =
+      (current.webIds || []).length === webIds.length &&
+      (current.webIds || []).every((id, index) => samePerson(id, webIds[index]));
+    if (sameList && !incoming.length && !selfLiked) continue;
     await publishLikeSet({
       ownerPodUrl: podUrl,
       session,

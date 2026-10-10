@@ -23,7 +23,7 @@ The original must-fix and should-fix items, by number:
 | --- | --- |
 | 1 App does not parse | Done |
 | 2 Recommended login host does not match WAC | Done for the beta. ACP itself is still open. |
-| 3 Public comments hole | Done by making comments owner-only. Social comments are still open. |
+| 3 Public comments hole | Done. Strangers still cannot write the author's Pod. Comments now live in the commenter's Pod. |
 | 4 Public index drifts from the post | Done |
 | 5 Home downloads every photo | Done. Listing reads captions and ACLs. The image loads when a card is on screen. |
 | 6 Discover is a dead end | Done |
@@ -38,7 +38,7 @@ The original must-fix and should-fix items, by number:
 | 15 PWA claim | The README no longer says the app is installable. Shipping a PWA is still open. |
 | 16 Dependency health | Unused-router problem is gone because routes exist. The Inrupt 2.x line is still the one we ship. A major upgrade is open. |
 | 17 Notifications | Done as in-app polling. A live Solid channel is only a wake hint, and solidcommunity.net rejected the subscription. |
-| 18 One resource per comment, with delete | Open |
+| 18 Comments other people can leave | Done. Commenter-owned file, inbox notice, author-published list, hide, edit, delete, and block. |
 | 19 Image derivatives and EXIF | Open |
 | 20 Feed cache | Open |
 | 21 Reactions | Done. Likes shipped. |
@@ -52,7 +52,7 @@ The original must-fix and should-fix items, by number:
 
 - **Installable PWA.** `public/manifest.json` points at one SVG. There is no service worker and no 192 or 512 PNG. Do not call the app installable until those exist.
 - **Inrupt PodSpaces / ACP.** Sharing is WAC `.acl` Turtle. An ACP writer is a separate project.
-- **Social comments.** Owner-only notes stay until a model exists that does not grant strangers write access to the owner's Pod, with a way for the owner to delete.
+- **Social comments.** Done. The commenter writes their own Pod. The author publishes, hides, and can block. There is still no public Append on `podsta/comments/`.
 - **Image derivatives and EXIF stripping.** Public photos are the uploaded file.
 - **Conditional feed fetch.** Indexes are refetched. They are not cached in the browser (`cache: 'no-store'`), and there is no per-friend ETag cursor.
 - **Light theme.** `darkMode: 'class'` is unused.

@@ -69,6 +69,7 @@ export default function PostGrid({
   likeFor,
   onToggleLike,
   likeBusyUrl = '',
+  onBlocksChanged,
 }) {
   const [openUrl, setOpenUrl] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
@@ -131,11 +132,13 @@ export default function PostGrid({
       <button type="button" onClick={() => setEditingPost(post)} className="btn-secondary text-xs">
         Edit
       </button>
-      {(post.audience || (post.isPublic ? 'public' : 'private')) !== 'private' && (
-        <button type="button" onClick={() => setCommentsPost(post)} className="btn-secondary text-xs">
-          Comments
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setCommentsPost({ ...post, ownerWebId: session?.info?.webId || post.ownerWebId })}
+        className="btn-secondary text-xs"
+      >
+        Comments
+      </button>
       {confirmDelete ? (
         <button
           type="button"
@@ -264,10 +267,11 @@ export default function PostGrid({
           open
           post={commentsPost}
           ownerPodUrl={podUrl}
-          canComment
+          viewerPodUrl={podUrl}
           session={session}
           onClose={() => setCommentsPost(null)}
           showToast={showToast}
+          onBlocksChanged={onBlocksChanged}
         />
       )}
     </>

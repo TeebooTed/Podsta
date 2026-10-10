@@ -759,7 +759,10 @@ export default function App() {
               />
             }
           />
-          <Route path="/post" element={<PostPage session={session} posts={posts} />} />
+          <Route
+            path="/post"
+            element={<PostPage session={session} posts={posts} podUrl={podUrl} showToast={showToast} />}
+          />
           <Route
             path="/notifications"
             element={
