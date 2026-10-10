@@ -9,6 +9,7 @@ import { relativeTime } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { audienceAllowed, ceilingNote, AUDIENCE_OPTIONS } from '../lib/discoverability.js';
+import LikeControl from './LikeControl.jsx';
 
 function TileImage({ post, session }) {
   const [src, setSrc] = useState(null);
@@ -64,6 +65,9 @@ export default function PostGrid({
   togglingUrls,
   deletingUrls,
   showToast,
+  likeFor,
+  onToggleLike,
+  likeBusyUrl = '',
 }) {
   const [openUrl, setOpenUrl] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
@@ -87,6 +91,15 @@ export default function PostGrid({
 
   const actions = (post) => (
     <div className="mt-4 flex flex-wrap gap-2 justify-center">
+      {onToggleLike && (
+        <LikeControl
+          liked={likeFor?.(post)?.liked}
+          count={likeFor?.(post)?.count}
+          names={likeFor?.(post)?.names}
+          busy={likeBusyUrl === post.url}
+          onToggle={() => onToggleLike(post)}
+        />
+      )}
       <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Who can see this post">
         {AUDIENCE_OPTIONS.map((option) => {
           const allowed = audienceAllowed(discoverability, option.id);

@@ -33,6 +33,7 @@ export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 // Custom Podsta vocab (ad-hoc namespace; we just need stable IRIs for our own data).
 export const PODSTA = {
   PostType: 'https://podsta.app/vocab#PostType', // "photo" | "text"
+  Like: 'https://podsta.app/vocab#Like',
   PublicIndex: 'https://podsta.app/vocab#PublicIndex',
   audience: 'https://podsta.app/vocab#audience', // "public" | "contacts" | "private"
   discoverability: 'https://podsta.app/vocab#discoverability', // "public" | "contacts" | "hidden"
@@ -43,6 +44,8 @@ export const PATHS = {
   photos: 'podsta/photos/',
   posts: 'podsta/posts/',
   comments: 'podsta/comments/',
+  likes: 'podsta/likes.ttl',
+  likeSets: 'podsta/like-sets/',
   contacts: 'podsta/contacts/friends.ttl',
   contactsGroup: 'podsta/contacts/group.ttl',
   publicIndex: 'podsta/public-index.ttl',

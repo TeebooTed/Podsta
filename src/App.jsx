@@ -618,6 +618,7 @@ export default function App() {
               <HomePage
                 friends={friends}
                 session={session}
+                podUrl={podUrl}
                 ownPostCount={posts.length}
                 onRemoveFriend={handleRemoveFriend}
                 onCompose={() => setComposerOpen(true)}

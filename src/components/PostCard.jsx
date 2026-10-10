@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getFile } from '@inrupt/solid-client';
 import Avatar from './Avatar.jsx';
+import LikeControl from './LikeControl.jsx';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 
@@ -32,6 +33,9 @@ export default function PostCard({
   toggling,
   deleting,
   session,
+  like,
+  likeBusy = false,
+  onToggleLike,
 }) {
   const [imgUrl, setImgUrl] = useState(null);
   const [visible, setVisible] = useState(mode === 'feed'); // feed images load by URL directly, no observer needed
@@ -191,7 +195,16 @@ export default function PostCard({
       )}
 
       {/* Footer */}
-      <div className="px-4 py-3 mt-auto flex items-center gap-2 border-t border-ink-800/50">
+      <div className="px-4 py-3 mt-auto flex flex-wrap items-center gap-2 border-t border-ink-800/50">
+        {onToggleLike && (
+          <LikeControl
+            liked={like?.liked}
+            count={like?.count}
+            names={like?.names}
+            busy={likeBusy}
+            onToggle={() => onToggleLike(post)}
+          />
+        )}
         {mode === 'own' ? (
           <>
             {/* Visibility toggle */}
