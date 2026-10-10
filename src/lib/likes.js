@@ -353,7 +353,7 @@ export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked, kn
 export function containedLikeUrls(turtle, inboxUrl) {
   if (!turtle) return [];
   const urls = [];
-  const re = /ldp:contains/gi;
+  const re = /ldp:contains|<http:\/\/www\.w3\.org\/ns\/ldp#contains>/gi;
   let match = re.exec(turtle);
   while (match) {
     const rest = turtle.slice(match.index + match[0].length);

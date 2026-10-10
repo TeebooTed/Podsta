@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   absorbLikes,
   applyLikeNotices,
+  containedLikeUrls,
   likeSetAudience,
   noticeTurtle,
   parseLikeNotice,
@@ -31,6 +32,14 @@ test('a like round-trips and rejects a script URL', () => {
     removed: true,
   });
   assert.equal(parseLikeNotice(removed).removed, true);
+});
+
+test('a Community Solid Server inbox listing is readable without an ldp prefix', () => {
+  const inbox = 'https://ada.example/inbox/';
+  const turtle = `<> <http://www.w3.org/ns/ldp#contains> <${inbox}like-1>, <${inbox}like-2> .`;
+  assert.deepEqual(containedLikeUrls(turtle, inbox), [`${inbox}like-1`, `${inbox}like-2`]);
+  const prefixed = `@prefix ldp: <http://www.w3.org/ns/ldp#> .\n<> ldp:contains <${inbox}like-1> .`;
+  assert.deepEqual(containedLikeUrls(prefixed, inbox), [`${inbox}like-1`]);
 });
 
 test('a later removal drops that person, and names stay hidden until the list is readable', () => {
