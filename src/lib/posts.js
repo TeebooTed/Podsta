@@ -25,7 +25,7 @@ import {
   removeFromPublicIndex,
 } from './publicIndex.js';
 import { publicIndexEntryFromPost } from './indexEntry.js';
-import { isNotFound, withTimeout } from './timeoutFetch.js';
+import { isNotFound, retryTransient, withTimeout } from './timeoutFetch.js';
 import { audienceAllowed, effectiveAudience, groupDocUrl, groupFragment } from './discoverability.js';
 import { ensureContactsGroup } from './contactsGroup.js';
 
@@ -44,16 +44,18 @@ import { ensureContactsGroup } from './contactsGroup.js';
  */
 
 async function ensureContainer(containerUrl, session) {
-  try {
-    await createContainerAt(containerUrl, { fetch: session.fetch });
-  } catch {
-    // Already exists or can't be created — try to confirm it's there.
+  await retryTransient(async () => {
     try {
-      await getSolidDataset(containerUrl, { fetch: session.fetch });
-    } catch (err) {
-      throw new Error(`Container unavailable: ${containerUrl} (${err.message})`);
+      await createContainerAt(containerUrl, { fetch: session.fetch });
+    } catch {
+      // Already exists or can't be created — try to confirm it's there.
+      try {
+        await getSolidDataset(containerUrl, { fetch: session.fetch });
+      } catch (err) {
+        throw new Error(`Container unavailable: ${containerUrl} (${err.message})`);
+      }
     }
-  }
+  });
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -14,8 +14,8 @@ import { useFocusTrap } from '../hooks/useFocusTrap.js';
 export default function Lightbox({ posts, index, onClose, onNavigate, session, footer = null }) {
   const post = posts[index];
   const frames = photoUrls(post);
-  const frameUrl = frames[Math.min(frame, Math.max(frames.length - 1, 0))] || post?.mediaUrl || post?.url || '';
   const [frame, setFrame] = useState(0);
+  const frameUrl = frames[Math.min(frame, Math.max(frames.length - 1, 0))] || post?.mediaUrl || post?.url || '';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const touchStartX = useRef(null);
