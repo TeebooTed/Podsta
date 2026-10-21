@@ -2,7 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 /**
  * End-to-end tests run against the production build.
- * They do not need a Pod. Signed-in flows stay in unit tests.
+ * Signed-out tests do not need a Pod. The two-person test uses the local
+ * Community Solid Server started below. Sign-in has to use localhost.
  */
 export default defineConfig({
   testDir: 'e2e',
@@ -15,10 +16,18 @@ export default defineConfig({
     trace: 'on-first-retry',
     ...(process.env.CI ? {} : { channel: 'chrome' }),
   },
-  webServer: {
-    command: 'npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    {
+      command: 'npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort',
+      url: 'http://127.0.0.1:4173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      command: 'node e2e/solidServer.js',
+      url: 'http://localhost:3456/.account/',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180000,
+    },
+  ],
 });

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { copySpaFallback } from './scripts/pagesFallback.js';
-import { CSP_POLICY } from './src/lib/cspPolicy.js';
+import { cspPolicy } from './src/lib/cspPolicy.js';
 
 // Vite config for Podsta.
 // - React plugin for JSX/Fast Refresh.
@@ -11,6 +11,8 @@ import { CSP_POLICY } from './src/lib/cspPolicy.js';
 // - PAGES_BASE is set only by the GitHub Pages workflow (`/Podsta/`).
 //   Localhost and CI stay at `/` so existing OIDC registrations keep working.
 const base = process.env.PAGES_BASE || '/';
+// Pages stays https-only. Localhost and CI may use a local pod host.
+const policy = cspPolicy({ allowLocalHttp: !process.env.PAGES_BASE });
 
 function pagesSpaFallback(basePath) {
   return {
@@ -27,7 +29,7 @@ function contentSecurityPolicy() {
     name: 'podsta-csp',
     apply: 'build',
     transformIndexHtml(html) {
-      const tag = `    <meta http-equiv="Content-Security-Policy" content="${CSP_POLICY}" />`;
+      const tag = `    <meta http-equiv="Content-Security-Policy" content="${policy}" />`;
       return html.replace('</head>', `${tag}\n  </head>`);
     },
   };

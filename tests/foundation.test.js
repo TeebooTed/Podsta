@@ -9,7 +9,7 @@ import { hasStoredSession, SESSION_PREFIX } from '../src/lib/sessionHint.js';
 import { snapshotKey } from '../src/lib/offlineStore.js';
 import { fittedSize, MAX_IMAGE_EDGE, THUMB_EDGE } from '../src/lib/photoAdjust.js';
 import { cardPhotoUrls } from '../src/lib/album.js';
-import { CSP_HEADER } from '../src/lib/cspPolicy.js';
+import { CSP_HEADER, CSP_POLICY, cspPolicy } from '../src/lib/cspPolicy.js';
 
 test('captions and comments drop tags and script URLs', () => {
   assert.equal(plainText('  hello "there"  '), 'hello "there"');
@@ -75,4 +75,8 @@ test('the Pages policy matches the header policy, plus frame-ancestors', () => {
   assert.equal(header.value.includes("script-src 'self'"), true);
   assert.equal(header.value.includes('unsafe-eval'), false);
   assert.equal(header.value.includes('fonts.googleapis.com'), false);
+  assert.equal(CSP_POLICY.includes('http://localhost'), false);
+  const local = cspPolicy({ allowLocalHttp: true });
+  assert.equal(local.includes('connect-src \'self\' https: wss: http://localhost:* http://127.0.0.1:*'), true);
+  assert.equal(local.includes('http://localhost:*'), true);
 });
