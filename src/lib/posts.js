@@ -157,6 +157,17 @@ function photoSlug(file, index, seed) {
  * `alreadyUploaded` lets a retry continue after a failure instead of sending
  * the same bytes again. Progress stays under 100% until the post file is saved.
  */
+function chosenDate(value) {
+  if (!value) return new Date().toISOString();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString();
+  return date.toISOString();
+}
+
+function chosenSource(value) {
+  return plainText(value || '').slice(0, 300);
+}
+
 export async function createPhotoAlbum({
   podUrl,
   session,
@@ -166,6 +177,8 @@ export async function createPhotoAlbum({
   alreadyUploaded = [],
   thumbnails = [],
   idSeed,
+  dateCreated,
+  importedFrom,
 }) {
   const list = Array.from(files || []).filter(Boolean);
   const captionText = limitedPlain(caption, MAX_CAPTION_LENGTH, 'Captions');
@@ -232,7 +245,9 @@ export async function createPhotoAlbum({
   let ds = createSolidDataset();
   let thing = createThing({ url: postUrl });
   thing = setStringNoLocale(thing, PODSTA.PostType, 'photo');
-  thing = setStringNoLocale(thing, SCHEMA.dateCreated, new Date().toISOString());
+  thing = setStringNoLocale(thing, SCHEMA.dateCreated, chosenDate(dateCreated));
+  const source = chosenSource(importedFrom);
+  if (source) thing = setStringNoLocale(thing, PODSTA.importedFrom, source);
   if (captionText) thing = setStringNoLocale(thing, SCHEMA.caption, captionText);
   uploaded.forEach((image, index) => {
     thing = addUrl(thing, SCHEMA.image, image);
@@ -332,7 +347,15 @@ export async function loadOwnPhotos({ podUrl, session, exclude }) {
 // TEXT POSTS
 // ─────────────────────────────────────────────────────────────
 
-export async function createTextPost({ podUrl, session, title, body, idSeed }) {
+export async function createTextPost({
+  podUrl,
+  session,
+  title,
+  body,
+  idSeed,
+  dateCreated,
+  importedFrom,
+}) {
   const bodyText = limitedPlain(body, MAX_TEXT_LENGTH, 'Text posts');
   const titleText = plainText(title || '').slice(0, 500);
   if (!bodyText) throw new Error('Text posts must have a body');
@@ -346,7 +369,9 @@ export async function createTextPost({ podUrl, session, title, body, idSeed }) {
   let thing = createThing({ url: postUrl });
   thing = setStringNoLocale(thing, SCHEMA.body, bodyText);
   if (titleText) thing = setStringNoLocale(thing, SCHEMA.name, titleText);
-  thing = setStringNoLocale(thing, SCHEMA.dateCreated, new Date().toISOString());
+  thing = setStringNoLocale(thing, SCHEMA.dateCreated, chosenDate(dateCreated));
+  const source = chosenSource(importedFrom);
+  if (source) thing = setStringNoLocale(thing, PODSTA.importedFrom, source);
   thing = setStringNoLocale(thing, PODSTA.PostType, 'text');
   ds = setThing(ds, thing);
 

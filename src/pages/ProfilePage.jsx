@@ -18,6 +18,7 @@ import { inviteUrl } from '../lib/invite.js';
 import InviteQr from '../components/InviteQr.jsx';
 import PullIndicator from '../components/PullIndicator.jsx';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
+import InstagramImport from '../components/InstagramImport.jsx';
 
 /**
  * Your profile: name, bio, avatar, then your own posts as a grid.
@@ -44,6 +45,7 @@ export default function ProfilePage({
   togglingUrls,
   deletingUrls,
   onRefresh,
+  onLibraryChanged,
 }) {
   const [name, setName] = useState(profile?.name || '');
   const [bio, setBio] = useState(profile?.bio || '');
@@ -411,6 +413,14 @@ export default function ProfilePage({
           </div>
         </div>
       </section>
+
+      <InstagramImport
+        session={session}
+        podUrl={podUrl}
+        discoverability={profile?.discoverability || DEFAULT_LEVEL}
+        showToast={showToast}
+        onImported={onLibraryChanged}
+      />
 
       <section aria-labelledby="posts-heading">
         <h2 id="posts-heading" className="display-serif text-2xl mb-3">

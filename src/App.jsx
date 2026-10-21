@@ -828,6 +828,7 @@ export default function App() {
                 deletingUrls={deletingUrls}
                 onRefresh={reloadPosts}
                 showToast={showToast}
+                onLibraryChanged={reloadPosts}
               />
             }
           />
