@@ -13,6 +13,7 @@ import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
 import InviteBanner from '../components/InviteBanner.jsx';
+import WeeklyPrompt from '../components/WeeklyPrompt.jsx';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 import { readSnapshot, snapshotKey, writeSnapshot } from '../lib/offlineStore.js';
 import { plainText } from '../lib/text.js';
@@ -20,6 +21,12 @@ import { useLikes } from '../hooks/useLikes.js';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import { samePerson } from '../lib/webId.js';
 import { isSaved } from '../lib/saves.js';
+import {
+  dismissWeeklyPrompt,
+  friendsPostedThisWeek,
+  isWeeklyPromptDismissed,
+  promptForDate,
+} from '../lib/weeklyPrompt.js';
 
 /**
  * Home is the following feed: one column, newest first.
@@ -52,6 +59,13 @@ export default function HomePage({
   const [commentsPost, setCommentsPost] = useState(null);
   const [blockRevision, setBlockRevision] = useState(0);
   const [pendingUnfollow, setPendingUnfollow] = useState(null);
+  const viewerId = session?.info?.webId || '';
+  const [promptDismissed, setPromptDismissed] = useState(() =>
+    isWeeklyPromptDismissed(
+      typeof window === 'undefined' ? null : window.localStorage,
+      viewerId,
+    ),
+  );
   const hydratedRef = useRef({});
   const copy = emptyFeedCopy();
   const likes = useLikes({
@@ -200,6 +214,17 @@ export default function HomePage({
     return { ...base, _entry: entry };
   });
 
+  useEffect(() => {
+    setPromptDismissed(isWeeklyPromptDismissed(window.localStorage, viewerId));
+  }, [viewerId]);
+
+  const skipPrompt = () => {
+    dismissWeeklyPrompt(window.localStorage, viewerId);
+    setPromptDismissed(true);
+  };
+  const showPrompt =
+    Boolean(friends?.length) && !promptDismissed && friendsPostedThisWeek(feedEntries);
+
   const photoPosts = renderablePosts.filter((p) => p.type === 'photo');
   const errorCopy = feedErrorCopy(unreachable);
 
@@ -295,6 +320,10 @@ export default function HomePage({
             })}
           </div>
         </section>
+      )}
+
+      {showPrompt && (
+        <WeeklyPrompt prompt={promptForDate()} onCompose={onCompose} onDismiss={skipPrompt} />
       )}
 
       <div role="status" aria-live="polite" className="sr-only">
