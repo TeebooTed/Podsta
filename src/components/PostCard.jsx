@@ -7,6 +7,9 @@ import { ChatIcon, LinkIcon } from './icons.jsx';
 import { cardPhotoUrls } from '../lib/album.js';
 import SaveButton from './SaveButton.jsx';
 import CaptionText from './CaptionText.jsx';
+import ShareButton from './ShareButton.jsx';
+import { sharePayload } from '../lib/shareOut.js';
+import { currentAppRoot } from '../lib/appUrl.js';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 
 /**
@@ -42,6 +45,7 @@ export default function PostCard({
   saved = false,
   saveBusy = false,
   onToggleSave,
+  onShareResult,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -63,6 +67,11 @@ export default function PostCard({
   const isLong = post.type === 'text' && post.body && post.body.length > 280;
 
   const images = cardPhotoUrls(post);
+  const payload = sharePayload({
+    origin: typeof window === 'undefined' ? '' : currentAppRoot(),
+    post,
+    authorName: ownerName || '',
+  });
 
   return (
     <article
@@ -146,6 +155,7 @@ export default function PostCard({
         {onToggleSave && (
           <SaveButton saved={saved} busy={saveBusy} onToggle={() => onToggleSave(post)} />
         )}
+        <ShareButton payload={payload} onResult={onShareResult} />
         {onToggleLike && (
           <LikeControl
             liked={like?.liked}

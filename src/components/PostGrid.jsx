@@ -16,6 +16,9 @@ import { LockIcon, PeopleIcon, StackIcon } from './icons.jsx';
 import { hashString } from '../lib/utils.js';
 import SaveButton from './SaveButton.jsx';
 import CaptionText from './CaptionText.jsx';
+import ShareButton from './ShareButton.jsx';
+import { sharePayload } from '../lib/shareOut.js';
+import { currentAppRoot } from '../lib/appUrl.js';
 
 // Plum text stays above AA on every stop of these gradients.
 const NOTE_TINTS = [
@@ -139,6 +142,14 @@ export default function PostGrid({
           onToggle={() => onToggleSave(post)}
         />
       )}
+      <ShareButton
+        payload={sharePayload({ origin: currentAppRoot(), post })}
+        onResult={(result) => {
+          if (result.reason === 'dismissed') return;
+          if (!result.ok) showToast?.('Could not share that post', 'error');
+          else showToast?.(result.method === 'share' ? 'Shared' : 'Link copied');
+        }}
+      />
       {onToggleLike && (
         <LikeControl
           liked={likeFor?.(post)?.liked}

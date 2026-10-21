@@ -159,6 +159,7 @@ These limits are part of the design, not temporary bugs.
 - The comments container stays owner-only. Other people never get write access to the author's Pod. A published comment list is readable only at the post's audience. Blocks, reports, hides, and the commenter's own file are private.
 - Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
 - Saved posts in `podsta/favorites.ttl` are private. Saving does not copy the post and does not write the author's Pod.
+- Share uses the device share sheet or the clipboard. A private post is not shared. A contacts post shares the Podsta link and not the caption. A public post may include a short excerpt that is already world-readable.
 - Notification seen-state is per browser. It is not in the Pod.
 - The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. Captions, comments, names, and bios are stored and shown as plain text. Tags are removed before they are written. There is no `dangerouslySetInnerHTML`.
 - Pod URLs and identity-provider issuers have to be https. `http://localhost` and `http://127.0.0.1` are the only exceptions. `javascript:` and URLs with a username or password are rejected. Image addresses in an index are dropped unless they pass the same check.

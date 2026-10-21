@@ -11,6 +11,9 @@ import EmptyState from '../components/EmptyState.jsx';
 import SkeletonCard from '../components/SkeletonCard.jsx';
 import { samePerson } from '../lib/webId.js';
 import SaveButton from '../components/SaveButton.jsx';
+import ShareButton from '../components/ShareButton.jsx';
+import { sharePayload } from '../lib/shareOut.js';
+import { currentAppRoot } from '../lib/appUrl.js';
 import CaptionText from '../components/CaptionText.jsx';
 import { isSaved } from '../lib/saves.js';
 
@@ -132,15 +135,23 @@ export default function PostPage({ session, posts = [], podUrl, showToast, saves
             </p>
           )}
           <p className="text-xs text-ink-300 mt-3">{relativeTime(post.dateCreated)}</p>
-          {onToggleSave && (
-            <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-2">
+            {onToggleSave && (
               <SaveButton
                 saved={isSaved(saves, post.url)}
                 busy={savingUrl === post.url}
                 onToggle={() => onToggleSave(post)}
               />
-            </div>
-          )}
+            )}
+            <ShareButton
+              payload={sharePayload({ origin: currentAppRoot(), post, authorName: '' })}
+              onResult={(result) => {
+                if (result.reason === 'dismissed') return;
+                if (!result.ok) showToast?.('Could not share that post', 'error');
+                else showToast?.(result.method === 'share' ? 'Shared' : 'Link copied');
+              }}
+            />
+          </div>
           {original && (
             <a
               href={original}

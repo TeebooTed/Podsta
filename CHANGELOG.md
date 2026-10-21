@@ -19,6 +19,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- Share a public post, or the link to a contacts post, with another app on this device. A private post is not offered, and a contacts caption is not put in the share sheet.
 - Hashtags in captions and notes. `/tag?name=` shows your own posts with that tag, including private ones, and posts from people you follow that you can already read. Tags are stored on the shared index only when the post itself is shared. There is no central tag directory.
 - Saved posts. The private file `podsta/favorites.ttl` stores the post URL and the time it was saved. It does not copy the photo or the caption. Home, profile, and the post page can save or forget a post. `/saved` shows what this session can still read, and says when a post is no longer available. A failed read does not replace the list.
 
