@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useInView } from '../hooks/useInView.js';
 import { getFile } from '@inrupt/solid-client';
-import Lightbox from './Lightbox.jsx';
+import LazyLightbox from './LazyLightbox.jsx';
 import Modal from './Modal.jsx';
 import EditPostModal from './EditPostModal.jsx';
 import CommentsDrawer from './CommentsDrawer.jsx';
@@ -311,7 +311,7 @@ export default function PostGrid({
       </ul>
 
       {photoIndex >= 0 && (
-        <Lightbox
+        <LazyLightbox
           posts={photos}
           index={photoIndex}
           session={session}

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Avatar from './Avatar.jsx';
-import InviteQr from './InviteQr.jsx';
+
+const InviteQr = lazy(() => import('./InviteQr.jsx'));
 import { displayHandle } from '../lib/handles.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { copyToClipboard } from '../lib/utils.js';
@@ -188,7 +189,9 @@ export default function StarterPack({ session, podUrl, friends = [], showToast }
           </button>
           {shareUrl && (
             <div className="mt-6 flex flex-col sm:flex-row gap-5 items-start">
-              <InviteQr url={shareUrl} label="Starter pack" />
+              <Suspense fallback={<span className="inline-block w-40 h-40" aria-hidden="true" />}>
+                <InviteQr url={shareUrl} label="Starter pack" />
+              </Suspense>
               <div className="min-w-0 flex-1 space-y-3">
                 <div>
                   <p className="text-xs text-ink-200 mb-1">Pack link</p>

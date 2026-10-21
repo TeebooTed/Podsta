@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../components/Avatar.jsx';
 import PostGrid from '../components/PostGrid.jsx';
@@ -16,11 +16,12 @@ import { safeHttpUrl } from '../lib/urls.js';
 import { displayHandle } from '../lib/handles.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
-import InviteQr from '../components/InviteQr.jsx';
 import PullIndicator from '../components/PullIndicator.jsx';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
-import InstagramImport from '../components/InstagramImport.jsx';
 import StarterPack from '../components/StarterPack.jsx';
+
+const InviteQr = lazy(() => import('../components/InviteQr.jsx'));
+const InstagramImport = lazy(() => import('../components/InstagramImport.jsx'));
 import { PATHS } from '../lib/navigation.js';
 import { isSaved } from '../lib/saves.js';
 
@@ -437,7 +438,11 @@ export default function ProfilePage({
           <p className="display-serif text-3xl mb-3">{ownHandle.qualified}</p>
         )}
         <div className="flex flex-col sm:flex-row gap-5 items-start">
-          {ownInvite && <InviteQr url={ownInvite} />}
+          {ownInvite && (
+            <Suspense fallback={<span className="inline-block w-40 h-40" aria-hidden="true" />}>
+              <InviteQr url={ownInvite} />
+            </Suspense>
+          )}
           <div className="min-w-0 flex-1 space-y-3">
             <div>
               <p className="text-xs text-ink-200 mb-1">Invite link</p>
@@ -464,13 +469,15 @@ export default function ProfilePage({
 
       <StarterPack session={session} podUrl={podUrl} friends={friends} showToast={showToast} />
 
-      <InstagramImport
-        session={session}
-        podUrl={podUrl}
-        discoverability={profile?.discoverability || DEFAULT_LEVEL}
-        showToast={showToast}
-        onImported={onLibraryChanged}
-      />
+      <Suspense fallback={null}>
+        <InstagramImport
+          session={session}
+          podUrl={podUrl}
+          discoverability={profile?.discoverability || DEFAULT_LEVEL}
+          showToast={showToast}
+          onImported={onLibraryChanged}
+        />
+      </Suspense>
 
       <section aria-labelledby="posts-heading">
         <h2 id="posts-heading" className="display-serif text-2xl mb-3">

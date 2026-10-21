@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
 import EmptyState from './EmptyState.jsx';
-import Lightbox from './Lightbox.jsx';
+import LazyLightbox from './LazyLightbox.jsx';
 import { loadStranger } from '../lib/stranger.js';
 import { displayHandle } from '../lib/handles.js';
 import { samePerson } from '../lib/webId.js';
@@ -255,7 +255,7 @@ export default function PublicPerson({
       )}
 
       {photoIndex !== null && (
-        <Lightbox
+        <LazyLightbox
           posts={photos}
           index={photoIndex}
           session={session}
