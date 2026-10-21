@@ -8,6 +8,7 @@ import { safeHttpUrl } from '../lib/urls.js';
 import { relativeTime } from '../lib/utils.js';
 import { PATHS } from '../lib/navigation.js';
 import EmptyState from '../components/EmptyState.jsx';
+import SkeletonCard from '../components/SkeletonCard.jsx';
 import { samePerson } from '../lib/webId.js';
 
 /**
@@ -82,7 +83,7 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
       <div role="status" className="sr-only">
         {loading ? 'Loading post' : ''}
       </div>
-      {loading && <div className="aspect-[4/3] skeleton rounded-xl" />}
+      {loading && <SkeletonCard />}
       {!loading && error && (
         <EmptyState
           title="This post isn't shared with you"

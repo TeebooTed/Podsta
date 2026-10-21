@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { HeartIcon } from './icons.jsx';
+import LikeBurst from './LikeBurst.jsx';
 
 /**
  * Like button, count, and names.
@@ -43,11 +44,14 @@ export default function LikeControl({
         >
           <span className="sr-only">{busy ? 'Saving like' : 'Like'}</span>
           {celebrate > 0 && shown && (
-            <span
-              key={`ring-${celebrate}`}
-              className="pointer-events-none absolute inset-1.5 rounded-full border-2 border-accent animate-like-ring"
-              aria-hidden="true"
-            />
+            <>
+              <span
+                key={`ring-${celebrate}`}
+                className="pointer-events-none absolute inset-1.5 rounded-full border-2 border-accent animate-like-ring"
+                aria-hidden="true"
+              />
+              <LikeBurst key={`burst-${celebrate}`} radius={24} />
+            </>
           )}
           <HeartIcon
             key={`heart-${celebrate}`}

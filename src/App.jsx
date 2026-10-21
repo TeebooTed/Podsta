@@ -860,6 +860,7 @@ export default function App() {
                 onDelete={handleDelete}
                 togglingUrls={togglingUrls}
                 deletingUrls={deletingUrls}
+                onRefresh={reloadPosts}
                 showToast={showToast}
               />
             }

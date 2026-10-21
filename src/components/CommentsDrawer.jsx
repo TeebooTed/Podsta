@@ -16,6 +16,7 @@ import { relativeTime } from '../lib/utils.js';
 import { MAX_COMMENT_LENGTH } from '../lib/vocab.js';
 import { samePerson } from '../lib/webId.js';
 import Avatar from './Avatar.jsx';
+import { SkeletonRows } from './Skeletons.jsx';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
 
 /**
@@ -318,7 +319,12 @@ export default function CommentsDrawer({
             </p>
           )}
           {loading ? (
-            <p className="text-ink-200 text-sm text-center py-8">Loading comments…</p>
+            <div>
+              <p className="sr-only" role="status">
+                Loading comments…
+              </p>
+              <SkeletonRows count={3} avatar card={false} />
+            </div>
           ) : loadError === 'private' ? (
             <p className="text-ink-100 text-sm text-center py-8">
               Comments on this post are not available to you.

@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import { discoverViaFriends, listingsFor } from '../lib/discover.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { personPath } from '../lib/navigation.js';
+import { SkeletonPeople } from '../components/Skeletons.jsx';
 import { displayHandle, parsePersonInput } from '../lib/handles.js';
 
 /**
@@ -171,7 +172,12 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
             <p className="text-xs text-ink-300">From published follow lists</p>
           </div>
           {loadingFoaf ? (
-            <p className="text-sm text-ink-300 py-4">Looking through your friends' lists…</p>
+            <>
+              <p className="text-sm text-ink-200 mb-3" role="status">
+                Looking through your friends' lists…
+              </p>
+              <SkeletonPeople count={2} />
+            </>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {foaf.map((p) => (
@@ -185,7 +191,10 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
       <section>
         <h2 className="display-serif text-2xl mb-3">Directory</h2>
         {loadingFoaf ? (
-          <p className="text-sm text-ink-200 py-4">Looking for public listings…</p>
+          <>
+            <p className="text-sm text-ink-200 mb-3">Looking for public listings…</p>
+            <SkeletonPeople count={2} />
+          </>
         ) : directory.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {directory.map((p) => (
