@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import Logo from '../components/Logo.jsx';
 import { RECOMMENDED_PROVIDER, SIGNUP_STEPS } from '../lib/provider.js';
 import { PATHS } from '../lib/navigation.js';
 
@@ -26,8 +27,8 @@ export default function SignupPage({ onBegin, busy = false, error = '' }) {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <p className="text-center mb-6">
-          <Link to={PATHS.home} className="display-serif text-3xl text-ink-50">
-            Podsta
+          <Link to={PATHS.home} aria-label="Podsta home" className="inline-block rounded-xl">
+            <Logo size="md" />
           </Link>
         </p>
         <div className="card p-6 sm:p-8">
@@ -46,7 +47,7 @@ export default function SignupPage({ onBegin, busy = false, error = '' }) {
           <ol className="space-y-4 mb-6">
             {SIGNUP_STEPS.map((step, index) => (
               <li key={step.id} className="flex gap-3">
-                <span className="shrink-0 w-8 h-8 rounded-full bg-accent text-ink-950 font-medium flex items-center justify-center">
+                <span className="shrink-0 w-8 h-8 rounded-full bg-accent text-plum font-medium flex items-center justify-center">
                   {index + 1}
                 </span>
                 <div className="min-w-0">

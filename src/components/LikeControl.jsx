@@ -13,7 +13,7 @@ export default function LikeControl({ liked = false, count = null, names = [], b
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className={`min-h-11 px-3 rounded-lg text-sm ${liked ? 'bg-accent text-ink-950' : 'bg-ink-800 text-ink-50'}`}
+          className={`min-h-11 px-3 rounded-lg text-sm ${liked ? 'bg-accent text-plum' : 'bg-ink-800 text-ink-50'}`}
           aria-pressed={liked}
           disabled={busy}
           onClick={onToggle}

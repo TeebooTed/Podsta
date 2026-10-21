@@ -3,6 +3,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import Toast from './components/Toast.jsx';
+import Logo from './components/Logo.jsx';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { inviteUrl, rememberFollow, rememberSignup, SIGNUP_KEY } from './lib/invite.js';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
@@ -13,8 +14,8 @@ const PostPage = lazy(() => import('./pages/PostPage.jsx'));
 function Wordmark() {
   return (
     <p className="mb-6">
-      <Link to="/" className="display-serif text-3xl text-ink-50">
-        Podsta
+      <Link to="/" aria-label="Podsta home" className="inline-block rounded-xl">
+        <Logo size="md" />
       </Link>
     </p>
   );

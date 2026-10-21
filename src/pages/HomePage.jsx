@@ -193,7 +193,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
                           onRemoveFriend(f.webId);
                           setPendingUnfollow(null);
                         }}
-                        className="min-h-8 px-2 rounded-md bg-accent text-ink-950 text-xs font-medium"
+                        className="min-h-8 px-2 rounded-md bg-accent text-plum text-xs font-medium"
                         aria-label={`Confirm unfollow ${name}`}
                       >
                         Confirm
@@ -210,7 +210,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
                     <button
                       type="button"
                       onClick={() => setPendingUnfollow(f.webId)}
-                      className="min-h-8 px-2 rounded-md border border-ink-600 text-ink-100 text-xs hover:border-accent hover:text-accent"
+                      className="min-h-8 px-2 rounded-md border border-ink-600 text-ink-100 text-xs hover:border-accent hover:text-accent-ink"
                       aria-label={`Unfollow ${name}`}
                     >
                       Unfollow

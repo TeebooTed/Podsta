@@ -183,7 +183,7 @@ export default function ProfilePage({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploadingAvatar}
-              className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent hover:bg-accent-light text-ink-950 rounded-full flex items-center justify-center text-sm shadow-lg transition disabled:opacity-50"
+              className="absolute -bottom-1 -right-1 w-8 h-8 bg-accent hover:bg-accent-light text-plum rounded-full flex items-center justify-center text-sm shadow-lg transition disabled:opacity-50"
               aria-label="Change avatar"
             >
               {uploadingAvatar ? '…' : '✎'}
@@ -313,7 +313,7 @@ export default function ProfilePage({
                 href={safeHttpUrl(podUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-mono text-accent hover:text-accent-light break-all"
+                className="text-xs font-mono text-accent-ink hover:underline break-all"
               >
                 {podUrl} ↗
               </a>

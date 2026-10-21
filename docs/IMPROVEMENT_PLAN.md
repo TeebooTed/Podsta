@@ -66,7 +66,7 @@ These were the open questions on 9 October. The answers that shipped:
 
 1. **Pod servers.** WAC for the beta. Solid Community is the recommended host. solidweb.org is offered. Inrupt PodSpaces is shown as unsupported. ACP is not in scope until someone writes it.
 2. **Stay on React.** Yes.
-3. **Design.** Keep Fraunces, ink, and the coral accent. Home is the following feed. Profile is the grid. Phone has a bottom bar.
+3. **Design.** Follow `brand/BRAND.md`: Fredoka and Nunito, Cream and Plum, Coral fills with Plum text, light and dark themes. Home is the following feed. Profile is the grid. Phone has a bottom bar.
 4. **Finding people.** Copy a WebID, follow a WebID, invite links. No registry. The follow list is public only when the profile is Public.
 5. **Comments.** The commenter writes their own Pod and notifies the author. The old `podsta/comments/` container stays owner-only. No public Append.
 6. **Default visibility.** Private posts, Hidden profile.

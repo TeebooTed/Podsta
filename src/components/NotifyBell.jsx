@@ -20,7 +20,7 @@ export default function NotifyBell({ unseenCount = 0 }) {
         <path d="M10 18.5a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       </svg>
       {countLabel && (
-        <span className="absolute top-1 right-0 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-accent text-ink-950 text-[10px] font-semibold leading-none flex items-center justify-center">
+        <span className="absolute top-1 right-0 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-accent text-plum text-[10px] font-semibold leading-none flex items-center justify-center">
           {countLabel}
         </span>
       )}

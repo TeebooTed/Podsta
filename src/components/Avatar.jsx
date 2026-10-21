@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { initials } from '../lib/utils.js';
+import { initials, hashString } from '../lib/utils.js';
 import { safeHttpUrl } from '../lib/urls.js';
 
 const sizes = {
@@ -10,12 +10,23 @@ const sizes = {
   xl: 'w-20 h-20 text-2xl',
 };
 
+// Plum initials on a brand color picked from the name, so one person keeps one color.
+const TINTS = [
+  'from-[#FF8A4C] to-[#FF6B57]',
+  'from-[#FFD66E] to-[#FFC547]',
+  'from-[#6FE6C0] to-[#3DD9A8]',
+  'from-[#F7A1BD] to-[#EE6F98]',
+  'from-[#FFB59E] to-[#FFC547]',
+];
+
 function Initials({ name, sizeClass, className }) {
+  const tint = TINTS[Math.abs(Number.parseInt(hashString(name || '?'), 36) || 0) % TINTS.length];
   return (
     <div
-      className={`${sizeClass} rounded-full bg-gradient-to-br from-ink-600 to-ink-700
-                  text-ink-100 font-semibold flex items-center justify-center
-                  ring-1 ring-ink-600 ${className}`}
+      className={`${sizeClass} rounded-full bg-gradient-to-br ${tint}
+                  text-plum font-display font-semibold flex items-center justify-center
+                  ring-2 ring-ink-800 ${className}`}
+      aria-hidden="true"
     >
       {initials(name)}
     </div>
@@ -40,7 +51,7 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
       src={safeSrc}
       alt={name || 'avatar'}
       loading="lazy"
-      className={`${sizeClass} rounded-full object-cover bg-ink-700 ring-1 ring-ink-600 ${className}`}
+      className={`${sizeClass} rounded-full object-cover bg-ink-700 ring-2 ring-ink-800 ${className}`}
       onError={() => setBroken(true)}
     />
   );

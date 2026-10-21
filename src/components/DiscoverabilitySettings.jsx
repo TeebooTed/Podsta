@@ -128,7 +128,7 @@ export default function DiscoverabilitySettings({
             </button>
           </form>
           {localError && (
-            <p className="mt-2 text-sm text-accent" role="alert">
+            <p className="mt-2 text-sm text-accent-ink" role="alert">
               {localError}
             </p>
           )}

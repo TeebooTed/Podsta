@@ -1,51 +1,75 @@
 /** @type {import('tailwindcss').Config} */
+const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        // Distinctive choices: a humanist serif for display, a clean sans for body, mono for IDs.
-        // Loaded via index.html <link> tags.
-        display: ['"Fraunces"', 'Georgia', 'serif'],
-        sans: ['"Manrope"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        // Brand type (brand/BRAND.md): Fredoka for headings, Nunito for text. Self-hosted, no font CDN.
+        display: ['"Fredoka Variable"', '"Fredoka"', 'ui-rounded', 'system-ui', 'sans-serif'],
+        sans: ['"Nunito Variable"', '"Nunito"', 'ui-rounded', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {
-        // Custom palette — warm earthy with electric accent.
+        // `ink` is the theme scale: 950 is the page, 800 a raised surface, 50 the strongest text.
+        // Light and dark values live in src/styles/index.css.
         ink: {
-          50: '#faf8f5',
-          100: '#f0ece4',
-          200: '#dcd4c4',
-          300: '#b8a98e',
-          400: '#9d8b6e',
-          500: '#5a4f3c',
-          600: '#3d3429',
-          700: '#2a2419',
-          800: '#1a1610',
-          900: '#0e0c08',
-          950: '#070604',
+          50: token('ink-50'),
+          100: token('ink-100'),
+          200: token('ink-200'),
+          300: token('ink-300'),
+          400: token('ink-400'),
+          500: token('ink-500'),
+          600: token('ink-600'),
+          700: token('ink-700'),
+          800: token('ink-800'),
+          900: token('ink-900'),
+          950: token('ink-950'),
         },
+        // Coral is a fill. Put Plum text on it. `accent-ink` is coral that passes AA as text.
         accent: {
-          DEFAULT: '#e85d3c',
-          light: '#ff7a5c',
-          dark: '#c04829',
+          DEFAULT: '#FF6B57',
+          light: '#FF8A73',
+          dark: '#E8503C',
+          ink: token('accent-ink'),
         },
-        signal: '#6ee7b7', // for "live" / public indicators
+        signal: token('signal'),
+        berry: { DEFAULT: '#E8457A', ink: token('berry-ink') },
+        sunshine: '#FFC547',
+        mint: '#3DD9A8',
+        plum: '#2B1B3D',
+        cream: '#FFF7EE',
+      },
+      borderRadius: {
+        '4xl': '2rem',
+      },
+      boxShadow: {
+        soft: '0 1px 2px rgb(var(--shadow) / 0.06), 0 8px 24px -12px rgb(var(--shadow) / 0.18)',
+        lift: '0 2px 4px rgb(var(--shadow) / 0.08), 0 18px 40px -18px rgb(var(--shadow) / 0.35)',
+      },
+      transitionTimingFunction: {
+        spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        out: 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         'slide-down': 'slideDown 0.3s ease-out',
-        shimmer: 'shimmer 2s linear infinite',
+        'pop-in': 'popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        shimmer: 'shimmer 1.6s ease-in-out infinite',
         'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
+        float: 'float 6s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
-        slideUp: { from: { transform: 'translateY(20px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
-        slideDown: { from: { transform: 'translateY(-10px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
-        shimmer: { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
+        slideUp: { from: { transform: 'translateY(16px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
+        slideDown: { from: { transform: 'translateY(-8px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
+        popIn: { from: { transform: 'scale(0.85)', opacity: 0 }, to: { transform: 'scale(1)', opacity: 1 } },
+        shimmer: { '0%': { backgroundPosition: '100% 0' }, '100%': { backgroundPosition: '-100% 0' } },
         pulseSoft: { '0%, 100%': { opacity: 0.6 }, '50%': { opacity: 1 } },
+        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-8px)' } },
       },
       backdropBlur: { xs: '2px' },
     },

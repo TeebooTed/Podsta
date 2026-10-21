@@ -383,7 +383,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
       )}
 
       {error && (
-        <p className="mt-3 text-sm text-accent bg-accent/10 border border-accent/30 rounded-lg px-3 py-2" role="alert">
+        <p className="mt-3 text-sm text-accent-ink bg-accent/10 border border-accent/30 rounded-lg px-3 py-2" role="alert">
           {error}
         </p>
       )}

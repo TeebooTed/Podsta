@@ -99,7 +99,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
             type="button"
             onClick={() => onAddFriend(p.webId)}
             disabled={addingWebId === p.webId}
-            className="min-h-8 px-3 py-1.5 bg-accent hover:bg-accent-light text-ink-950 rounded-lg text-xs font-medium transition disabled:opacity-50"
+            className="min-h-8 px-3 py-1.5 bg-accent hover:bg-accent-light text-plum rounded-lg text-xs font-medium transition disabled:opacity-50"
           >
             {addingWebId === p.webId ? 'Following…' : 'Follow'}
           </button>

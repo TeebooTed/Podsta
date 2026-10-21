@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OTHER_PROVIDERS, RECOMMENDED_PROVIDER } from '../lib/provider.js';
 import { PATHS } from '../lib/navigation.js';
+import Logo from '../components/Logo.jsx';
 import homeDesktop from '../../docs/screenshots/home-desktop.webp';
 import homePhone from '../../docs/screenshots/home-phone.webp';
 import profilePhone from '../../docs/screenshots/profile-phone.webp';
@@ -58,13 +59,9 @@ export default function LoginPage({ error, onLogin, busy = false }) {
     <div className="min-h-screen px-4 pt-10 pb-16">
       <div className="max-w-5xl mx-auto">
         <header className="mb-10 max-w-2xl">
-          <div className="relative w-12 h-12 mb-4 flex items-center justify-center">
-            <div className="absolute inset-0 bg-accent/20 rounded-full blur-xl"></div>
-            <div className="relative w-12 h-12 rounded-full border-2 border-accent flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-accent"></div>
-            </div>
-          </div>
-          <h1 className="display-serif text-5xl mb-3 tracking-tight">Podsta</h1>
+          <h1 className="mb-4">
+            <Logo size="lg" />
+          </h1>
           <p className="text-ink-100 text-lg leading-relaxed">
             Text and photo posts that live in your Solid Pod. There is no Podsta server and no Podsta account.
             You pick the identity provider.
@@ -126,7 +123,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
               type="button"
               onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
               disabled={working}
-              className="w-full text-left px-4 py-3 bg-accent hover:bg-accent-light text-ink-950 rounded-lg transition disabled:opacity-50"
+              className="w-full text-left px-4 py-3 bg-accent hover:bg-accent-light text-plum rounded-lg transition disabled:opacity-50"
             >
               <div className="font-medium">Sign in</div>
               <div className="text-xs mt-0.5">{RECOMMENDED_PROVIDER.host} · I already have a Pod</div>
