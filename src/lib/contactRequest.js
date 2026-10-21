@@ -347,6 +347,17 @@ export async function sendContactRequest({
   return { targetWebId: recipient, inboxDelivered, inboxError };
 }
 
+/** Remove a request this person sent. An inbox copy that already landed stays there. */
+export async function withdrawContactRequest({ podUrl, session, targetWebId }) {
+  const recipient = normalizeWebId(targetWebId);
+  if (!recipient) return { removed: false };
+  const existing = await readContactRequests(podUrl, session.fetch);
+  const next = existing.filter((entry) => !samePerson(entry.recipientWebId, recipient));
+  if (next.length === existing.length) return { removed: false };
+  await saveOutgoingRequests({ podUrl, session, entries: next });
+  return { removed: true };
+}
+
 export async function sendApprovalNotice({
   session,
   targetWebId,

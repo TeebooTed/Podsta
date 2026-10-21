@@ -60,6 +60,80 @@ export function consumeFollow(storage) {
   return normalizeWebId(value) || '';
 }
 
+function inviteWho(name, webId) {
+  if (!name || name === webId || name === 'Unknown' || name === 'profile') return 'them';
+  if (/^https?:\/\//i.test(name)) return 'them';
+  return name;
+}
+
+/**
+ * One line for Home. Public posts can show up. A private profile stays private.
+ * Following never approves you into their contacts.
+ */
+export function inviteConfirmation({
+  name = '',
+  webId = '',
+  profileShared = false,
+  postsVisible = false,
+  requestSent = false,
+} = {}) {
+  const who = inviteWho(name, webId);
+  let seen = 'Their profile is private, so Home may stay empty until they share something you can see.';
+  if (postsVisible) seen = 'Their public posts are on Home.';
+  else if (profileShared) seen = 'Their profile is public. Nothing new is on Home yet.';
+  const request = requestSent ? 'A contact request was sent.' : 'The contact request did not send.';
+  return `You're following ${who}. ${seen} ${request}`;
+}
+
+export function inviteUndoCopy({ requestSent = false } = {}) {
+  return requestSent
+    ? 'Stopped following them and took back the contact request.'
+    : 'Stopped following them.';
+}
+
+/**
+ * Follow the inviter and ask to be a contact. Their Hidden or Contacts setting
+ * still decides what Home can read.
+ */
+export async function acceptInvite({
+  podUrl,
+  session,
+  webId,
+  discoverability,
+  addFriend,
+  sendContactRequest,
+  loadStranger,
+}) {
+  const added = await addFriend({ podUrl, session, webId, discoverability });
+  let requestSent = false;
+  try {
+    await sendContactRequest({ podUrl, session, targetWebId: added?.webId || webId });
+    requestSent = true;
+  } catch {
+    requestSent = false;
+  }
+  let profileShared = false;
+  let postsVisible = false;
+  try {
+    const stranger = await loadStranger({ webId: added?.webId || webId, fetchFn: session.fetch });
+    profileShared = Boolean(stranger?.profileShared);
+    postsVisible = Array.isArray(stranger?.posts) && stranger.posts.length > 0;
+  } catch {
+    profileShared = false;
+    postsVisible = false;
+  }
+  const name = added?.name || '';
+  const id = added?.webId || webId;
+  return {
+    webId: id,
+    name,
+    requestSent,
+    profileShared,
+    postsVisible,
+    message: inviteConfirmation({ name, webId: id, profileShared, postsVisible, requestSent }),
+  };
+}
+
 /**
  * What a stranger may see. A private Podsta profile and a missing public
  * index show nothing beyond the handle already present in the link.
