@@ -117,7 +117,7 @@ export default function PostGrid({
               }}
               className={`min-h-8 px-3 rounded-lg text-xs font-medium border ${
                 selected
-                  ? 'bg-accent text-ink-950 border-accent'
+                  ? 'bg-accent text-plum border-accent'
                   : 'bg-transparent text-ink-100 border-ink-600'
               } disabled:opacity-50`}
             >
@@ -148,12 +148,12 @@ export default function PostGrid({
             onDelete(post);
           }}
           disabled={deletingUrls?.has(post.url)}
-          className="min-h-8 px-3 rounded-lg bg-accent text-ink-950 text-xs font-medium"
+          className="min-h-8 px-3 rounded-lg bg-accent text-plum text-xs font-medium"
         >
           {deletingUrls?.has(post.url) ? 'Deleting…' : 'Confirm delete'}
         </button>
       ) : (
-        <button type="button" onClick={() => setConfirmDelete(true)} className="btn-ghost text-xs text-accent">
+        <button type="button" onClick={() => setConfirmDelete(true)} className="btn-ghost text-xs text-accent-ink">
           Delete
         </button>
       )}

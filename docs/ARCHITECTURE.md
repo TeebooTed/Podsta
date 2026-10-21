@@ -147,7 +147,7 @@ These limits are part of the design, not temporary bugs.
 - Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
 - Notification seen-state is per browser. It is not in the Pod.
 - The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. The UI renders text as text. There is no `dangerouslySetInnerHTML`.
-- `vercel.json` sends a Content-Security-Policy (`frame-ancestors 'none'`, scripts from `'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. Fonts still load from Google Fonts, which the policy allows.
+- `vercel.json` sends a Content-Security-Policy (`frame-ancestors 'none'`, scripts from `'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. Fonts (Fredoka and Nunito) are bundled with the app, so the policy allows fonts and styles from `'self'` only.
 - ACL Turtle escapes IRIs. A `>` in a WebID must not close the IRI.
 - Public photos are stored as uploaded. Podsta does not strip EXIF. A public JPEG can still contain a location.
 - There is no central directory and no handle registry. `@ada` means `@ada` on solidcommunity.net. The invite link carries the full WebID, which is the identifier.

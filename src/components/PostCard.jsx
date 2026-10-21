@@ -69,7 +69,7 @@ export default function PostCard({
           <Avatar src={ownerAvatar} name={ownerName} size="sm" />
           <div className="flex-1 min-w-0">
             {ownerHref ? (
-              <Link to={ownerHref} className="font-medium text-sm truncate block hover:text-accent">
+              <Link to={ownerHref} className="font-medium text-sm truncate block hover:text-accent-ink">
                 {ownerName || 'You'}
               </Link>
             ) : (
@@ -114,7 +114,7 @@ export default function PostCard({
           {isLong && (
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="mt-2 text-sm text-accent hover:text-accent-light"
+              className="mt-2 text-sm text-accent-ink hover:underline"
             >
               {expanded ? 'Show less' : 'Read more'}
             </button>
@@ -148,7 +148,7 @@ export default function PostCard({
               className={`flex-1 min-h-8 px-3 py-1.5 rounded-lg text-xs font-medium transition border
                           ${
                             post.isPublic
-                              ? 'bg-signal/10 text-signal border-signal/30 hover:bg-accent/10 hover:text-accent hover:border-accent/30'
+                              ? 'bg-signal/10 text-signal border-signal/30 hover:bg-accent/10 hover:text-accent-ink hover:border-accent/30'
                               : 'bg-ink-700 text-ink-200 border-ink-600 hover:bg-ink-600'
                           }
                           disabled:opacity-50`}
@@ -209,13 +209,13 @@ export default function PostCard({
                   {!confirmDelete ? (
                     <button
                       onClick={() => setConfirmDelete(true)}
-                      className="w-full text-left px-3 py-2 text-sm text-accent hover:bg-ink-700 transition border-t border-ink-700"
+                      className="w-full text-left px-3 py-2 text-sm text-accent-ink hover:bg-ink-700 transition border-t border-ink-700"
                     >
                       Delete
                     </button>
                   ) : (
                     <div className="px-3 py-2 border-t border-ink-700 space-y-1.5">
-                      <p className="text-xs text-accent">Delete permanently?</p>
+                      <p className="text-xs text-accent-ink">Delete permanently?</p>
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => {
@@ -224,7 +224,7 @@ export default function PostCard({
                             onDelete?.(post);
                           }}
                           disabled={deleting}
-                          className="flex-1 py-1 bg-accent hover:bg-accent-dark text-ink-950 rounded text-xs disabled:opacity-50"
+                          className="flex-1 py-1 bg-accent hover:bg-accent-dark text-plum rounded text-xs disabled:opacity-50"
                         >
                           {deleting ? '…' : 'Delete'}
                         </button>

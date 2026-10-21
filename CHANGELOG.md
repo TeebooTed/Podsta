@@ -1,6 +1,10 @@
 # Changelog
 
-Dates are the days the work landed on `main`. This covers 9–10 October 2026.
+Dates are the days the work landed on `main`.
+
+## 21 October 2026
+
+- New look from the brand kit in `brand/`: Cream and Plum with Coral, Berry, Sunshine and Mint, Fredoka headings and Nunito text, and the pea-pod logo. Light by default. Dark follows the system, and Auto, Light or Dark can be picked from the account menu. Fonts are bundled, so Podsta no longer calls Google Fonts. Text colors meet WCAG AA in both themes.
 
 ## 10 October 2026
 

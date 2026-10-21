@@ -162,7 +162,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
       role="dialog"
       aria-modal="true"
       aria-label="Photo viewer"
-      className="fixed inset-0 z-50 bg-ink-950/95 backdrop-blur-md flex flex-col animate-fade-in"
+      className="dark fixed inset-0 z-50 bg-ink-950/95 text-ink-100 backdrop-blur-md flex flex-col animate-fade-in"
       onClick={zoom === 1 ? onClose : undefined}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}

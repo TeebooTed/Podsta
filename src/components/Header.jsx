@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
 import NotifyBell from './NotifyBell.jsx';
+import Logo from './Logo.jsx';
+import ThemeSwitch from './ThemeSwitch.jsx';
 import { displayHandle } from '../lib/handles.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { DESKTOP_NAV, PATHS } from '../lib/navigation.js';
 
-export default function Header({ session, profile, podUrl, onLogout, onCompose, unseenCount = 0 }) {
+export default function Header({ session, profile, podUrl, onLogout, onCompose, unseenCount = 0, theme }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 bg-ink-950/80 backdrop-blur-md border-b border-ink-800">
+    <header className="sticky top-0 z-30 bg-ink-950/85 backdrop-blur-md border-b border-ink-600/60">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <LinkHome />
 
@@ -41,8 +43,8 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
               end={tab.to === '/'}
               title={`Press '${tab.shortcut}'`}
               className={({ isActive }) =>
-                `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'text-ink-50 bg-ink-800' : 'text-ink-300 hover:text-ink-50 hover:bg-ink-800/50'
+                `px-4 py-2 rounded-full text-sm font-extrabold transition-colors ${
+                  isActive ? 'text-plum bg-sunshine' : 'text-ink-300 hover:text-ink-50 hover:bg-ink-700/70'
                 }`
               }
             >
@@ -59,7 +61,7 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
             className="btn-primary hidden md:inline-flex items-center gap-1.5"
             title="New post (press 'n')"
           >
-            <span className="text-base leading-none" aria-hidden="true">
+            <span className="text-lg leading-none" aria-hidden="true">
               +
             </span>
             <span>New post</span>
@@ -76,18 +78,24 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
               <Avatar src={profile?.avatarUrl} name={profile?.name || 'You'} size="md" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 card overflow-hidden animate-slide-down">
-                <div className="px-4 py-3 border-b border-ink-700">
+              <div className="absolute right-0 top-full mt-2 w-72 card overflow-hidden animate-slide-down">
+                <div className="px-4 py-3 border-b border-ink-600/70">
                   <p className="font-medium text-ink-50 truncate">{profile?.name || 'Anonymous'}</p>
                   <p className="text-xs text-ink-200 truncate">{displayHandle(session?.info?.webId).qualified || session?.info?.webId}</p>
                 </div>
+                {theme && (
+                  <div className="px-4 py-3 border-b border-ink-600/70 flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-ink-300">Appearance</span>
+                    <ThemeSwitch preference={theme.preference} onChange={theme.choose} compact />
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     setMenuOpen(false);
                     navigate(PATHS.profile);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-ink-800 transition"
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-ink-700/70 transition"
                 >
                   Edit profile
                 </button>
@@ -96,7 +104,7 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
                     href={safePod}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block px-4 py-2.5 text-sm hover:bg-ink-800 transition"
+                    className="block px-4 py-2.5 text-sm hover:bg-ink-700/70 transition"
                     onClick={() => setMenuOpen(false)}
                   >
                     Open my Pod ↗
@@ -108,7 +116,7 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
                     setMenuOpen(false);
                     onLogout();
                   }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-accent hover:bg-ink-800 transition border-t border-ink-700"
+                  className="w-full text-left px-4 py-2.5 text-sm font-bold text-accent-ink hover:bg-ink-700/70 transition border-t border-ink-600/70"
                 >
                   Sign out
                 </button>
@@ -123,14 +131,8 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
 
 function LinkHome() {
   return (
-    <NavLink to={PATHS.home} className="flex items-center gap-2 shrink-0" aria-label="Podsta home">
-      <div className="relative w-9 h-9 flex items-center justify-center">
-        <div className="absolute inset-0 bg-accent/20 rounded-full blur-md"></div>
-        <div className="relative w-7 h-7 rounded-full border-2 border-accent flex items-center justify-center">
-          <div className="w-2 h-2 rounded-full bg-accent"></div>
-        </div>
-      </div>
-      <span className="display-serif text-2xl tracking-tight">Podsta</span>
+    <NavLink to={PATHS.home} className="shrink-0 rounded-xl transition-transform hover:-rotate-2 hover:scale-105" aria-label="Podsta home">
+      <Logo size="sm" />
     </NavLink>
   );
 }

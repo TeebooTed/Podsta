@@ -43,7 +43,7 @@ export default function NotificationsPage({
         {checking ? 'Checking for notifications' : error || (unseen.size ? `${unseen.size} new` : '')}
       </p>
       {error && (
-        <p className="mt-4 text-sm text-accent" role="alert">
+        <p className="mt-4 text-sm text-accent-ink" role="alert">
           {error}
         </p>
       )}
@@ -70,7 +70,7 @@ export default function NotificationsPage({
                 />
                 <div className="min-w-0 flex-1">
                   {item.href ? (
-                    <Link to={item.href} className="font-medium text-ink-50 break-words hover:text-accent-light">
+                    <Link to={item.href} className="font-medium text-ink-50 break-words hover:underline">
                       {isNew && <span className="sr-only">New. </span>}
                       {item.title}
                     </Link>

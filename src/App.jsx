@@ -46,6 +46,8 @@ import Composer from './components/Composer.jsx';
 import Modal from './components/Modal.jsx';
 import Toast from './components/Toast.jsx';
 import { useNotificationFeed } from './hooks/useNotificationFeed.js';
+import { useTheme } from './hooks/useTheme.js';
+import Logo from './components/Logo.jsx';
 
 /**
  * Top-level component. Holds:
@@ -87,6 +89,7 @@ export default function App() {
   const [welcomeWebId, setWelcomeWebId] = useState('');
   const navigate = useNavigate();
   const followedPending = useRef(false);
+  const theme = useTheme();
 
   // ── Per-resource in-flight trackers (so cards know to disable buttons) ──
   const [togglingUrls, setTogglingUrls] = useState(new Set());
@@ -612,8 +615,8 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
         <div className="text-center">
-          <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-ink-300 text-sm">Resuming session…</p>
+          <Logo size="lg" showWord={false} className="animate-float mb-4" />
+          <p className="text-ink-300 text-sm font-bold">Opening your pod…</p>
         </div>
       </div>
     );
@@ -630,8 +633,8 @@ export default function App() {
               <div className="min-h-screen px-4 pt-6 pb-16">
                 <div className="max-w-3xl mx-auto">
                   <p className="mb-6">
-                    <Link to="/" className="display-serif text-3xl text-ink-50">
-                      Podsta
+                    <Link to="/" aria-label="Podsta home" className="inline-block rounded-xl">
+                      <Logo size="md" />
                     </Link>
                   </p>
                   <PersonPage
@@ -662,8 +665,8 @@ export default function App() {
               <div className="min-h-screen px-4 pt-6 pb-16">
                 <div className="max-w-3xl mx-auto">
                   <p className="mb-6">
-                    <Link to="/" className="display-serif text-3xl text-ink-50">
-                      Podsta
+                    <Link to="/" aria-label="Podsta home" className="inline-block rounded-xl">
+                      <Logo size="md" />
                     </Link>
                   </p>
                   <PostPage session={null} posts={[]} podUrl="" showToast={showToast} />
@@ -677,6 +680,7 @@ export default function App() {
               <LoginPage
                 error={authError}
                 onLogin={(issuer) => startLogin(issuer, appUrl('/'))}
+                theme={theme}
               />
             }
           />
@@ -702,11 +706,12 @@ export default function App() {
         onLogout={handleLogout}
         onCompose={() => setComposerOpen(true)}
         unseenCount={notifications.unseenCount}
+        theme={theme}
       />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
         {authError && (
-          <div className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent" role="alert">
+          <div className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent-ink" role="alert">
             {authError}
           </div>
         )}
