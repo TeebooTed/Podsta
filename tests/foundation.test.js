@@ -38,7 +38,7 @@ test('pod failures become a sentence a person can act on', () => {
   assert.equal(podStatus({ statusCode: 401 }), 401);
   assert.match(describePodFailure({ status: 401 }), /sign-in expired/i);
   assert.match(describePodFailure({ response: { status: 429 } }), /busy/i);
-  assert.match(describePodFailure(new Error('Failed to fetch')), /did not respond/i);
+  assert.match(describePodFailure(new Error('Failed to fetch')), /isn't answering/i);
 });
 
 test('a stored Solid session is detected without loading the client', () => {
@@ -50,7 +50,10 @@ test('a stored Solid session is detected without loading the client', () => {
   assert.equal(hasStoredSession(storage, ''), true);
   assert.equal(hasStoredSession({ length: 0, key: () => null }, ''), false);
   assert.equal(hasStoredSession({ length: 0, key: () => null }, '?code=abc&state=xyz'), true);
-  assert.equal(snapshotKey('feed', 'https://ada.example/profile/card#me').startsWith('feed:'), true);
+  assert.equal(
+    snapshotKey('feed', 'https://ada.example/profile/card#me').startsWith('feed:'),
+    true,
+  );
 });
 
 test('photos are scaled down and cards prefer thumbnails', () => {

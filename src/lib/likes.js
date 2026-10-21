@@ -34,7 +34,11 @@ export function likeSetUrl(ownerPodUrl, postUrl) {
 }
 
 export function likeSetAudience(post) {
-  if (post?.audience === 'public' || post?.audience === 'contacts' || post?.audience === 'private') {
+  if (
+    post?.audience === 'public' ||
+    post?.audience === 'contacts' ||
+    post?.audience === 'private'
+  ) {
     return post.audience;
   }
   return post?.isPublic ? 'public' : 'private';
@@ -107,7 +111,9 @@ export function parseLikeNotice(text) {
 /** Apply inbox notices in time order. A later remove drops that person. */
 export function applyLikeNotices(existing, notices) {
   let ids = absorbLikes({ existing });
-  const ordered = [...(notices || [])].sort((a, b) => (a.created || '').localeCompare(b.created || ''));
+  const ordered = [...(notices || [])].sort((a, b) =>
+    (a.created || '').localeCompare(b.created || ''),
+  );
   for (const notice of ordered) {
     if (!notice?.authorWebId) continue;
     if (notice.removed) ids = ids.filter((id) => !samePerson(id, notice.authorWebId));
@@ -194,13 +200,19 @@ export async function loadOwnLikes(podUrl, fetchFn) {
 export async function loadLikeSet({ ownerPodUrl, postUrl, fetchFn }) {
   let response;
   try {
-    response = await retryTransient(async () => {
-      const next = await readText(likeSetUrl(ownerPodUrl, postUrl), fetchFn);
-      if (next.status === 0 || next.status === 429 || next.status === 503) {
-        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
-      }
-      return next;
-    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)) });
+    response = await retryTransient(
+      async () => {
+        const next = await readText(likeSetUrl(ownerPodUrl, postUrl), fetchFn);
+        if (next.status === 0 || next.status === 429 || next.status === 503) {
+          throw new TypeError(`The pod responded ${next.status || 'network'}`);
+        }
+        return next;
+      },
+      {
+        attempts: 4,
+        wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)),
+      },
+    );
   } catch {
     return { webIds: [], readable: false };
   }
@@ -256,7 +268,7 @@ export async function createLikesFile({ podUrl, session, entries }) {
     });
   } catch (err) {
     if (err?.name === 'TypeError' || err?.name === 'AbortError') {
-      throw new Error('Could not save that like. The Pod did not respond.');
+      throw new Error('Could not save that like. The pod did not respond.');
     }
     throw err;
   }
@@ -334,7 +346,12 @@ export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked, kn
         targetPod = (await resolveProfile(post.ownerWebId, session.fetch)).podUrl;
       }
       if (targetPod) {
-        const posted = await postLikeNotice({ session, ownerPodUrl: targetPod, postUrl, removed: !liked });
+        const posted = await postLikeNotice({
+          session,
+          ownerPodUrl: targetPod,
+          postUrl,
+          removed: !liked,
+        });
         notified = posted.ok;
       }
     } catch {
@@ -402,13 +419,19 @@ export function containedLikeUrls(turtle, inboxUrl) {
 export async function readInboxLikes(inboxUrl, fetchFn, limit = 40) {
   let response;
   try {
-    response = await retryTransient(async () => {
-      const next = await readText(inboxUrl, fetchFn);
-      if (next.status === 0 || next.status === 429 || next.status === 503) {
-        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
-      }
-      return next;
-    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)) });
+    response = await retryTransient(
+      async () => {
+        const next = await readText(inboxUrl, fetchFn);
+        if (next.status === 0 || next.status === 429 || next.status === 503) {
+          throw new TypeError(`The pod responded ${next.status || 'network'}`);
+        }
+        return next;
+      },
+      {
+        attempts: 4,
+        wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)),
+      },
+    );
   } catch {
     return [];
   }
@@ -445,10 +468,16 @@ export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries,
     const incoming = notices.filter((notice) => notice.postUrl === post.url);
     const selfLiked = (ownEntries || []).some((entry) => entry.postUrl === post.url);
     if (!incoming.length && !selfLiked && !blocked?.length) continue;
-    const current = await loadLikeSet({ ownerPodUrl: podUrl, postUrl: post.url, fetchFn: session.fetch });
+    const current = await loadLikeSet({
+      ownerPodUrl: podUrl,
+      postUrl: post.url,
+      fetchFn: session.fetch,
+    });
     if (!current.readable && !incoming.length && !selfLiked) continue;
     let webIds = applyLikeNotices(current.webIds, incoming);
-    webIds = selfLiked ? absorbLikes({ existing: webIds, self: [me] }) : webIds.filter((id) => !samePerson(id, me));
+    webIds = selfLiked
+      ? absorbLikes({ existing: webIds, self: [me] })
+      : webIds.filter((id) => !samePerson(id, me));
     if (blocked) webIds = filterBlocked(webIds, blocked);
     const sameList =
       (current.webIds || []).length === webIds.length &&

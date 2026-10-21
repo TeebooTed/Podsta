@@ -42,7 +42,7 @@ export async function loadFriendFeed({ friends, session }) {
       if (!podUrl) {
         const profile = await resolveProfile(friend.webId, session?.fetch);
         podUrl = profile.podUrl;
-        if (!podUrl) throw new Error('No Pod');
+        if (!podUrl) throw new Error('No pod');
       }
 
       const entries = await readPublicIndex(podUrl, session?.fetch);

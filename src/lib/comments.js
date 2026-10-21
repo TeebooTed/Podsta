@@ -1,4 +1,9 @@
-import { createContainerAt, getSolidDataset, getStringNoLocale, getThingAll } from '@inrupt/solid-client';
+import {
+  createContainerAt,
+  getSolidDataset,
+  getStringNoLocale,
+  getThingAll,
+} from '@inrupt/solid-client';
 import { PATHS, SCHEMA } from './vocab.js';
 import { assertTurtleIri } from './urls.js';
 import { displayHandle } from './handles.js';
@@ -102,10 +107,12 @@ export function serializeOwnComments(entries) {
     const about = assertTurtleIri(entry.postUrl);
     const created = new Date(entry.date || entry.created || Date.now());
     const modified = new Date(entry.modified || entry.date || Date.now());
-    if (Number.isNaN(created.getTime()) || Number.isNaN(modified.getTime())) throw new Error('Invalid date');
+    if (Number.isNaN(created.getTime()) || Number.isNaN(modified.getTime()))
+      throw new Error('Invalid date');
     const text = plainText(entry.text || '');
     if (!text) continue;
-    if (text.length > MAX_COMMENT_LENGTH) throw new Error(`Comments stop at ${MAX_COMMENT_LENGTH} characters`);
+    if (text.length > MAX_COMMENT_LENGTH)
+      throw new Error(`Comments stop at ${MAX_COMMENT_LENGTH} characters`);
     lines.push(
       '[] a podsta:Comment ;',
       `  schema:identifier "${turtleString(entry.id)}" ;`,
@@ -137,7 +144,14 @@ export function parseOwnComments(text) {
     .filter((entry) => entry.id && entry.postUrl && entry.text);
 }
 
-export function commentNoticeTurtle({ authorWebId, postUrl, id, text = '', action = 'add', created }) {
+export function commentNoticeTurtle({
+  authorWebId,
+  postUrl,
+  id,
+  text = '',
+  action = 'add',
+  created,
+}) {
   const author = assertTurtleIri(normalizeWebId(authorWebId) || authorWebId);
   const about = assertTurtleIri(postUrl);
   const when = created ? new Date(created) : new Date();
@@ -158,8 +172,15 @@ export function commentNoticeTurtle({ authorWebId, postUrl, id, text = '', actio
 }
 
 export function parseCommentNotice(text) {
-  if (!text || !/a\s+(?:podsta:Comment(?![A-Za-z])|<https:\/\/podsta\.app\/vocab#Comment>)/.test(text)) return null;
-  if (/a\s+(?:podsta:CommentSet|<https:\/\/podsta\.app\/vocab#CommentSet>)/.test(text) && !/schema:action/.test(text)) {
+  if (
+    !text ||
+    !/a\s+(?:podsta:Comment(?![A-Za-z])|<https:\/\/podsta\.app\/vocab#Comment>)/.test(text)
+  )
+    return null;
+  if (
+    /a\s+(?:podsta:CommentSet|<https:\/\/podsta\.app\/vocab#CommentSet>)/.test(text) &&
+    !/schema:action/.test(text)
+  ) {
     return null;
   }
   const author = readIri(text, 'author');
@@ -216,7 +237,8 @@ export function serializeCommentSet({ postUrl, comments, migrated = false }) {
     const author = assertTurtleIri(normalizeWebId(comment.author) || comment.author);
     const created = new Date(comment.date || Date.now());
     const modified = new Date(comment.modified || comment.date || Date.now());
-    if (Number.isNaN(created.getTime()) || Number.isNaN(modified.getTime())) throw new Error('Invalid date');
+    if (Number.isNaN(created.getTime()) || Number.isNaN(modified.getTime()))
+      throw new Error('Invalid date');
     lines.push(
       '[] a podsta:Comment ;',
       `  schema:identifier "${turtleString(comment.id)}" ;`,
@@ -241,7 +263,11 @@ export function parseCommentSet(text) {
       postUrl: readIri(chunk, 'about') || readIri(text, 'about'),
     }))
     .filter((comment) => comment.id && comment.author && comment.text);
-  return { postUrl: readIri(text, 'about'), comments, migrated: readLiteral(text, 'migrated') === 'true' };
+  return {
+    postUrl: readIri(text, 'about'),
+    comments,
+    migrated: readLiteral(text, 'migrated') === 'true',
+  };
 }
 
 function byDate(a, b) {
@@ -256,7 +282,9 @@ export function applyCommentNotices(existing, notices, { hiddenIds = [] } = {}) 
     if (!comment?.id || hidden.has(comment.id)) continue;
     byId.set(comment.id, { ...comment });
   }
-  const ordered = [...(notices || [])].sort((a, b) => (a.created || '').localeCompare(b.created || ''));
+  const ordered = [...(notices || [])].sort((a, b) =>
+    (a.created || '').localeCompare(b.created || ''),
+  );
   for (const notice of ordered) {
     if (!notice?.id || hidden.has(notice.id)) continue;
     if (notice.removed || notice.action === 'remove') {
@@ -304,7 +332,13 @@ export function mergeLegacy(comments, hiddenIds, legacy) {
   return next.sort(byDate);
 }
 
-export function presentThread({ published = [], hiddenIds = [], own = [], blocked = null, viewerWebId = '' }) {
+export function presentThread({
+  published = [],
+  hiddenIds = [],
+  own = [],
+  blocked = null,
+  viewerWebId = '',
+}) {
   const hidden = new Set(hiddenIds);
   const visible = [];
   for (const comment of published) {
@@ -327,7 +361,12 @@ export function presentThread({ published = [], hiddenIds = [], own = [], blocke
 
 function commentSignature(comments) {
   return JSON.stringify(
-    (comments || []).map((comment) => [comment.id, comment.author, comment.text, comment.modified || comment.date]),
+    (comments || []).map((comment) => [
+      comment.id,
+      comment.author,
+      comment.text,
+      comment.modified || comment.date,
+    ]),
   );
 }
 
@@ -352,14 +391,14 @@ async function writeTurtle(url, turtle, session) {
     });
   } catch (err) {
     if (err?.name === 'TypeError' || err?.name === 'AbortError') {
-      throw new TypeError('The Pod did not respond');
+      throw new TypeError('The pod did not respond');
     }
     throw err;
   }
   if (response.status === 429 || response.status === 503) {
-    throw new TypeError(`The Pod responded ${response.status}`);
+    throw new TypeError(`The pod responded ${response.status}`);
   }
-  if (!response.ok) throw new Error(`The Pod responded ${response.status || 'network'}`);
+  if (!response.ok) throw new Error(`The pod responded ${response.status || 'network'}`);
   return response;
 }
 
@@ -378,7 +417,7 @@ async function lockPrivate(url, session, podUrl) {
 export async function loadOwnComments(podUrl, fetchFn) {
   const response = await readText(ownCommentsUrl(podUrl), fetchFn);
   if (response.status === 404) return [];
-  if (response.status === 0) throw new TypeError('The Pod did not respond');
+  if (response.status === 0) throw new TypeError('The pod did not respond');
   if (response.status === 401 || response.status === 403) {
     throw new Error('Could not read your comments');
   }
@@ -389,10 +428,12 @@ export async function loadOwnComments(podUrl, fetchFn) {
 export async function saveOwnComments({ podUrl, session, entries }) {
   const url = ownCommentsUrl(podUrl);
   try {
-    await retryTransient(() => writeTurtle(url, serializeOwnComments(entries), session), { attempts: 5 });
+    await retryTransient(() => writeTurtle(url, serializeOwnComments(entries), session), {
+      attempts: 5,
+    });
   } catch (err) {
-    if (/429/.test(err?.message || '')) throw new Error('The Pod is busy. Try again in a moment.');
-    if (err?.name === 'TypeError') throw new Error('The Pod did not respond');
+    if (/429/.test(err?.message || '')) throw new Error('The pod is busy. Try again in a moment.');
+    if (err?.name === 'TypeError') throw new Error('The pod did not respond');
     throw err;
   }
   await lockPrivate(url, session, podUrl);
@@ -402,18 +443,25 @@ export async function saveOwnComments({ podUrl, session, entries }) {
 export async function loadHides(podUrl, fetchFn) {
   let response;
   try {
-    response = await retryTransient(async () => {
-      const next = await readText(commentHidesUrl(podUrl), fetchFn);
-      if (next.status === 0 || next.status === 429 || next.status === 503) {
-        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
-      }
-      return next;
-    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 4000 * attempt)) });
+    response = await retryTransient(
+      async () => {
+        const next = await readText(commentHidesUrl(podUrl), fetchFn);
+        if (next.status === 0 || next.status === 429 || next.status === 503) {
+          throw new TypeError(`The pod responded ${next.status || 'network'}`);
+        }
+        return next;
+      },
+      {
+        attempts: 4,
+        wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 4000 * attempt)),
+      },
+    );
   } catch {
     throw new Error('Could not read hidden comments');
   }
   if (response.status === 404) return [];
-  if (response.status === 401 || response.status === 403) throw new Error('Could not read hidden comments');
+  if (response.status === 401 || response.status === 403)
+    throw new Error('Could not read hidden comments');
   if (!response.ok) throw new Error(`Hidden comments responded ${response.status}`);
   return parseHides(await response.text());
 }
@@ -428,18 +476,25 @@ export async function saveHides({ podUrl, session, entries }) {
 export async function loadPublishedComments({ ownerPodUrl, postUrl, fetchFn }) {
   let response;
   try {
-    response = await retryTransient(async () => {
-      const next = await readText(commentSetUrl(ownerPodUrl, postUrl), fetchFn);
-      if (next.status === 0 || next.status === 429 || next.status === 503) {
-        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
-      }
-      return next;
-    }, { attempts: 4, wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 5000 * attempt)) });
+    response = await retryTransient(
+      async () => {
+        const next = await readText(commentSetUrl(ownerPodUrl, postUrl), fetchFn);
+        if (next.status === 0 || next.status === 429 || next.status === 503) {
+          throw new TypeError(`The pod responded ${next.status || 'network'}`);
+        }
+        return next;
+      },
+      {
+        attempts: 4,
+        wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 5000 * attempt)),
+      },
+    );
   } catch {
     return { comments: [], readable: false, failed: true };
   }
   if (response.status === 404) return { comments: [], readable: false, missing: true };
-  if (response.status === 401 || response.status === 403) return { comments: [], readable: false, forbidden: true };
+  if (response.status === 401 || response.status === 403)
+    return { comments: [], readable: false, forbidden: true };
   if (!response.ok) return { comments: [], readable: false, failed: true };
   const parsed = parseCommentSet(await response.text());
   return { comments: parsed.comments, readable: true, migrated: parsed.migrated };
@@ -475,13 +530,21 @@ async function ensureCommentSetContainer(podUrl, session) {
   }
 }
 
-export async function publishCommentSet({ ownerPodUrl, session, post, comments, migrated = false }) {
+export async function publishCommentSet({
+  ownerPodUrl,
+  session,
+  post,
+  comments,
+  migrated = false,
+}) {
   if (post?.ownerWebId && !samePerson(session?.info?.webId, post.ownerWebId)) {
     throw new Error('Only the author can publish comments');
   }
   await ensureCommentSetContainer(ownerPodUrl, session);
   const url = commentSetUrl(ownerPodUrl, post.url);
-  const visible = (comments || []).filter((comment) => comment?.text && comment?.author && comment?.id);
+  const visible = (comments || []).filter(
+    (comment) => comment?.text && comment?.author && comment?.id,
+  );
   await retryTransient(() =>
     writeTurtle(
       url,
@@ -512,21 +575,26 @@ export async function postCommentNotice({ session, ownerPodUrl, postUrl, id, tex
     created: new Date().toISOString(),
   });
   try {
-    const response = await retryTransient(async () => {
-      let next;
-      try {
-        next = await session.fetch(`${ownerPodUrl}inbox/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/turtle' },
-          body: turtle,
-        });
-      } catch (err) {
-        if (err?.name === 'TypeError' || err?.name === 'AbortError') throw new TypeError('The Pod did not respond');
-        throw err;
-      }
-      if (next.status === 429 || next.status === 503) throw new TypeError(`The Pod responded ${next.status}`);
-      return next;
-    }, { attempts: 4 });
+    const response = await retryTransient(
+      async () => {
+        let next;
+        try {
+          next = await session.fetch(`${ownerPodUrl}inbox/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/turtle' },
+            body: turtle,
+          });
+        } catch (err) {
+          if (err?.name === 'TypeError' || err?.name === 'AbortError')
+            throw new TypeError('The pod did not respond');
+          throw err;
+        }
+        if (next.status === 429 || next.status === 503)
+          throw new TypeError(`The pod responded ${next.status}`);
+        return next;
+      },
+      { attempts: 4 },
+    );
     return {
       ok: Boolean(response?.ok || response?.status === 201 || response?.status === 204),
       status: response?.status || 0,
@@ -548,7 +616,10 @@ async function readCommentNotice(url, fetchFn) {
     item = await once();
   }
   if (!item.ok) {
-    return { notice: null, limited: item.status === 0 || item.status === 429 || item.status === 503 };
+    return {
+      notice: null,
+      limited: item.status === 0 || item.status === 429 || item.status === 503,
+    };
   }
   return { notice: parseCommentNotice(await item.text()), limited: false };
 }
@@ -556,13 +627,16 @@ async function readCommentNotice(url, fetchFn) {
 export async function readInboxComments(inboxUrl, fetchFn, limit = 30) {
   let response;
   try {
-    response = await retryTransient(async () => {
-      const next = await readText(inboxUrl, fetchFn);
-      if (next.status === 0 || next.status === 429 || next.status === 503) {
-        throw new TypeError(`The Pod responded ${next.status || 'network'}`);
-      }
-      return next;
-    }, { attempts: 5, wait: inboxPause });
+    response = await retryTransient(
+      async () => {
+        const next = await readText(inboxUrl, fetchFn);
+        if (next.status === 0 || next.status === 429 || next.status === 503) {
+          throw new TypeError(`The pod responded ${next.status || 'network'}`);
+        }
+        return next;
+      },
+      { attempts: 5, wait: inboxPause },
+    );
   } catch {
     throw new Error('Could not read the inbox');
   }
@@ -660,7 +734,11 @@ async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
     let comments = current.readable ? current.comments : [];
     const legacy = current.migrated
       ? { comments: [], error: null }
-      : await loadLegacyComments({ ownerPodUrl: podUrl, postUrl: post.url, fetchFn: session.fetch });
+      : await loadLegacyComments({
+          ownerPodUrl: podUrl,
+          postUrl: post.url,
+          fetchFn: session.fetch,
+        });
     if (legacy.error === 'unavailable' && current.missing && incoming.length === 0) continue;
     comments = applyCommentNotices(comments, incoming, { hiddenIds });
     if (!legacy.error) comments = mergeLegacy(comments, hiddenIds, legacy.comments);
@@ -675,7 +753,8 @@ async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
     }
     if (blocked) comments = comments.filter((comment) => !isBlocked(comment.author, blocked));
     comments = comments.sort(byDate);
-    const changed = !current.readable || commentSignature(comments) !== commentSignature(current.comments);
+    const changed =
+      !current.readable || commentSignature(comments) !== commentSignature(current.comments);
     const hasWork = incoming.length || (legacy.comments || []).length || comments.length;
     if (!changed || (!hasWork && current.missing)) continue;
     const result = await publishCommentSet({
@@ -709,7 +788,8 @@ async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
 function cleanText(text) {
   const trimmed = plainText(text);
   if (!trimmed) throw new Error('Comment cannot be empty');
-  if (trimmed.length > MAX_COMMENT_LENGTH) throw new Error(`Comments stop at ${MAX_COMMENT_LENGTH} characters`);
+  if (trimmed.length > MAX_COMMENT_LENGTH)
+    throw new Error(`Comments stop at ${MAX_COMMENT_LENGTH} characters`);
   return trimmed;
 }
 
@@ -727,7 +807,14 @@ async function notifyAuthor({ session, post, ownerPodUrl, id, text, action }) {
     }
   }
   if (!targetPod) return { notified: false, published: false };
-  const posted = await postCommentNotice({ session, ownerPodUrl: targetPod, postUrl: post.url, id, text, action });
+  const posted = await postCommentNotice({
+    session,
+    ownerPodUrl: targetPod,
+    postUrl: post.url,
+    id,
+    text,
+    action,
+  });
   return { notified: posted.ok, published: false };
 }
 
@@ -738,13 +825,24 @@ export async function addComment({ podUrl, session, post, ownerPodUrl, text, id 
   const commentId = id || newCommentId();
   const now = new Date().toISOString();
   const existing = await retryTransient(() => loadOwnComments(podUrl, session.fetch));
-  const entry = { id: commentId, postUrl, text: body, date: now, modified: now, author: session.info.webId };
+  const entry = {
+    id: commentId,
+    postUrl,
+    text: body,
+    date: now,
+    modified: now,
+    author: session.info.webId,
+  };
   await saveOwnComments({ podUrl, session, entries: [...existing, entry] });
   const me = session.info.webId;
   const author = Boolean(post?.ownerWebId) && samePerson(me, post.ownerWebId);
   let shared = true;
   if (author) {
-    const current = await loadPublishedComments({ ownerPodUrl: podUrl, postUrl, fetchFn: session.fetch });
+    const current = await loadPublishedComments({
+      ownerPodUrl: podUrl,
+      postUrl,
+      fetchFn: session.fetch,
+    });
     const hides = await loadHides(podUrl, session.fetch).catch(() => []);
     const hiddenIds = hides.filter((hide) => hide.postUrl === postUrl).map((hide) => hide.id);
     const comments = applyCommentNotices(current.comments || [], [], { hiddenIds });
@@ -757,14 +855,16 @@ export async function addComment({ podUrl, session, post, ownerPodUrl, text, id 
     });
     shared = published.shared;
   }
-  const notice = author ? { notified: true, published: true } : await notifyAuthor({
-    session,
-    post: { ...post, url: postUrl },
-    ownerPodUrl,
-    id: commentId,
-    text: body,
-    action: 'add',
-  });
+  const notice = author
+    ? { notified: true, published: true }
+    : await notifyAuthor({
+        session,
+        post: { ...post, url: postUrl },
+        ownerPodUrl,
+        id: commentId,
+        text: body,
+        action: 'add',
+      });
   return { comment: entry, ...notice, shared };
 }
 
@@ -783,9 +883,11 @@ export async function editOwnComment({ podUrl, session, post, ownerPodUrl, id, t
     current = (published.comments || []).find((entry) => entry.id === id);
     if (current) existing.push({ ...current, postUrl: post.url });
   }
-  if (!current) throw new Error('That comment is not in your Pod');
+  if (!current) throw new Error('That comment is not in your pod');
   const now = new Date().toISOString();
-  const next = existing.map((entry) => (entry.id === id ? { ...entry, text: body, modified: now } : entry));
+  const next = existing.map((entry) =>
+    entry.id === id ? { ...entry, text: body, modified: now } : entry,
+  );
   await saveOwnComments({ podUrl, session, entries: next });
   const updated = next.find((entry) => entry.id === id);
   let shared = true;
@@ -827,7 +929,7 @@ export async function deleteOwnComment({ podUrl, session, post, ownerPodUrl, id 
   if (!current && author && post?.url) {
     current = { id, postUrl: post.url, text: '', date: '', modified: '' };
   }
-  if (!current) throw new Error('That comment is not in your Pod');
+  if (!current) throw new Error('That comment is not in your pod');
   await saveOwnComments({
     podUrl,
     session,
@@ -883,7 +985,14 @@ export async function hideComment({ podUrl, session, post, comment }) {
   return { hidden: true, shared: result.shared, comments };
 }
 
-export async function loadThread({ ownerPodUrl, postUrl, fetchFn, viewerPodUrl, viewerWebId, isAuthor = false }) {
+export async function loadThread({
+  ownerPodUrl,
+  postUrl,
+  fetchFn,
+  viewerPodUrl,
+  viewerWebId,
+  isAuthor = false,
+}) {
   const published = await loadPublishedComments({ ownerPodUrl, postUrl, fetchFn });
   if (published.forbidden && !isAuthor) return { comments: [], error: 'private' };
   let hiddenIds = [];
@@ -930,7 +1039,11 @@ export async function loadComments({ ownerPodUrl, postUrl, fetchFn }) {
   if (!published.readable && !published.missing && legacy.error === 'unavailable') {
     return { comments: [], error: 'unavailable' };
   }
-  const comments = mergeLegacy(published.readable ? published.comments : [], [], legacy.error ? [] : legacy.comments);
+  const comments = mergeLegacy(
+    published.readable ? published.comments : [],
+    [],
+    legacy.error ? [] : legacy.comments,
+  );
   return { comments, error: null };
 }
 
@@ -939,7 +1052,8 @@ export async function discoverableName(webId, fetchFn) {
   let pod = '';
   try {
     const url = new URL(webId);
-    if (url.protocol === 'https:' || url.protocol === 'http:') pod = `${url.protocol}//${url.host}/`;
+    if (url.protocol === 'https:' || url.protocol === 'http:')
+      pod = `${url.protocol}//${url.host}/`;
   } catch {
     return { name: '', handle, readable: false };
   }
@@ -954,7 +1068,8 @@ export async function discoverableName(webId, fetchFn) {
 export async function blockPerson({ podUrl, session, webId, post }) {
   if (!session?.info?.webId) throw new Error('Sign in to block someone');
   const person = normalizeWebId(webId) || webId;
-  if (!person || samePerson(person, session.info.webId)) throw new Error('You cannot block yourself');
+  if (!person || samePerson(person, session.info.webId))
+    throw new Error('You cannot block yourself');
   assertTurtleIri(person);
   let existing;
   try {
@@ -975,10 +1090,16 @@ export async function blockPerson({ podUrl, session, webId, post }) {
         ownerPodUrl: podUrl,
         session,
         post: { ...post, ownerWebId: session.info.webId },
-        comments: (published.comments || []).filter((comment) => !samePerson(comment.author, person)),
+        comments: (published.comments || []).filter(
+          (comment) => !samePerson(comment.author, person),
+        ),
       });
     }
-    const likes = await loadLikeSet({ ownerPodUrl: podUrl, postUrl: post.url, fetchFn: session.fetch });
+    const likes = await loadLikeSet({
+      ownerPodUrl: podUrl,
+      postUrl: post.url,
+      fetchFn: session.fetch,
+    });
     if (likes.readable) {
       await publishLikeSet({
         ownerPodUrl: podUrl,
@@ -994,26 +1115,26 @@ export async function blockPerson({ podUrl, session, webId, post }) {
 export function commentResultCopy(result, verb) {
   if (!result) return '';
   if (verb === 'add' && result.published && result.shared === false) {
-    return 'Saved in your Pod. The audience update failed, so other people may not see it yet.';
+    return 'Saved in your pod. The audience update failed, so other people may not see it yet.';
   }
   if (result.published) {
-    if (verb === 'delete') return 'Deleted from your Pod and from this post.';
-    if (verb === 'edit') return 'Updated on your Pod and on this post.';
+    if (verb === 'delete') return 'Deleted from your pod and from this post.';
+    if (verb === 'edit') return 'Updated on your pod and on this post.';
     return 'Published on this post.';
   }
   if (verb === 'delete') {
     return result.notified
-      ? 'Deleted from your Pod. The author was notified.'
-      : 'Deleted from your Pod. The author was not notified, so it may still show on the post.';
+      ? 'Deleted from your pod. The author was notified.'
+      : 'Deleted from your pod. The author was not notified, so it may still show on the post.';
   }
   if (verb === 'edit') {
     return result.notified
-      ? 'Updated in your Pod. The author was notified.'
-      : 'Updated in your Pod. The author was not notified, so the post may still show the old text.';
+      ? 'Updated in your pod. The author was notified.'
+      : 'Updated in your pod. The author was not notified, so the post may still show the old text.';
   }
   return result.notified
-    ? 'Saved in your Pod. The author was notified.'
-    : 'Saved in your Pod. The author was not notified, so other people may not see it yet.';
+    ? 'Saved in your pod. The author was notified.'
+    : "Your comment is saved in your pod, but we couldn't let the author know yet. Others may not see it until they do.";
 }
 
 export { filterBlocked };

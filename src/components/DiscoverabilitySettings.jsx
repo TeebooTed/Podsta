@@ -26,7 +26,7 @@ export default function DiscoverabilitySettings({
     event?.preventDefault?.();
     const next = normalizeWebId(webId);
     if (!next) {
-      setLocalError('Enter a WebID that starts with https://');
+      setLocalError('Enter an address that starts with https://');
       return;
     }
     setLocalError('');
@@ -44,7 +44,8 @@ export default function DiscoverabilitySettings({
         Discoverability
       </h2>
       <p className="text-sm text-ink-200 leading-relaxed mb-4">
-        Recommended: Hidden. Contacts are people you explicitly approve. Following someone fills your feed. It does not let them see your posts.
+        Recommended: Hidden. Contacts are people you explicitly approve. Following someone fills
+        your feed. It does not let them see your posts.
       </p>
       {inferred && (
         <p className="text-sm text-ink-200 mb-4">
@@ -71,14 +72,17 @@ export default function DiscoverabilitySettings({
             />
             <span>
               <span className="block text-sm font-medium text-ink-50">{option.label}</span>
-              <span className="block text-sm text-ink-200 mt-1 leading-relaxed">{option.description}</span>
+              <span className="block text-sm text-ink-200 mt-1 leading-relaxed">
+                {option.description}
+              </span>
             </span>
           </label>
         ))}
       </fieldset>
 
       <p className="text-sm text-ink-200 mt-4 leading-relaxed">
-        Saving pulls posts that are more open than this level back down. It does not publish posts you marked Only me.
+        Saving pulls posts that are more open than this level back down. It does not publish posts
+        you marked Only me.
       </p>
       <div className="mt-4 flex justify-end">
         <button type="button" onClick={onSave} disabled={saving} className="btn-primary">
@@ -90,7 +94,8 @@ export default function DiscoverabilitySettings({
         <div className="mt-6 pt-5 border-t border-ink-700">
           <h3 className="text-sm font-medium text-ink-50 mb-2">Approved contacts</h3>
           <p className="text-sm text-ink-200 leading-relaxed mb-4">
-            While Contacts sharing is on, this list is world-readable. Solid reads the group file to check membership. The posts themselves stay limited to these people.
+            While Contacts sharing is on, this list is world-readable. Solid reads the group file to
+            check membership. The posts themselves stay limited to these people.
           </p>
           {contacts.length === 0 ? (
             <p className="text-sm text-ink-200 mb-3">No approved contacts yet.</p>
@@ -113,7 +118,7 @@ export default function DiscoverabilitySettings({
           )}
           <form onSubmit={add} className="flex flex-col sm:flex-row gap-2">
             <label htmlFor="contact-webid" className="sr-only">
-              WebID to approve
+              Address to approve
             </label>
             <input
               id="contact-webid"
@@ -123,7 +128,11 @@ export default function DiscoverabilitySettings({
               placeholder="https://example.com/profile/card#me"
               className="input-field flex-1 font-mono text-xs"
             />
-            <button type="submit" className="btn-secondary shrink-0" disabled={contactBusy || !webId.trim()}>
+            <button
+              type="submit"
+              className="btn-secondary shrink-0"
+              disabled={contactBusy || !webId.trim()}
+            >
               Approve
             </button>
           </form>

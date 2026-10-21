@@ -64,7 +64,9 @@ export function serializeContactRequests(entries) {
 
 export function parseContactRequests(text) {
   if (!text || !text.includes('ContactRequest')) return [];
-  const chunks = text.split(/a\s+(?:podsta:ContactRequest|<https:\/\/podsta\.app\/vocab#ContactRequest>)/);
+  const chunks = text.split(
+    /a\s+(?:podsta:ContactRequest|<https:\/\/podsta\.app\/vocab#ContactRequest>)/,
+  );
   const entries = [];
   for (const chunk of chunks.slice(1)) {
     const authorWebId = iriAfter(chunk, 'author');
@@ -98,8 +100,10 @@ export function contactNoticeTurtle({ kind, authorWebId, recipientWebId, created
 
 export function parseNotice(text) {
   if (!text) return null;
-  const approval = /a\s+(?:podsta:ContactApproval|<https:\/\/podsta\.app\/vocab#ContactApproval>)/.test(text);
-  const request = /a\s+(?:podsta:ContactRequest|<https:\/\/podsta\.app\/vocab#ContactRequest>)/.test(text);
+  const approval =
+    /a\s+(?:podsta:ContactApproval|<https:\/\/podsta\.app\/vocab#ContactApproval>)/.test(text);
+  const request =
+    /a\s+(?:podsta:ContactRequest|<https:\/\/podsta\.app\/vocab#ContactRequest>)/.test(text);
   if (!approval && !request) return null;
   const authorWebId = iriAfter(text, 'author');
   const recipientWebId = iriAfter(text, 'recipient');
@@ -232,8 +236,11 @@ export async function readInboxNotices(inboxUrl, fetchFn, limit = 15) {
   const response = await readText(inboxUrl, fetchFn);
   const disposition = responseDisposition(response.status);
   if (disposition === 'absent') return [];
-  if (disposition === 'unreadable' || !response.ok) throw new Error(`Inbox responded ${response.status}`);
-  const contained = resolveContained(inboxUrl, parseContainedUrls(await response.text())).slice(-limit);
+  if (disposition === 'unreadable' || !response.ok)
+    throw new Error(`Inbox responded ${response.status}`);
+  const contained = resolveContained(inboxUrl, parseContainedUrls(await response.text())).slice(
+    -limit,
+  );
   const notices = [];
   for (const url of contained) {
     try {
@@ -258,7 +265,10 @@ export async function postInboxNotice({ inboxUrl, fetchFn, turtle }) {
     },
     body: turtle,
   });
-  return { ok: Boolean(response?.ok || response?.status === 201 || response?.status === 200), status: response?.status || 0 };
+  return {
+    ok: Boolean(response?.ok || response?.status === 201 || response?.status === 200),
+    status: response?.status || 0,
+  };
 }
 
 export async function saveOutgoingRequests({ podUrl, session, entries }) {
@@ -272,11 +282,17 @@ export async function saveOutgoingRequests({ podUrl, session, entries }) {
   return url;
 }
 
-export async function sendContactRequest({ podUrl, session, targetWebId, now = () => new Date().toISOString() }) {
+export async function sendContactRequest({
+  podUrl,
+  session,
+  targetWebId,
+  now = () => new Date().toISOString(),
+}) {
   const author = normalizeWebId(session?.info?.webId);
   const recipient = normalizeWebId(targetWebId);
   if (!author) throw new Error('Sign in before asking to be a contact');
-  if (!recipient) throw new Error('That WebID is not a valid address');
+  if (!recipient)
+    throw new Error("That doesn't look like an address. Addresses start with https://");
   if (samePerson(author, recipient)) throw new Error('You are already you');
 
   const existing = await readContactRequests(podUrl, session.fetch);
@@ -292,7 +308,7 @@ export async function sendContactRequest({ podUrl, session, targetWebId, now = (
   let inboxError = '';
   try {
     const profile = await resolveProfile(recipient, session.fetch);
-    if (!profile.podUrl) throw new Error('No Pod for that WebID');
+    if (!profile.podUrl) throw new Error("We couldn't find a pod at that address.");
     const notice = contactNoticeTurtle({
       kind: 'request',
       authorWebId: author,
@@ -314,13 +330,18 @@ export async function sendContactRequest({ podUrl, session, targetWebId, now = (
   return { targetWebId: recipient, inboxDelivered, inboxError };
 }
 
-export async function sendApprovalNotice({ session, targetWebId, now = () => new Date().toISOString() }) {
+export async function sendApprovalNotice({
+  session,
+  targetWebId,
+  now = () => new Date().toISOString(),
+}) {
   const author = normalizeWebId(session?.info?.webId);
   const recipient = normalizeWebId(targetWebId);
-  if (!author || !recipient) return { delivered: false, error: 'Missing WebID' };
+  if (!author || !recipient) return { delivered: false, error: 'Missing address' };
   try {
     const profile = await resolveProfile(recipient, session.fetch);
-    if (!profile.podUrl) return { delivered: false, error: 'No Pod for that WebID' };
+    if (!profile.podUrl)
+      return { delivered: false, error: "We couldn't find a pod at that address." };
     const notice = contactNoticeTurtle({
       kind: 'approval',
       authorWebId: author,

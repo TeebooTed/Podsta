@@ -17,23 +17,23 @@ export const RECOMMENDED_PROVIDER = {
 export const SIGNUP_STEPS = [
   {
     id: 'leave',
-    title: 'Podsta opens Solid Community',
-    body: 'The next page belongs to solidcommunity.net, not to Podsta. Choose Sign up there if you do not have an account yet. When the Pod exists, that site sends you back here.',
+    title: "You'll hop over to Solid Community.",
+    body: "The next page belongs to them. Choose Sign up if you're new.",
   },
   {
     id: 'account',
-    title: 'Create the account with an email and a password',
-    body: 'Solid Community stores that login. Podsta never sees the password. Accounts made there after December 2024 sign in with email.',
+    title: 'Make an account with your email and a password.',
+    body: 'Solid Community keeps your login. Podsta never sees your password.',
   },
   {
     id: 'pod',
-    title: 'Create a Pod and pick a short name',
-    body: 'That name becomes your address, like https://ada.solidcommunity.net/profile/card#me. In Podsta that shows up as @ada. You can change the display name later. The address stays.',
+    title: 'Pick a short name.',
+    body: "It becomes your address, and in Podsta you'll show up as @yourname. You can change your display name any time. The short name stays.",
   },
   {
     id: 'return',
-    title: 'Podsta looks for your WebID',
-    body: 'A WebID is the address of your identity. When you land back here signed in, Podsta shows the WebID it received. If you closed the window early, come back and choose Sign in.',
+    title: 'Come back here.',
+    body: 'Solid Community sends you back signed in. If you closed the window early, come back and tap Sign in.',
   },
 ];
 
@@ -41,11 +41,11 @@ export const OTHER_PROVIDERS = [
   {
     url: 'https://solidweb.org',
     label: 'SolidWeb',
-    hint: 'solidweb.org · Web Access Control',
+    hint: 'solidweb.org. Works with Podsta.',
   },
   {
     url: 'https://login.inrupt.com',
     label: 'Inrupt PodSpaces',
-    hint: 'Uses access policies this beta cannot share with',
+    hint: "Sharing doesn't work here yet. You can sign in, but your posts can't reach anyone else.",
   },
 ];

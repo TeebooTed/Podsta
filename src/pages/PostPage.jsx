@@ -40,7 +40,8 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
         } catch {
           post = null;
         }
-        if (!post && attempt < 4) await new Promise((resolve) => setTimeout(resolve, 3000 * (attempt + 1)));
+        if (!post && attempt < 4)
+          await new Promise((resolve) => setTimeout(resolve, 3000 * (attempt + 1)));
       }
       if (cancelled) return;
       if (!post || (!post.body && !post.caption && post.type === 'text')) {
@@ -64,8 +65,8 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
   if (!url) {
     return (
       <EmptyState
-        title="Missing post"
-        message="This link does not name a post."
+        title="This link is missing its post"
+        message="Something got cut off along the way. Ask for the link again."
         action={
           <Link to={PATHS.home} className="btn-primary">
             Back home
@@ -84,11 +85,16 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
       {loading && <div className="aspect-[4/3] skeleton rounded-xl" />}
       {!loading && error && (
         <EmptyState
-          title="This post is not available"
-          message="It may be private, or the Pod did not respond."
+          title="This post isn't shared with you"
+          message="It may be private, or their pod didn't answer. If you know them, ask them to add you as a contact."
           action={
             original && (
-              <a href={original} className="btn-secondary" target="_blank" rel="noopener noreferrer">
+              <a
+                href={original}
+                className="btn-secondary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Open original
               </a>
             )
@@ -107,17 +113,30 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
             />
           )}
           {post.type === 'photo' && post.isPublic === false && (
-            <p className="text-sm text-ink-200">This photo is private on your Pod. Open your profile to see it.</p>
+            <p className="text-sm text-ink-200">
+              This photo is private on your pod. Open your profile to see it.
+            </p>
           )}
           {post.caption && <p className="mt-4 text-ink-100 leading-relaxed">{post.caption}</p>}
-          {post.body && <p className="mt-4 text-ink-100 leading-relaxed whitespace-pre-wrap">{post.body}</p>}
+          {post.body && (
+            <p className="mt-4 text-ink-100 leading-relaxed whitespace-pre-wrap">{post.body}</p>
+          )}
           <p className="text-xs text-ink-300 mt-3">{relativeTime(post.dateCreated)}</p>
           {original && (
-            <a href={original} className="btn-ghost inline-flex mt-4" target="_blank" rel="noopener noreferrer">
+            <a
+              href={original}
+              className="btn-ghost inline-flex mt-4"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Open original
             </a>
           )}
-          <button type="button" className="btn-secondary mt-4" onClick={() => setCommentsOpen(true)}>
+          <button
+            type="button"
+            className="btn-secondary mt-4"
+            onClick={() => setCommentsOpen(true)}
+          >
             Comments
           </button>
         </>
@@ -132,7 +151,9 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
           }}
           ownerPodUrl={
             post.ownerPodUrl ||
-            (own || (session?.info?.webId && samePerson(post.ownerWebId, session.info.webId)) ? podUrl : ownerPodFromUrl(post.url))
+            (own || (session?.info?.webId && samePerson(post.ownerWebId, session.info.webId))
+              ? podUrl
+              : ownerPodFromUrl(post.url))
           }
           viewerPodUrl={podUrl}
           session={session}

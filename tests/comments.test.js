@@ -179,6 +179,6 @@ test('hides, blocks, and reports stay private lists', () => {
 test('success copy tells the truth about a missed inbox notice', () => {
   assert.match(commentResultCopy({ published: true, shared: true }, 'add'), /Published/);
   assert.match(commentResultCopy({ published: false, notified: true }, 'add'), /notified/);
-  assert.match(commentResultCopy({ published: false, notified: false }, 'add'), /not notified/);
+  assert.match(commentResultCopy({ published: false, notified: false }, 'add'), /couldn't let the author know/);
   assert.match(commentResultCopy({ published: false, notified: false }, 'delete'), /may still show/);
 });

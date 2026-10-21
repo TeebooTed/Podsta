@@ -27,9 +27,11 @@ function Wordmark() {
  */
 export default function SignedOut({ error = '', onLogin, showToast: showToastProp }) {
   const [toast, setToast] = useState(null);
-  const showToast = showToastProp || ((message, type = 'info') => {
-    setToast({ message, type, key: Date.now() });
-  });
+  const showToast =
+    showToastProp ||
+    ((message, type = 'info') => {
+      setToast({ message, type, key: Date.now() });
+    });
 
   const startLogin = async (issuer, redirectUrl) => {
     if (onLogin) return onLogin(issuer, redirectUrl);
@@ -51,9 +53,18 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
         Skip to content
       </a>
       <main id="main">
-        <Suspense fallback={<p className="sr-only" role="status">Loading</p>}>
+        <Suspense
+          fallback={
+            <p className="sr-only" role="status">
+              Loading
+            </p>
+          }
+        >
           <Routes>
-            <Route path="/start" element={<SignupPage onBegin={startSignup} error={error || ''} />} />
+            <Route
+              path="/start"
+              element={<SignupPage onBegin={startSignup} error={error || ''} />}
+            />
             <Route
               path="/invite"
               element={
@@ -69,9 +80,16 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
                         try {
                           window.sessionStorage.removeItem(SIGNUP_KEY);
                           rememberFollow(window.sessionStorage, webId);
-                          await startLogin(RECOMMENDED_PROVIDER.issuer, inviteUrl(currentAppRoot(), webId));
+                          await startLogin(
+                            RECOMMENDED_PROVIDER.issuer,
+                            inviteUrl(currentAppRoot(), webId),
+                          );
                         } catch (err) {
-                          showToast(err?.message || 'Could not open Solid Community.', 'error');
+                          showToast(
+                            "We couldn't sign you in. Your pod host didn't answer or said no. Check the address and try again, or pick Solid Community from the list.",
+                            'error',
+                          );
+                          console.error('Sign-up redirect failed:', err);
                         }
                       }}
                     />
@@ -90,12 +108,22 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
                 </div>
               }
             />
-            <Route path="*" element={<LoginPage error={error} onLogin={(issuer) => startLogin(issuer, appUrl('/'))} />} />
+            <Route
+              path="*"
+              element={
+                <LoginPage error={error} onLogin={(issuer) => startLogin(issuer, appUrl('/'))} />
+              }
+            />
           </Routes>
         </Suspense>
       </main>
       {toast && !showToastProp && (
-        <Toast key={toast.key} message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />
+        <Toast
+          key={toast.key}
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
       )}
     </>
   );

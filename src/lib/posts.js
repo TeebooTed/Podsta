@@ -27,7 +27,13 @@ import {
 import { plainText } from './text.js';
 import { audienceResourceUrls, isAlbumPost, photoUrls } from './album.js';
 import { overallRatio, putPhotoFile, uploadRatio } from './uploadProgress.js';
-import { applyAudience, isPublic, lockCommentsToOwner, makeGroupReadable, makePublic } from './acl.js';
+import {
+  applyAudience,
+  isPublic,
+  lockCommentsToOwner,
+  makeGroupReadable,
+  makePublic,
+} from './acl.js';
 import {
   addToContactsIndex,
   addToPublicIndex,
@@ -36,7 +42,12 @@ import {
 } from './publicIndex.js';
 import { publicIndexEntryFromPost } from './indexEntry.js';
 import { isNotFound, retryTransient, withTimeout } from './timeoutFetch.js';
-import { audienceAllowed, effectiveAudience, groupDocUrl, groupFragment } from './discoverability.js';
+import {
+  audienceAllowed,
+  effectiveAudience,
+  groupDocUrl,
+  groupFragment,
+} from './discoverability.js';
 import { ensureContactsGroup } from './contactsGroup.js';
 
 /**
@@ -93,10 +104,10 @@ async function putPhotoUnlessExists(args) {
 
 export function validatePhotoFile(file) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return `Image type ${file.type} not supported. Use JPEG, PNG, GIF, or WebP.`;
+    return "We can't use that file. Podsta takes JPEG, PNG, GIF and WebP photos.";
   }
   if (file.size > MAX_PHOTO_BYTES) {
-    return `Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max ${MAX_PHOTO_BYTES / 1024 / 1024}MB.`;
+    return `That photo is too big. Each one can be up to ${MAX_PHOTO_BYTES / 1024 / 1024} MB. Try a smaller copy, or crop it first.`;
   }
   return null;
 }
@@ -115,7 +126,7 @@ export async function uploadPhoto({ podUrl, session, file, caption }) {
   });
 
   const photoUrl = saved?.internal_resourceInfo?.sourceIri;
-  if (!photoUrl) throw new Error('Pod accepted upload but returned no URL');
+  if (!photoUrl) throw new Error('The pod accepted upload but returned no URL');
 
   // Save caption metadata as a sibling .meta resource if provided.
   const captionText = plainText(caption || '');
@@ -153,7 +164,8 @@ export async function createPhotoAlbum({
   const list = Array.from(files || []).filter(Boolean);
   const captionText = limitedPlain(caption, MAX_CAPTION_LENGTH, 'Captions');
   if (!list.length) throw new Error('Choose a photo');
-  if (list.length > MAX_ALBUM_PHOTOS) throw new Error(`Choose up to ${MAX_ALBUM_PHOTOS} photos`);
+  if (list.length > MAX_ALBUM_PHOTOS)
+    throw new Error("That's the limit. One post holds up to ten photos.");
   for (const file of list) {
     const problem = validatePhotoFile(file);
     if (problem) throw new Error(problem);
@@ -467,7 +479,11 @@ export async function sharePost({ post, podUrl, ownerWebId, session, audience = 
 }
 
 export async function unsharePost({ post, podUrl, ownerWebId, session }) {
-  await applyAudience(audienceResourceUrls(post), 'private', { ownerWebId, groupUrl: groupFragment(podUrl), session });
+  await applyAudience(audienceResourceUrls(post), 'private', {
+    ownerWebId,
+    groupUrl: groupFragment(podUrl),
+    session,
+  });
   await removeFromPublicIndex(podUrl, post.url, session);
   await removeFromContactsIndex(podUrl, post.url, session);
   try {
@@ -484,7 +500,11 @@ export async function unsharePost({ post, podUrl, ownerWebId, session }) {
  */
 export async function setPostAudience({ post, audience, level, podUrl, ownerWebId, session }) {
   if (level && !audienceAllowed(level, audience)) {
-    throw new Error('That visibility is above your discoverability setting');
+    const err = new Error(
+      "That's more open than your profile allows. Change who can find you on your profile first, then try again.",
+    );
+    err.code = 'above-ceiling';
+    throw err;
   }
   if (audience === 'private') {
     await unsharePost({ post, podUrl, ownerWebId, session });
@@ -510,7 +530,11 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
     thing = setStringNoLocale(thing, PODSTA.PostType, 'photo');
     thing = setStringNoLocale(thing, SCHEMA.caption, caption);
     if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
-      thing = setStringNoLocale(thing, SCHEMA.dateCreated, post.dateCreated || new Date().toISOString());
+      thing = setStringNoLocale(
+        thing,
+        SCHEMA.dateCreated,
+        post.dateCreated || new Date().toISOString(),
+      );
     }
     const existing = new Set(getUrlAll(thing, SCHEMA.image));
     for (const image of photoUrls(post)) {
@@ -528,7 +552,9 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
         await addToContactsIndex(podUrl, entry, ownerWebId, groupFragment(podUrl), session);
       }
     } catch (err) {
-      throw new Error(`The caption was saved, but the shared index was not updated: ${err.message}`);
+      throw new Error(
+        `The caption was saved, but the shared index was not updated: ${err.message}`,
+      );
     }
     return;
   }
@@ -541,7 +567,11 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
   let thing = getThing(ds, post.url) ?? createThing({ url: post.url });
   thing = setStringNoLocale(thing, SCHEMA.caption, caption);
   if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
-    thing = setStringNoLocale(thing, SCHEMA.dateCreated, post.dateCreated || new Date().toISOString());
+    thing = setStringNoLocale(
+      thing,
+      SCHEMA.dateCreated,
+      post.dateCreated || new Date().toISOString(),
+    );
   }
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(`${post.url}.meta`, ds, { fetch: session.fetch });
@@ -559,9 +589,7 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
       await addToContactsIndex(podUrl, entry, ownerWebId, groupUrl, session);
     }
   } catch (err) {
-    throw new Error(
-      `The caption was saved, but the shared index was not updated: ${err.message}`,
-    );
+    throw new Error(`The caption was saved, but the shared index was not updated: ${err.message}`);
   }
 }
 
@@ -578,7 +606,11 @@ export async function editTextPost({ post, newTitle, newBody, podUrl, ownerWebId
   thing = setStringNoLocale(thing, SCHEMA.body, body);
   thing = setStringNoLocale(thing, SCHEMA.name, title);
   if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
-    thing = setStringNoLocale(thing, SCHEMA.dateCreated, post.dateCreated || new Date().toISOString());
+    thing = setStringNoLocale(
+      thing,
+      SCHEMA.dateCreated,
+      post.dateCreated || new Date().toISOString(),
+    );
   }
   ds = setThing(ds, thing);
   await saveSolidDatasetAt(post.url, ds, { fetch: session.fetch });

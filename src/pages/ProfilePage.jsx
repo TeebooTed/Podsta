@@ -64,11 +64,14 @@ export default function ProfilePage({
   const handleAvatarFile = async (file) => {
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      showToast('Avatar must be a JPEG, PNG, GIF, or WebP', 'error');
+      showToast("We can't use that file. Podsta takes JPEG, PNG, GIF and WebP photos.", 'error');
       return;
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      showToast('Avatar too large (max 10MB)', 'error');
+      showToast(
+        'That photo is too big. Each one can be up to 10 MB. Try a smaller copy, or crop it first.',
+        'error',
+      );
       return;
     }
     setUploadingAvatar(true);
@@ -103,7 +106,8 @@ export default function ProfilePage({
       setDirty(false);
       showToast('Profile saved');
     } catch (err) {
-      showToast(`Save failed: ${err.message}`, 'error');
+      showToast("We couldn't save that to your pod. Try again in a moment.", 'error');
+      console.error('Profile save failed:', err);
     } finally {
       setSaving(false);
     }
@@ -126,7 +130,7 @@ export default function ProfilePage({
       if (!result) return;
       if (!result.liked) showToast('Like removed');
       else if (result.notified) showToast('Liked');
-      else showToast('Liked on your Pod. The count did not update.', 'info');
+      else showToast("Liked on your pod. The count didn't update.", 'info');
     } catch (err) {
       showToast(err.message || 'Could not save that like', 'error');
     }
@@ -135,14 +139,20 @@ export default function ProfilePage({
   const ownInvite =
     ownWebId && typeof window !== 'undefined' ? inviteUrl(currentAppRoot(), ownWebId) : '';
 
-  const copyWebId = async () => {
+  const copyAddress = async () => {
     const ok = await copyToClipboard(ownWebId);
-    showToast(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
+    showToast(
+      ok ? 'Address copied' : "Couldn't copy that. Try selecting it instead.",
+      ok ? 'success' : 'error',
+    );
   };
 
   const copyInvite = async () => {
     const ok = await copyToClipboard(ownInvite);
-    showToast(ok ? 'Invite link copied' : 'Copy failed', ok ? 'success' : 'error');
+    showToast(
+      ok ? 'Invite link copied' : "Couldn't copy that. Try selecting it instead.",
+      ok ? 'success' : 'error',
+    );
   };
 
   const publicCount = posts.filter((p) => p.audience === 'public' || p.isPublic).length;
@@ -200,10 +210,14 @@ export default function ProfilePage({
           <div className="flex-1 min-w-0 space-y-4 w-full">
             <h1 className="display-serif text-4xl leading-none">{name || 'Your profile'}</h1>
             <p className="text-sm text-ink-300">
-              {posts.length} posts · {publicCount} public · {contactsCount} contacts · {friends.length} following
+              {posts.length} posts · {publicCount} public · {contactsCount} contacts ·{' '}
+              {friends.length} following
             </p>
             <div>
-              <label htmlFor="profile-name" className="block text-xs font-medium text-ink-300 mb-1.5">
+              <label
+                htmlFor="profile-name"
+                className="block text-xs font-medium text-ink-300 mb-1.5"
+              >
                 Display name
               </label>
               <input
@@ -217,7 +231,10 @@ export default function ProfilePage({
               />
             </div>
             <div>
-              <label htmlFor="profile-bio" className="block text-xs font-medium text-ink-300 mb-1.5">
+              <label
+                htmlFor="profile-bio"
+                className="block text-xs font-medium text-ink-300 mb-1.5"
+              >
                 Bio
                 <span className="text-ink-300 ml-2 font-normal">{bio.length}/280</span>
               </label>
@@ -232,7 +249,12 @@ export default function ProfilePage({
             </div>
             {dirty && (
               <div className="flex justify-end">
-                <button type="button" onClick={handleSave} disabled={saving} className="btn-primary">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="btn-primary"
+                >
                   {saving ? 'Saving…' : 'Save profile'}
                 </button>
               </div>
@@ -247,22 +269,28 @@ export default function ProfilePage({
         </h2>
         <p className="text-sm text-ink-100 leading-relaxed mb-4">
           Send this link or the QR code. It opens your profile with a Follow button.
-          {ownHandle.qualified ? ` People see ${ownHandle.qualified}.` : ''} A short name is guessed from the WebID. Podsta does not keep a handle registry. A Hidden or Contacts profile still hides posts from anyone you have not allowed.
+          {ownHandle.qualified ? ` People see ${ownHandle.qualified}.` : ''} The short name comes
+          from your address, and nobody else can claim it. A Hidden or Contacts profile still hides
+          posts from anyone you haven't allowed.
         </p>
-        {ownHandle.qualified && <p className="display-serif text-3xl mb-3">{ownHandle.qualified}</p>}
+        {ownHandle.qualified && (
+          <p className="display-serif text-3xl mb-3">{ownHandle.qualified}</p>
+        )}
         <div className="flex flex-col sm:flex-row gap-5 items-start">
           {ownInvite && <InviteQr url={ownInvite} />}
           <div className="min-w-0 flex-1 space-y-3">
             <div>
               <p className="text-xs text-ink-200 mb-1">Invite link</p>
-              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all block">{ownInvite}</code>
+              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all block">
+                {ownInvite}
+              </code>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={copyInvite} className="btn-primary">
                 Copy invite link
               </button>
-              <button type="button" onClick={copyWebId} className="btn-secondary">
-                Copy WebID
+              <button type="button" onClick={copyAddress} className="btn-secondary">
+                Copy my address
               </button>
             </div>
           </div>
@@ -297,18 +325,22 @@ export default function ProfilePage({
         <h2 className="display-serif text-xl mb-4">Identity</h2>
         <div className="space-y-3 text-sm">
           <div>
-            <p className="text-xs text-ink-300 mb-1">WebID</p>
+            <p className="text-xs text-ink-300 mb-1">Address</p>
             <div className="flex items-center gap-2 flex-wrap">
-              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all">{ownWebId}</code>
-              <button type="button" onClick={copyWebId} className="btn-ghost text-xs py-1 px-2">
+              <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all">
+                {ownWebId}
+              </code>
+              <button type="button" onClick={copyAddress} className="btn-ghost text-xs py-1 px-2">
                 Copy
               </button>
             </div>
-            <p className="text-xs text-ink-300 mt-1">Share this with friends so they can follow you.</p>
+            <p className="text-xs text-ink-300 mt-1">
+              Share this with friends so they can follow you.
+            </p>
           </div>
           {safeHttpUrl(podUrl) && (
             <div>
-              <p className="text-xs text-ink-300 mb-1">Pod URL</p>
+              <p className="text-xs text-ink-300 mb-1">Your pod</p>
               <a
                 href={safeHttpUrl(podUrl)}
                 target="_blank"
@@ -321,9 +353,12 @@ export default function ProfilePage({
           )}
           <div>
             <p className="text-xs text-ink-200 mb-1">Short name</p>
-            <code className="text-xs font-mono text-ink-100">{ownHandle.qualified || ownWebId}</code>
+            <code className="text-xs font-mono text-ink-100">
+              {ownHandle.qualified || ownWebId}
+            </code>
             <p className="text-xs text-ink-200 mt-1">
-              Guessed from the WebID. Podsta does not keep a handle registry, so the invite link is the address that follows you.
+              Taken from your address. Podsta doesn't keep a list of names, so your invite link is
+              the surest way for friends to find you.
             </p>
           </div>
         </div>

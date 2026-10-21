@@ -54,7 +54,9 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
   }, [open]);
 
   useEffect(() => {
-    const allowed = composerChoices(discoverability).some((option) => option.id === audience && option.enabled);
+    const allowed = composerChoices(discoverability).some(
+      (option) => option.id === audience && option.enabled,
+    );
     if (!allowed) setAudience('private');
   }, [discoverability, audience]);
 
@@ -77,7 +79,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
     const problems = [];
     for (const file of incoming) {
       if (next.length >= MAX_ALBUM_PHOTOS) {
-        problems.push(`You can add ${MAX_ALBUM_PHOTOS} photos.`);
+        problems.push("That's the limit. One post holds up to ten photos.");
         break;
       }
       const problem = validatePhotoFile(file);
@@ -95,7 +97,9 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
   };
 
   const updateAdjust = (patch) => {
-    setAdjustments((previous) => previous.map((item, index) => (index === selected ? { ...item, ...patch } : item)));
+    setAdjustments((previous) =>
+      previous.map((item, index) => (index === selected ? { ...item, ...patch } : item)),
+    );
   };
 
   const removeSelected = () => {
@@ -148,7 +152,10 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
       onClose();
     } catch (err) {
       if (Array.isArray(err.uploaded)) setUploaded(err.uploaded);
-      setError(err.message || 'Something went wrong');
+      setError(
+        err.message ||
+          'Something went wrong on our end. Your posts are safe in your pod. Try again, and if it keeps happening, reload the page.',
+      );
       setProgress(null);
     } finally {
       setSubmitting(false);
@@ -162,7 +169,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
     addFiles([...(event.dataTransfer.files || [])]);
   };
 
-  const percent = Math.round(((progress?.ratio || 0) * 100));
+  const percent = Math.round((progress?.ratio || 0) * 100);
   const progressLabel = progress
     ? progress.phase === 'save'
       ? 'Saving the post'
@@ -208,15 +215,21 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className={`w-full aspect-video rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-colors ${
-                dragOver ? 'border-accent bg-accent/10' : 'border-ink-600 hover:border-ink-400 bg-ink-900/50'
+                dragOver
+                  ? 'border-accent bg-accent/10'
+                  : 'border-ink-600 hover:border-ink-400 bg-ink-900/50'
               }`}
             >
               <p className="text-ink-100 font-medium">Drop photos or click to choose</p>
-              <p className="text-xs text-ink-200">JPEG, PNG, GIF, or WebP. Up to {MAX_ALBUM_PHOTOS} photos, 10 MB each.</p>
+              <p className="text-xs text-ink-200">
+                JPEG, PNG, GIF, or WebP. Up to {MAX_ALBUM_PHOTOS} photos, 10 MB each.
+              </p>
             </button>
           ) : (
             <div className="space-y-3">
-              <div className={`relative rounded-xl overflow-hidden bg-ink-900 max-h-96 ${dragOver ? 'ring-2 ring-accent' : ''}`}>
+              <div
+                className={`relative rounded-xl overflow-hidden bg-ink-900 max-h-96 ${dragOver ? 'ring-2 ring-accent' : ''}`}
+              >
                 {previewUrl && (
                   <img
                     src={previewUrl}
@@ -243,7 +256,11 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                   </button>
                 ))}
                 {files.length < MAX_ALBUM_PHOTOS && (
-                  <button type="button" className="shrink-0 btn-secondary" onClick={() => fileInputRef.current?.click()}>
+                  <button
+                    type="button"
+                    className="shrink-0 btn-secondary"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     Add
                   </button>
                 )}
@@ -253,22 +270,46 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 {uploaded.length ? ` · ${uploaded.length} already sent` : ''}
               </p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Crop and rotate">
-                <button type="button" className="btn-secondary" onClick={() => updateAdjust({ rotation: adjust.rotation - 90 })}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => updateAdjust({ rotation: adjust.rotation - 90 })}
+                >
                   Rotate left
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => updateAdjust({ rotation: adjust.rotation + 90 })}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => updateAdjust({ rotation: adjust.rotation + 90 })}
+                >
                   Rotate right
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => updateAdjust({ panX: Math.max(-1, adjust.panX - 0.15) })}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => updateAdjust({ panX: Math.max(-1, adjust.panX - 0.15) })}
+                >
                   Nudge left
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => updateAdjust({ panX: Math.min(1, adjust.panX + 0.15) })}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => updateAdjust({ panX: Math.min(1, adjust.panX + 0.15) })}
+                >
                   Nudge right
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => updateAdjust({ panY: Math.max(-1, adjust.panY - 0.15) })}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => updateAdjust({ panY: Math.max(-1, adjust.panY - 0.15) })}
+                >
                   Nudge up
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => updateAdjust({ panY: Math.min(1, adjust.panY + 0.15) })}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => updateAdjust({ panY: Math.min(1, adjust.panY + 0.15) })}
+                >
                   Nudge down
                 </button>
                 <button
@@ -296,10 +337,16 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                   className="mt-1 block w-full accent-accent"
                 />
               </label>
-              <p className="text-xs text-ink-200">Rotate and zoom are saved as a JPEG when you post. GIF motion is kept only if you leave the framing alone.</p>
+              <p className="text-xs text-ink-200">
+                Rotate and zoom are saved as a JPEG when you post. GIF motion is kept only if you
+                leave the framing alone.
+              </p>
 
               <div>
-                <label htmlFor="composer-caption" className="block text-xs font-medium text-ink-200 mb-1.5">
+                <label
+                  htmlFor="composer-caption"
+                  className="block text-xs font-medium text-ink-200 mb-1.5"
+                >
                   Caption
                   <span className="text-ink-200 ml-2 font-normal">
                     {caption.length}/{MAX_CAPTION_LENGTH}
@@ -333,7 +380,10 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
       {mode === 'text' && (
         <div className="space-y-4">
           <div>
-            <label htmlFor="composer-title" className="block text-xs font-medium text-ink-200 mb-1.5">
+            <label
+              htmlFor="composer-title"
+              className="block text-xs font-medium text-ink-200 mb-1.5"
+            >
               Title (optional)
             </label>
             <input
@@ -346,7 +396,10 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
             />
           </div>
           <div>
-            <label htmlFor="composer-body" className="block text-xs font-medium text-ink-200 mb-1.5">
+            <label
+              htmlFor="composer-body"
+              className="block text-xs font-medium text-ink-200 mb-1.5"
+            >
               What's on your mind?
               <span className="text-ink-200 ml-2 font-normal">
                 {body.length}/{MAX_TEXT_LENGTH}
@@ -383,7 +436,10 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
       )}
 
       {error && (
-        <p className="mt-3 text-sm text-accent-ink bg-accent/10 border border-accent/30 rounded-lg px-3 py-2" role="alert">
+        <p
+          className="mt-3 text-sm text-accent-ink bg-accent/10 border border-accent/30 rounded-lg px-3 py-2"
+          role="alert"
+        >
           {error}
         </p>
       )}
@@ -413,13 +469,20 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
               </label>
             ))}
           </div>
-          {ceilingNote(discoverability) && <p className="text-xs text-ink-200 mt-2">{ceilingNote(discoverability)}</p>}
+          {ceilingNote(discoverability) && (
+            <p className="text-xs text-ink-200 mt-2">{ceilingNote(discoverability)}</p>
+          )}
         </fieldset>
         <div className="flex gap-2 justify-end shrink-0">
           <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>
             Cancel
           </button>
-          <button type="button" onClick={handleSubmit} className="btn-primary" disabled={submitting}>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="btn-primary"
+            disabled={submitting}
+          >
             {submitting ? 'Posting…' : error ? 'Retry' : 'Post'}
           </button>
         </div>

@@ -4,15 +4,15 @@ export function podStatus(err) {
 
 export function describePodFailure(err) {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return 'You are offline. Saved posts stay on this device until the Pod answers.';
+    return "You're offline. Posts saved on this device are still here. Try again once you're back online.";
   }
   const status = podStatus(err);
-  if (status === 401) return 'Your sign-in expired. Sign in again to reach your Pod.';
-  if (status === 403) return 'The Pod refused that request.';
-  if (status === 429) return 'The Pod is busy. Wait a moment and try again.';
+  if (status === 401) return 'Your sign-in expired. Sign in again to reach your pod.';
+  if (status === 403) return 'Your pod said no to that request.';
+  if (status === 429) return 'Your pod is a bit busy. Give it a moment and try again.';
   const message = String(err?.message || '');
   if (status === 0 || /failed to fetch|network|timeout|aborted/i.test(message)) {
-    return 'The Pod did not respond. Check the connection and try again.';
+    return "Your pod isn't answering right now. Your posts are safe. Give it a minute and try again.";
   }
-  return 'Something went wrong talking to the Pod.';
+  return 'Something went wrong on our end. Your posts are safe in your pod. Try again, and if it keeps happening, reload the page.';
 }

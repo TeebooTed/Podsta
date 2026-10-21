@@ -13,7 +13,8 @@ export function isTransientFetchError(err) {
 }
 
 export async function retryTransient(run, { attempts = 3, wait } = {}) {
-  const pause = wait || ((attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)));
+  const pause =
+    wait || ((attempt) => new Promise((resolve) => setTimeout(resolve, 3000 * attempt)));
   let last;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -45,7 +46,7 @@ export function withTimeout(baseFetch = fetch, timeoutMs = CROSS_POD_TIMEOUT_MS)
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         controller.abort();
-        const err = new Error('The Pod took too long to respond');
+        const err = new Error('The pod took too long to respond');
         err.name = 'AbortError';
         reject(err);
       }, timeoutMs);
