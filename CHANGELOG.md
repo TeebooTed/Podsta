@@ -4,7 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
-- One-tap photo filters: Original, Warm, Fade, Mono, Cool, and Punch. The choice is drawn into the photo in the browser before it is uploaded. Camera location is still removed.
+- One-tap photo looks in the new-post window: Cream, Sunshine, Coral, Berry, Plum, Mint, and Soft, each with a live thumbnail. Square or 4:5, brightness, and warmth are drawn into the photo on this device. As shot still posts in the same few taps. Camera location is still removed, and an untouched GIF still stays a GIF.
 - **Create my Pod** is the one-tap default on the signed-out page. It opens Solid Community. Sign-in for an account you already have stays on the page, and other pod hosts stay under Advanced.
 - An invite link or QR code follows that person after sign-in and sends a contact request. Home shows their public posts. A private profile stays private. Undo is on Home.
 - Like counts are private by default. Other people can still like a post, and you can see your own count. Turn on "Show like counts" on your profile to publish the number with the post's audience. The home feed stays newest first.
