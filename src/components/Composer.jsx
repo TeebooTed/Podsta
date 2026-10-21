@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { validatePhotoFile } from '../lib/posts.js';
-import { isIdentityAdjust, preparePhoto } from '../lib/photoAdjust.js';
+import { filterCss, filterId, PHOTO_FILTERS, preparePhoto } from '../lib/photoAdjust.js';
 import {
   MAX_TEXT_LENGTH,
   MAX_CAPTION_LENGTH,
@@ -12,7 +12,7 @@ import {
 import { formatBytes } from '../lib/utils.js';
 import { ceilingNote, composerChoices, DEFAULT_LEVEL } from '../lib/discoverability.js';
 
-const blankAdjust = () => ({ rotation: 0, zoom: 1, panX: 0, panY: 0 });
+const blankAdjust = () => ({ rotation: 0, zoom: 1, panX: 0, panY: 0, filter: 'original' });
 
 /**
  * Photo and text composer.
@@ -250,6 +250,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                     alt=""
                     style={{
                       transform: `rotate(${adjust.rotation}deg) scale(${adjust.zoom}) translate(${adjust.panX * 12}%, ${adjust.panY * 12}%)`,
+                      filter: filterCss(adjust.filter),
                     }}
                     className="w-full max-h-96 object-contain"
                   />
@@ -283,6 +284,23 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 {current?.name} · {current ? formatBytes(current.size) : ''}
                 {uploaded.length ? ` · ${uploaded.length} already sent` : ''}
               </p>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Filters">
+                {PHOTO_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`min-h-11 px-3 rounded-full text-sm font-extrabold border-2 ${
+                      filterId(adjust.filter) === filter.id
+                        ? 'bg-plum text-cream border-plum'
+                        : 'border-ink-600 text-ink-100'
+                    }`}
+                    aria-pressed={filterId(adjust.filter) === filter.id}
+                    onClick={() => updateAdjust({ filter: filter.id })}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Crop and rotate">
                 <button
                   type="button"
@@ -329,8 +347,13 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => updateAdjust(blankAdjust())}
-                  disabled={isIdentityAdjust(adjust)}
+                  onClick={() => updateAdjust({ rotation: 0, zoom: 1, panX: 0, panY: 0 })}
+                  disabled={
+                    adjust.rotation % 360 === 0 &&
+                    adjust.zoom <= 1 &&
+                    !adjust.panX &&
+                    !adjust.panY
+                  }
                 >
                   Reset framing
                 </button>
@@ -352,8 +375,8 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 />
               </label>
               <p className="text-xs text-ink-200">
-                Rotate and zoom are saved as a JPEG when you post. GIF motion is kept only if you
-                leave the framing alone.
+                Filters, rotate, and zoom are saved into the photo when you post. GIF motion is
+                kept only if you leave the framing and the filter alone.
               </p>
 
               <div>
