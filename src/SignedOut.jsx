@@ -6,6 +6,8 @@ import Toast from './components/Toast.jsx';
 import Logo from './components/Logo.jsx';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { inviteUrl, rememberFollow, rememberSignup, SIGNUP_KEY } from './lib/invite.js';
+import { rememberPack } from './lib/starterPack.js';
+import PackPage from './pages/PackPage.jsx';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
 
 const PersonPage = lazy(() => import('./pages/PersonPage.jsx'));
@@ -91,6 +93,23 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
                           );
                           console.error('Sign-up redirect failed:', err);
                         }
+                      }}
+                    />
+                  </div>
+                </div>
+              }
+            />
+            <Route
+              path="/pack"
+              element={
+                <div className="min-h-screen px-4 pt-6 pb-16">
+                  <div className="max-w-3xl mx-auto">
+                    <Wordmark />
+                    <PackPage
+                      signedIn={false}
+                      onFollow={async (members) => {
+                        rememberPack(window.sessionStorage, members);
+                        await startLogin(RECOMMENDED_PROVIDER.issuer, appUrl('/'));
                       }}
                     />
                   </div>

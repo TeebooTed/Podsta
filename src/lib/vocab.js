@@ -46,6 +46,7 @@ export const PODSTA = {
   ContactApproval: 'https://podsta.app/vocab#ContactApproval',
   importedFrom: 'https://podsta.app/vocab#importedFrom',
   Save: 'https://podsta.app/vocab#Save',
+  StarterPack: 'https://podsta.app/vocab#StarterPack',
   imageAlt: 'https://podsta.app/vocab#imageAlt',
 };
 
@@ -67,6 +68,7 @@ export const PATHS = {
   contactsIndex: 'podsta/contacts-index.ttl',
   listing: 'podsta/listing.ttl',
   favorites: 'podsta/favorites.ttl', // private saved-post list. URLs only.
+  packs: 'podsta/packs/', // public starter packs. WebIDs the author chose.
   profile: 'podsta/profile.ttl',
   inbox: 'podsta/inbox/',
   contactRequests: 'podsta/contact-requests.ttl',

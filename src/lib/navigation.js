@@ -11,6 +11,7 @@ export const PATHS = {
   notifications: '/notifications',
   saved: '/saved',
   tag: '/tag',
+  pack: '/pack',
 };
 
 export const DESKTOP_NAV = [
@@ -56,6 +57,7 @@ export function sectionFromPath(pathname = '') {
   if (pathname.startsWith(PATHS.notifications)) return 'notifications';
   if (pathname.startsWith(PATHS.saved)) return 'saved';
   if (pathname.startsWith(PATHS.tag)) return 'tag';
+  if (pathname.startsWith(PATHS.pack)) return 'pack';
   return 'home';
 }
 

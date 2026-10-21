@@ -33,6 +33,7 @@ import {
 } from './lib/invite.js';
 import { samePerson } from './lib/webId.js';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
+import { consumePack, followPackMembers, rememberPack } from './lib/starterPack.js';
 import { displayHandle } from './lib/handles.js';
 import { retryTransient } from './lib/timeoutFetch.js';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
@@ -42,6 +43,7 @@ import HomePage from './pages/HomePage.jsx';
 import DiscoverPage from './pages/DiscoverPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import PersonPage from './pages/PersonPage.jsx';
+import PackPage from './pages/PackPage.jsx';
 import PostPage from './pages/PostPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import Header from './components/Header.jsx';
@@ -111,12 +113,14 @@ export default function App() {
   const followedPending = useRef(false);
   const [inviteNotice, setInviteNotice] = useState(null);
   const [undoingInvite, setUndoingInvite] = useState(false);
+  const packPending = useRef(false);
   const theme = useTheme();
 
   // ── Per-resource in-flight trackers (so cards know to disable buttons) ──
   const [togglingUrls, setTogglingUrls] = useState(new Set());
   const [deletingUrls, setDeletingUrls] = useState(new Set());
   const [addingWebId, setAddingWebId] = useState(null);
+  const [packBusy, setPackBusy] = useState(false);
 
   // ── Toast ─────────────────────────────────────────────────
   const [toast, setToast] = useState(null);
@@ -438,6 +442,52 @@ export default function App() {
     },
     [podUrl, session, profile.discoverability, showToast],
   );
+
+  const handleFollowPack = useCallback(
+    async (members) => {
+      if (!podUrl || !session) return;
+      setPackBusy(true);
+      try {
+      const result = await followPackMembers({
+        members,
+        me: session.info.webId,
+        add: (webId) =>
+          addFriend({ podUrl, session, webId, discoverability: profile.discoverability }),
+      });
+      if (result.followed.length) {
+        setFriends((prev) => {
+          const next = [...prev];
+          for (const person of result.followed) {
+            if (person?.webId && !next.some((friend) => friend.webId === person.webId)) {
+              next.push(person);
+            }
+          }
+          return next;
+        });
+        markSocial(session.info.webId);
+      }
+      const count = result.followed.length;
+      if (count && !result.failed.length) {
+        showToast(count === 1 ? 'Following 1 person' : `Following ${count} people`);
+      } else if (count) {
+        showToast(`Following ${count}. ${result.failed.length} could not be followed.`, 'info');
+      } else {
+        showToast(result.failed[0]?.message || 'Could not follow that pack', 'error');
+      }
+      } finally {
+        setPackBusy(false);
+      }
+    },
+    [podUrl, session, profile.discoverability, showToast],
+  );
+
+  useEffect(() => {
+    if (!session?.info?.isLoggedIn || !podUrl || !libraryReady || packPending.current) return;
+    const members = consumePack(window.sessionStorage);
+    if (!members.length) return;
+    packPending.current = true;
+    handleFollowPack(members);
+  }, [session, podUrl, libraryReady, handleFollowPack]);
 
   const handleRemoveFriend = useCallback(
     async (webId) => {
@@ -795,6 +845,27 @@ export default function App() {
             }
           />
           <Route
+            path="/pack"
+            element={
+              <div className="min-h-screen px-4 pt-6 pb-16">
+                <div className="max-w-3xl mx-auto">
+                  <p className="mb-6">
+                    <Link to="/" aria-label="Podsta home" className="inline-block rounded-xl">
+                      <Logo size="md" />
+                    </Link>
+                  </p>
+                  <PackPage
+                    signedIn={false}
+                    onFollow={async (members) => {
+                      rememberPack(window.sessionStorage, members);
+                      await login(RECOMMENDED_PROVIDER.issuer, appUrl('/'));
+                    }}
+                  />
+                </div>
+              </div>
+            }
+          />
+          <Route
             path="/post"
             element={
               <div className="min-h-screen px-4 pt-6 pb-16">
@@ -1027,6 +1098,12 @@ export default function App() {
                 askWebId={askWebId}
                 requestedWebIds={[...notifications.outgoingTargets, ...sentRequests]}
               />
+            }
+          />
+          <Route
+            path="/pack"
+            element={
+              <PackPage signedIn followBusy={packBusy} onFollow={handleFollowPack} />
             }
           />
           <Route
