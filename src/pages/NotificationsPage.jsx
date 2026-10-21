@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { pollStatusCopy } from '../lib/pollSchedule.js';
 import { relativeTime } from '../lib/utils.js';
 import { samePerson } from '../lib/webId.js';
+import { SkeletonRows } from '../components/Skeletons.jsx';
+import PullIndicator from '../components/PullIndicator.jsx';
+import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import { unseenItems } from '../lib/seenState.js';
 
 export default function NotificationsPage({
@@ -19,9 +22,14 @@ export default function NotificationsPage({
   approvingWebId = '',
 }) {
   const unseen = new Set(unseenItems(items, seen).map((item) => item.id));
+  const pullState = usePullToRefresh(() => onRefresh?.(), {
+    enabled: !checking,
+    refreshing: checking,
+  });
 
   return (
     <section className="max-w-xl mx-auto">
+      <PullIndicator {...pullState} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="display-serif text-4xl">Notifications</h1>
         <div className="flex flex-wrap gap-2">
@@ -61,6 +69,12 @@ export default function NotificationsPage({
             New posts from people you follow, comments on your posts and contact requests will show
             up here.
           </p>
+        </div>
+      )}
+
+      {items.length === 0 && checking && (
+        <div className="mt-6">
+          <SkeletonRows count={3} />
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { safeHttpUrl } from '../lib/urls.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { useInView } from '../hooks/useInView.js';
 import { ChevronIcon, HeartIcon } from './icons.jsx';
+import LikeBurst from './LikeBurst.jsx';
 
 const DOUBLE_TAP_MS = 280;
 
@@ -249,6 +250,7 @@ export default function PhotoCarousel({
             className="w-24 h-24 text-accent drop-shadow-[0_6px_18px_rgba(43,27,61,0.45)] animate-heart-burst"
             strokeWidth={1.2}
           />
+          <LikeBurst radius={78} />
         </span>
       )}
 

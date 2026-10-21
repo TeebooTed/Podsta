@@ -12,6 +12,8 @@ import { displayHandle } from '../lib/handles.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
 import InviteQr from '../components/InviteQr.jsx';
+import PullIndicator from '../components/PullIndicator.jsx';
+import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 
 /**
  * Your profile: name, bio, avatar, then your own posts as a grid.
@@ -37,12 +39,25 @@ export default function ProfilePage({
   onDelete,
   togglingUrls,
   deletingUrls,
+  onRefresh,
 }) {
   const [name, setName] = useState(profile?.name || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || '');
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullState = usePullToRefresh(
+    async () => {
+      setRefreshing(true);
+      try {
+        await onRefresh?.();
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    { enabled: Boolean(onRefresh) && !refreshing, refreshing },
+  );
   const [dirty, setDirty] = useState(false);
   const [level, setLevel] = useState(profile?.discoverability || DEFAULT_LEVEL);
   const [savingLevel, setSavingLevel] = useState(false);
@@ -172,6 +187,7 @@ export default function ProfilePage({
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
+      <PullIndicator {...pullState} />
       <DiscoverabilitySettings
         level={level}
         inferred={profile?.discoverabilityInferred}

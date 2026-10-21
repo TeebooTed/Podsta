@@ -68,6 +68,8 @@ export default {
         'slide-from-right': 'slideFromRight 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
         'slide-from-left': 'slideFromLeft 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
         'spin-slow': 'spin 1.1s linear infinite',
+        'like-particle': 'likeParticle 0.75s ease-out both',
+        'pull-bounce': 'pullBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -116,6 +118,20 @@ export default {
         slideFromRight: {
           from: { transform: 'translateX(12%)', opacity: 0 },
           to: { transform: 'translateX(0)', opacity: 1 },
+        },
+        likeParticle: {
+          '0%': { transform: 'translate(0, 0) scale(0.4)', opacity: 0 },
+          '15%': { opacity: 1 },
+          '55%': {
+            transform: 'translate(calc(var(--dx) * 0.85), calc(var(--dy) * 0.85)) scale(1)',
+            opacity: 1,
+          },
+          '100%': { transform: 'translate(var(--dx), var(--dy)) scale(0.2)', opacity: 0 },
+        },
+        pullBounce: {
+          '0%': { transform: 'scale(1)' },
+          '40%': { transform: 'scale(1.18)' },
+          '100%': { transform: 'scale(1)' },
         },
         slideFromLeft: {
           from: { transform: 'translateX(-12%)', opacity: 0 },

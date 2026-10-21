@@ -9,6 +9,7 @@ import { samePerson } from '../lib/webId.js';
 import { strangerNotice } from '../lib/invite.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { photoUrls, primaryPhotoUrl } from '../lib/album.js';
+import { SkeletonGrid, SkeletonProfileHeader } from './Skeletons.jsx';
 import { PATHS as ROUTES } from '../lib/navigation.js';
 
 /**
@@ -103,7 +104,10 @@ export default function PublicPerson({
         {loading ? 'Loading profile' : ''}
       </div>
       {loading ? (
-        <div className="card p-8 h-40 skeleton" aria-hidden="true" />
+        <>
+          <SkeletonProfileHeader />
+          <SkeletonGrid count={6} />
+        </>
       ) : (
         <section className="card p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row gap-5 items-start">
