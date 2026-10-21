@@ -14,6 +14,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 - Text posts, and photo posts of up to ten pictures, with a carousel in the feed and in the viewer.
 - Crop and rotate before upload. Large photos are resized in the browser and a smaller thumbnail is what the feed loads. Camera metadata is not kept on the copy stored in the Pod. Drag-and-drop works on a desktop, and a progress bar stays short of 100% until the Pod responds. A failed upload can be retried without sending photos that already landed.
 - Per-post audience: Only me, Contacts, or Public, capped by the profile.
+- If the pod is unreachable or the device is offline, a new post, like, or comment stays on this device, shows as waiting to send, and goes out when the connection returns. A failed upload does not throw away the caption or the photos.
 - Comments live in the commenter's Pod. The author publishes the list with the same audience as the post, and can hide one or block that person. Other people cannot write the author's Pod.
 - Likes stored in the liker's Pod. The author publishes the count and the names for posts they are willing to show.
 - In-app notifications for new posts from people you follow, comments on your posts, and contact requests or approvals. The app polls. It does not run a notification server.

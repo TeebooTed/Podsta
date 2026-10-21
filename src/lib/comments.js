@@ -825,7 +825,8 @@ export async function addComment({ podUrl, session, post, ownerPodUrl, text, id 
   const commentId = id || newCommentId();
   const now = new Date().toISOString();
   const existing = await retryTransient(() => loadOwnComments(podUrl, session.fetch));
-  const entry = {
+  const prior = id ? existing.find((entry) => entry.id === commentId) : null;
+  const entry = prior || {
     id: commentId,
     postUrl,
     text: body,
@@ -833,7 +834,7 @@ export async function addComment({ podUrl, session, post, ownerPodUrl, text, id 
     modified: now,
     author: session.info.webId,
   };
-  await saveOwnComments({ podUrl, session, entries: [...existing, entry] });
+  if (!prior) await saveOwnComments({ podUrl, session, entries: [...existing, entry] });
   const me = session.info.webId;
   const author = Boolean(post?.ownerWebId) && samePerson(me, post.ownerWebId);
   let shared = true;

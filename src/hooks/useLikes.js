@@ -4,8 +4,9 @@ import {
   loadOwnLikes,
   presentLikes,
   refreshOwnedLikeSets,
-  setOwnLike,
 } from '../lib/likes.js';
+import { notifyOutboxChanged, queueSocialItem } from '../lib/outbox.js';
+import { hashString } from '../lib/utils.js';
 import { samePerson } from '../lib/webId.js';
 import { isBlocked, loadBlocks } from '../lib/blocks.js';
 
@@ -31,7 +32,14 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
   const [sets, setSets] = useState({});
   const [busyUrl, setBusyUrl] = useState('');
   const generation = useRef(0);
+  const [sentTick, setSentTick] = useState(0);
   const postKey = (posts || []).map((post) => `${post.url}|${post.ownerPodUrl || ''}|${post.ownerWebId || ''}`).join('\n');
+
+  useEffect(() => {
+    const onSent = () => setSentTick((value) => value + 1);
+    window.addEventListener('podsta-outbox-sent', onSent);
+    return () => window.removeEventListener('podsta-outbox-sent', onSent);
+  }, []);
 
   useEffect(() => {
     if (!enabled || !session?.fetch || !podUrl || !webId) {
@@ -93,7 +101,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
     };
     // postKey stands in for the post list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, session, podUrl, webId, postKey, blockRevision]);
+  }, [enabled, session, podUrl, webId, postKey, blockRevision, sentTick]);
 
   const view = (post) =>
     presentLikes({
@@ -109,14 +117,28 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
     generation.current += 1;
     setBusyUrl(post.url);
     try {
-      const result = await setOwnLike({
-        podUrl,
-        session,
-        post: { ...post, ownerWebId: post.ownerWebId || webId },
-        ownerPodUrl: post.ownerPodUrl,
-        liked,
-        knownEntries: entriesConfirmed ? entries : undefined,
-      });
+      const result = await queueSocialItem(
+        {
+          id: `like${hashString(`${webId}|${post.url}`)}`,
+          kind: 'like',
+          postUrl: post.url,
+          ownerWebId: post.ownerWebId || webId,
+          ownerPodUrl: post.ownerPodUrl || '',
+          audience: post.audience,
+          postType: post.type,
+          liked,
+        },
+        { webId, session, podUrl, knownEntries: entriesConfirmed ? entries : undefined },
+      );
+      notifyOutboxChanged();
+      if (result.queued) {
+        const next = liked
+          ? [...entries.filter((entry) => entry.postUrl !== post.url), { postUrl: post.url, created: new Date().toISOString() }]
+          : entries.filter((entry) => entry.postUrl !== post.url);
+        setEntries(next);
+        setEntriesConfirmed(true);
+        return { liked, entries: next, notified: false, queued: true };
+      }
       setEntries(result.entries);
       setEntriesConfirmed(true);
       if (Array.isArray(result.webIds)) {

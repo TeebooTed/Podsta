@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- Posts, likes, and comments wait on this device when the pod is unreachable or the browser is offline, then send when the connection returns. The caption and photos from a failed upload stay until they are sent or discarded.
 - Installable production build. A service worker caches the app shell, and the feed and your own posts are saved on this device when a Pod does not answer.
 - Photos are resized before upload. A thumbnail is what the feed and the profile grid request. JPEG, PNG, and WebP are re-encoded in the browser so camera metadata is not stored.
 - Captions, comments, names, and bios are plain text. Pod and provider addresses have to be https. The production build sets a Content-Security-Policy.
