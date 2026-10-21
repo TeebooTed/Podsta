@@ -50,7 +50,7 @@ You choose for each post. Only me means only you. Contacts means people you have
 Podsta has no accounts, no subscriptions and no paid features. It's also open source under the MIT license. Your pod comes from a pod host, and each host sets its own terms, so check theirs when you sign up.
 
 **How do I get a pod?**
-Tap "I don't have a Pod." Podsta walks you over to Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password.
+Tap "Create my Pod." On Solid Community, tap Sign up, register with an email and a password, then tap Create pod and pick a short name before Continue authentication. Come back to Podsta, tap Sign in, choose that address, and tap Authorize. Podsta never sees your password. Other pod hosts are under Advanced.
 
 **Can I use a pod I already have?**
 Yes, if your pod host uses the same sharing system Solid Community does (it's called Web Access Control). Solid Community and SolidWeb both work. Inrupt PodSpaces uses a different system, so sharing doesn't work there yet.
@@ -72,13 +72,14 @@ Podsta checks for news about once a minute while the tab is open, and lights the
 
 - Title: **Podsta**
 - Tagline: your posts. your pod. your rules.
-- Card heading: **Sign in with your pod**
-- Body: Podsta doesn't have its own accounts. Your photos and posts live in a pod you control. New here? We'll help you get one in a couple of minutes.
-- Primary button: **Sign in** (helper line: solidcommunity.net · I already have a pod)
-- Secondary button: **I don't have a pod** (helper line: Make one on Solid Community, then come back)
-- Link: **I use a different pod host**
+- Card heading: **Create my Pod**
+- Body: One tap opens Solid Community. Tap Sign up, register, then Create pod before Continue authentication. Come back here and tap Sign in. Podsta never sees your password.
+- Primary button: **Create my Pod** (helper line: solidcommunity.net)
+- Secondary button: **Sign in** (helper line: I already have an account on solidcommunity.net)
+- Hero secondary: **I already have an account**
+- Link: **Advanced**
 
-### Choose a pod host (expanded from "I use a different pod host")
+### Choose a pod host (expanded from Advanced)
 
 - Intro: Podsta works with pod hosts that share posts the same way Solid Community does.
 - Option: **SolidWeb**. Helper: solidweb.org. Works with Podsta.
@@ -87,16 +88,16 @@ Podsta checks for news about once a minute while the tab is open, and lights the
 - Field placeholder: https://your-pod-host.example
 - Field helper: Sharing works only if this host uses Web Access Control. Your host can tell you.
 - Button: **Sign in with this host**
-- Toggle when open: **Hide other hosts**
+- Toggle when open: **Hide advanced**
 
 ### Get a pod (the /start guide)
 
 - Heading: **Let's get you a pod**
 - Body: A pod is your own place on the web for posts. We recommend Solid Community. It's quick and it works well with Podsta.
-- Step 1: **You'll hop over to Solid Community.** The next page belongs to them. Choose Sign up if you're new.
-- Step 2: **Make an account with your email and a password.** Solid Community keeps your login. Podsta never sees your password.
-- Step 3: **Pick a short name.** It becomes your address, and in Podsta you'll show up as @yourname. You can change your display name any time. The short name stays.
-- Step 4: **Come back here.** Solid Community sends you back signed in. If you closed the window early, come back and tap Sign in.
+- Step 1: **Tap Sign up on the next page.** That page is Solid Community's Log in screen. Tap Sign up, not Log in.
+- Step 2: **Register with your email and a password.** Solid Community keeps your login. Podsta never sees your password.
+- Step 3: **Create a pod before anything else.** On Your account, tap Create pod and pick a short name. It becomes your address, and in Podsta you'll show up as @yourname. Leave the address choice as it is. Skip Continue authentication until the pod exists. If you continue first, Solid Community says no address is assigned and you can't finish.
+- Step 4: **Come back here and tap Sign in.** Solid Community does not send you back on its own. Open Podsta again, tap Sign in, choose the address you just made, and tap Authorize. Use the same email and password if it asks.
 - Primary button: **Continue to Solid Community**
 - Busy state: Opening Solid Community…
 - Link: **I already have a pod**

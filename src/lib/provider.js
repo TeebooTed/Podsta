@@ -17,23 +17,23 @@ export const RECOMMENDED_PROVIDER = {
 export const SIGNUP_STEPS = [
   {
     id: 'leave',
-    title: "You'll hop over to Solid Community.",
-    body: "The next page belongs to them. Choose Sign up if you're new.",
+    title: 'Tap Sign up on the next page.',
+    body: "That page is Solid Community's Log in screen. Tap Sign up, not Log in.",
   },
   {
     id: 'account',
-    title: 'Make an account with your email and a password.',
+    title: 'Register with your email and a password.',
     body: 'Solid Community keeps your login. Podsta never sees your password.',
   },
   {
     id: 'pod',
-    title: 'Pick a short name.',
-    body: "It becomes your address, and in Podsta you'll show up as @yourname. You can change your display name any time. The short name stays.",
+    title: 'Create a pod before anything else.',
+    body: "On Your account, tap Create pod and pick a short name. It becomes your address, and in Podsta you'll show up as @yourname. Leave the address choice as it is. Skip Continue authentication until the pod exists. If you continue first, Solid Community says no address is assigned and you can't finish.",
   },
   {
     id: 'return',
-    title: 'Come back here.',
-    body: 'Solid Community sends you back signed in. If you closed the window early, come back and tap Sign in.',
+    title: 'Come back here and tap Sign in.',
+    body: 'Solid Community does not send you back on its own. Open Podsta again, tap Sign in, choose the address you just made, and tap Authorize. Use the same email and password if it asks.',
   },
 ];
 

@@ -192,6 +192,9 @@ test('new people are sent to Solid Community, and a short name is not described 
   const copy = SIGNUP_STEPS.map((step) => `${step.title} ${step.body}`).join(' ');
   assert.match(copy, /Solid Community/);
   assert.match(copy, /never sees your password/);
+  assert.match(copy, /Create pod/);
+  assert.match(copy, /Continue authentication/);
+  assert.match(copy, /tap Authorize/);
   assert.equal(/registry/i.test(copy), false);
   assert.equal(
     OTHER_PROVIDERS.some((provider) => provider.url === 'https://login.inrupt.com'),

@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- Create my Pod still opens Solid Community in one tap, and the landing page says to create the pod before Continue authentication, then come back and tap Sign in. Continuing first leaves the new account with no address, and Solid Community does not send you back on its own.
 - Starter packs. Profile can save up to 50 addresses in a public file in your pod and share that file with a link or a QR code. Opening it shows those people, with Follow all and a follow button for each one. There is no central directory.
 - A weekly photo prompt on Home, such as Something green. It shows only when someone you follow posted in the last seven days. Not this week hides it on this device until next week. There is no extra notification.
 - Sign in with your account. The sign-in card says "Your account" and accepts a name like @ada or @ada@solidweb.org. That name only chooses the host. It is not looked up, and there is no registry. A blank name still opens Solid Community.

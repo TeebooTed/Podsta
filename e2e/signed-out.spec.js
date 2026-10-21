@@ -4,6 +4,7 @@ test('signed-out home leads with create my pod', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Podsta', level: 1 })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create my Pod' }).first()).toBeVisible();
+  await expect(page.getByText(/Create pod before/).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /already have an account/i })).toBeVisible();
   await expect(page.getByRole('button', { name: 'SolidWeb' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Advanced' }).click();
@@ -14,6 +15,10 @@ test('the no-pod guide is a real page', async ({ page }) => {
   await page.goto('/start');
   await expect(page.getByRole('heading', { name: /get you a pod/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /continue to solid community/i })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /create a pod before anything else/i }),
+  ).toBeVisible();
+  await expect(page.getByText(/Continue authentication/)).toBeVisible();
 });
 
 test('an invite without a WebID does not crash', async ({ page }) => {

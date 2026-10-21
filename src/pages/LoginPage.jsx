@@ -90,7 +90,7 @@ const FAQ = [
   },
   {
     q: 'How do I get an account?',
-    a: 'Tap "Create my Pod." That opens Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password. Other hosts are under Advanced.',
+    a: 'Tap "Create my Pod." On Solid Community, tap Sign up, register with an email and a password, then tap Create pod and pick a short name before Continue authentication. Come back to Podsta, tap Sign in, choose that address, and tap Authorize. Podsta never sees your password. Other pod hosts are under Advanced.',
   },
   {
     q: 'Can I use an account I already have?',
@@ -273,7 +273,8 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
               </a>
             </div>
             <p className="mt-4 text-sm text-ink-200">
-              One tap opens {RECOMMENDED_PROVIDER.host}.{' '}
+              One tap opens {RECOMMENDED_PROVIDER.host}. Tap Sign up there, then Create pod before
+              Continue authentication. Come back here and tap Sign in.{' '}
               <a
                 href="#sign-in"
                 onClick={() => setAdvanced(true)}
@@ -369,9 +370,12 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
             {[
               [
                 'Create my Pod',
-                "One tap opens Solid Community. Make the account there with an email and a password. Already have one? Skip ahead.",
+                'One tap opens Solid Community. Tap Sign up, then Create pod before Continue authentication. Already have one? Skip ahead.',
               ],
-              ['Sign in to Podsta', 'Sign in with your pod. Podsta never sees your password.'],
+              [
+                'Sign in to Podsta',
+                'Solid Community does not send you back. Open Podsta, tap Sign in, and tap Authorize.',
+              ],
               [
                 'Post and share',
                 'Add up to ten photos or a short note. It starts as Only me. Share it when you want to.',
@@ -469,9 +473,9 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
                 Create my Pod
               </h2>
               <p className="text-sm text-ink-100 mb-5 leading-relaxed">
-                One tap opens {RECOMMENDED_PROVIDER.label}. You make the account there with an email
-                and a password. Podsta never sees that password. Your photos stay in the pod that
-                account creates.
+                One tap opens {RECOMMENDED_PROVIDER.label}. Tap Sign up, register, then Create pod
+                before Continue authentication. Come back here and tap Sign in. Podsta never sees
+                your password.
               </p>
 
               <button
