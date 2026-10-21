@@ -70,6 +70,21 @@ test('upload progress stays short of 100 percent until the Pod responds', async 
   assert.ok(uploadRatio(seen.at(-1)[0], seen.at(-1)[1]) < 1);
 });
 
+test('a streamed upload the browser refuses is sent as the file', async () => {
+  const bodies = [];
+  const fetchFn = async (_url, init) => {
+    bodies.push(init.body);
+    if (typeof init.body?.getReader === 'function') {
+      throw new TypeError('Failed to fetch');
+    }
+    return new Response(null, { status: 201 });
+  };
+  const url = 'https://ada.example/podsta/photos/sun.jpg';
+  assert.equal(await putPhotoFile({ url, file: JPEG, fetchFn }), url);
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[1], JPEG);
+});
+
 test('a failed photo is the one a retry sends again', async () => {
   let calls = 0;
   const fetchFn = async (url, init) => {

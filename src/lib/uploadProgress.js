@@ -38,10 +38,7 @@ export function progressBody(blob, onBytes) {
   });
 }
 
-export async function putPhotoFile({ url, file, fetchFn, onBytes }) {
-  if (!url) throw new Error('Missing photo address');
-  if (!file) throw new Error('Missing photo');
-  const body = progressBody(file, onBytes);
+function uploadInit(file, body, duplex) {
   const init = {
     method: 'PUT',
     headers: {
@@ -50,10 +47,30 @@ export async function putPhotoFile({ url, file, fetchFn, onBytes }) {
     },
     body,
   };
-  if (typeof ReadableStream !== 'undefined' && body instanceof ReadableStream) {
-    init.duplex = 'half';
+  if (duplex) init.duplex = 'half';
+  return init;
+}
+
+/**
+ * Prefer a streamed body so the progress bar can move with the bytes.
+ * Cross-origin browsers refuse that stream after the preflight, and the PUT
+ * never reaches the Pod. The same file is then sent as a normal body.
+ */
+export async function putPhotoFile({ url, file, fetchFn, onBytes }) {
+  if (!url) throw new Error('Missing photo address');
+  if (!file) throw new Error('Missing photo');
+  const send = fetchFn || fetch;
+  let response;
+  try {
+    const body = progressBody(file, onBytes);
+    const duplex = typeof ReadableStream !== 'undefined' && body instanceof ReadableStream;
+    response = await send(url, uploadInit(file, body, duplex));
+  } catch (err) {
+    const message = String(err?.message || '');
+    const streamRejected = err?.name === 'TypeError' || /failed to fetch|duplex/i.test(message);
+    if (!streamRejected) throw err;
+    response = await send(url, uploadInit(file, file, false));
   }
-  const response = await (fetchFn || fetch)(url, init);
   if (!response.ok) {
     const error = new Error(`Upload responded ${response.status}`);
     error.status = response.status;
