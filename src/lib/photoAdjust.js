@@ -110,3 +110,116 @@ export async function renderAdjustedPhoto(file, adjust) {
     bitmap.close?.();
   }
 }
+
+/** Longest side of a photo stored on the Pod. Larger camera files are scaled down. */
+export const MAX_IMAGE_EDGE = 2048;
+/** Feed and profile tiles use this derivative. The viewer still opens the full photo. */
+export const THUMB_EDGE = 640;
+
+export function fittedSize(width, height, maxEdge) {
+  const w = Math.max(1, Math.round(Number(width) || 1));
+  const h = Math.max(1, Math.round(Number(height) || 1));
+  const edge = Math.max(w, h);
+  const limit = Math.max(1, Number(maxEdge) || edge);
+  if (edge <= limit) return { width: w, height: h };
+  const scale = limit / edge;
+  return {
+    width: Math.max(1, Math.round(w * scale)),
+    height: Math.max(1, Math.round(h * scale)),
+  };
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (result) => {
+        if (result) resolve(result);
+        else reject(new Error('Could not prepare that photo'));
+      },
+      type,
+      quality,
+    );
+  });
+}
+
+function drawPrepared(bitmap, adjust, maxEdge) {
+  const rotation = adjust?.rotation || 0;
+  const size = rotatedSize(bitmap.width, bitmap.height, rotation);
+  const rotated = document.createElement('canvas');
+  rotated.width = size.width;
+  rotated.height = size.height;
+  drawRotated(rotated.getContext('2d'), bitmap, rotation);
+
+  const frame = cropRect({
+    width: bitmap.width,
+    height: bitmap.height,
+    rotation,
+    zoom: adjust?.zoom,
+    panX: adjust?.panX,
+    panY: adjust?.panY,
+  });
+  const fitted = fittedSize(frame.destWidth, frame.destHeight, maxEdge);
+  const canvas = document.createElement('canvas');
+  canvas.width = fitted.width;
+  canvas.height = fitted.height;
+  canvas.getContext('2d').drawImage(
+    rotated,
+    frame.sx,
+    frame.sy,
+    frame.sw,
+    frame.sh,
+    0,
+    0,
+    fitted.width,
+    fitted.height,
+  );
+  return canvas;
+}
+
+function outputType(file) {
+  if (file?.type === 'image/png') return 'image/png';
+  if (file?.type === 'image/webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+function extensionFor(type) {
+  if (type === 'image/png') return 'png';
+  if (type === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+/**
+ * Resize, strip camera metadata by re-encoding, and build a JPEG thumbnail.
+ * An untouched GIF that already fits stays a GIF so the animation survives.
+ * The thumbnail is still a JPEG, so the feed does not need the original bytes.
+ */
+export async function preparePhoto(file, adjust) {
+  if (!file) throw new Error('Choose a photo first');
+  if (typeof document === 'undefined' || typeof createImageBitmap !== 'function') {
+    return { file, thumbnail: null };
+  }
+  const bitmap = await createImageBitmap(file);
+  try {
+    const identity = isIdentityAdjust(adjust);
+    const gif = file.type === 'image/gif';
+    const oriented = rotatedSize(bitmap.width, bitmap.height, adjust?.rotation);
+    const fits = Math.max(oriented.width, oriented.height) <= MAX_IMAGE_EDGE;
+    const base = (file.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
+    let full = file;
+    if (!(gif && identity && fits)) {
+      const fullCanvas = drawPrepared(bitmap, adjust, MAX_IMAGE_EDGE);
+      const type = outputType(file);
+      const blob = await canvasToBlob(fullCanvas, type, type === 'image/png' ? undefined : 0.85);
+      full = new File([blob], `${base}.${extensionFor(type)}`, { type, lastModified: Date.now() });
+    }
+    const thumbCanvas = drawPrepared(bitmap, adjust, THUMB_EDGE);
+    const thumbBlob = await canvasToBlob(thumbCanvas, 'image/jpeg', 0.8);
+    const thumbnail = new File([thumbBlob], `${base}.thumb.jpg`, {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+    return { file: full, thumbnail };
+  } finally {
+    bitmap.close?.();
+  }
+}

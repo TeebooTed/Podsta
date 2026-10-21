@@ -15,6 +15,7 @@ import { PATHS, SCHEMA, FOAF, PODSTA } from './vocab.js';
 import { applyAudience, isPublic } from './acl.js';
 import { resolveProfile } from './friends.js';
 import { safeHttpUrl } from './urls.js';
+import { plainText } from './text.js';
 import {
   groupDocUrl,
   groupFragment,
@@ -60,8 +61,8 @@ export async function loadProfile({ podUrl, session }) {
     const thing = getThing(ds, profileUrl(podUrl));
     if (thing) {
       return withLevel(podUrl, session, {
-        name: getStringNoLocale(thing, FOAF.name) || '',
-        bio: getStringNoLocale(thing, SCHEMA.description) || '',
+        name: plainText(getStringNoLocale(thing, FOAF.name) || ''),
+        bio: plainText(getStringNoLocale(thing, SCHEMA.description) || ''),
         avatarUrl: getStringNoLocale(thing, SCHEMA.image) || '',
       }, getStringNoLocale(thing, PODSTA.discoverability) || '');
     }
@@ -96,8 +97,8 @@ export async function saveProfile({ podUrl, session, profile, ownerWebId, discov
 
   let thing = getThing(ds, profileUrl(podUrl)) ?? createThing({ url: profileUrl(podUrl) });
   const previousLevel = getStringNoLocale(thing, PODSTA.discoverability) || '';
-  thing = setStringNoLocale(thing, FOAF.name, profile.name || '');
-  thing = setStringNoLocale(thing, SCHEMA.description, profile.bio || '');
+  thing = setStringNoLocale(thing, FOAF.name, plainText(profile.name || ''));
+  thing = setStringNoLocale(thing, SCHEMA.description, plainText(profile.bio || ''));
   thing = setStringNoLocale(thing, SCHEMA.image, avatarUrl || '');
   // Only a discoverability save writes this. A name save must leave it, and the ACL, alone.
   if (discoverability) {

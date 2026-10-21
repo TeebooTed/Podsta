@@ -5,7 +5,7 @@ import {
   logout as inruptLogout,
 } from '@inrupt/solid-client-authn-browser';
 import { getPodUrlAll } from '@inrupt/solid-client';
-import { asPodRoot } from './urls.js';
+import { asPodRoot, safeIssuer } from './urls.js';
 import { withTimeout } from './timeoutFetch.js';
 import { currentBasePath } from './appUrl.js';
 import { oidcLoginRequest } from './clientId.js';
@@ -55,9 +55,23 @@ installOidcRegistrationFix();
  * Call this once at startup, before reading session state.
  */
 let restorePromise;
+const expiredListeners = new Set();
+
+export function onSessionExpired(listener) {
+  expiredListeners.add(listener);
+  return () => expiredListeners.delete(listener);
+}
+
+function emitSessionExpired() {
+  for (const listener of expiredListeners) listener();
+}
 
 async function restoreSessionOnce() {
   const session = getDefaultSession();
+  if (!session.__podstaExpired) {
+    session.events.on('sessionExpired', emitSessionExpired);
+    session.__podstaExpired = true;
+  }
   let redirectError = '';
   const onError = (_code, description) => {
     redirectError = description instanceof Error ? description.message : String(description || _code || '');
@@ -85,12 +99,14 @@ export function restoreSession() {
  * The user is redirected to their identity provider; on return, restoreSession() picks up.
  */
 export async function login(oidcIssuer = RECOMMENDED_PROVIDER.issuer, redirectUrl) {
+  const issuer = safeIssuer(oidcIssuer);
+  if (!issuer) throw new Error('Provider address must be an https URL');
   await inruptLogin(
     oidcLoginRequest({
       origin: window.location.origin,
       basePath: currentBasePath(),
       redirectUrl,
-      oidcIssuer,
+      oidcIssuer: issuer,
     }),
   );
 }

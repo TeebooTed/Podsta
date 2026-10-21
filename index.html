@@ -3,8 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1a1610" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Podsta" />
 
     <!-- SEO / OG -->
     <title>Podsta — your posts, your pod, your rules</title>
@@ -13,19 +17,14 @@
     <meta property="og:description" content="Decentralized social posts on Solid Pods." />
     <meta property="og:type" content="website" />
 
-    <!-- Fonts: Fraunces (display serif), Manrope (sans), JetBrains Mono (mono) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-
     <!-- Manifest for PWA install -->
     <link rel="manifest" href="%BASE_URL%manifest.json" />
   </head>
   <body class="bg-ink-950 text-ink-100 antialiased">
     <div id="root"></div>
+    <noscript>
+      <p>Podsta needs JavaScript to talk to your Solid Pod.</p>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

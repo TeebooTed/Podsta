@@ -1,8 +1,8 @@
 # Podsta improvement plan
 
-Audit date: 9 October 2026. Status updated 10 October 2026 against `main`.
+Audit date: 9 October 2026. Status updated 21 October 2026 against `main`.
 
-Phase 1 and Phase 2 shipped. Discoverability, sign-up and invites, notifications, multi-photo posting, and likes shipped after that. The installable PWA did not. Inrupt access policies did not. A handle registry was declined.
+Phase 1 and Phase 2 shipped. Discoverability, sign-up and invites, notifications, multi-photo posting, likes, and the installable PWA shipped after that. Inrupt access policies did not. A handle registry was declined.
 
 ## Done
 
@@ -28,19 +28,19 @@ The original must-fix and should-fix items, by number:
 | 5 Home downloads every photo | Done. Listing reads captions and ACLs. The image loads when a card is on screen. |
 | 6 Discover is a dead end | Done |
 | 7 No tests or CI | Done |
-| 8 Tokens, frames, ACL injection | Done for CSP, `frame-ancestors`, IRI escaping, and https Pod URLs. EXIF stripping is still open. The session still lives in `localStorage`. |
+| 8 Tokens, frames, ACL injection | Done for CSP, `frame-ancestors`, IRI escaping, and https Pod URLs. New uploads are re-encoded, which drops EXIF. The session still lives in `localStorage`. |
 | 9 WCAG AA on the path people use | Done in Phase 2 for contrast, labels, focus, target size, and reduced motion on the screens that shipped. |
 | 10 Information architecture | Done |
 | 11 Nothing has a URL | Done |
 | 12 First run teaches nothing | Done. The tour is skippable. |
 | 13 Phone layout | Done |
-| 14 Feed bugs with two friends | Done for the retry loop, avatar fallback, and unreachable Pods. A feed cache is still open. |
-| 15 PWA claim | The README no longer says the app is installable. Shipping a PWA is still open. |
+| 14 Feed bugs with two friends | Done for the retry loop, avatar fallback, and unreachable Pods. A copy of the last feed is kept on this device. |
+| 15 PWA claim | Done. Installable manifest, icons, and a service worker. |
 | 16 Dependency health | Unused-router problem is gone because routes exist. The Inrupt 2.x line is still the one we ship. A major upgrade is open. |
 | 17 Notifications | Done as in-app polling. A live Solid channel is only a wake hint, and solidcommunity.net rejected the subscription. |
 | 18 Comments other people can leave | Done. Commenter-owned file, inbox notice, author-published list, hide, edit, delete, and block. |
-| 19 Image derivatives and EXIF | Open |
-| 20 Feed cache | Open |
+| 19 Image derivatives and EXIF | Done for new JPEG, PNG, and WebP uploads. An untouched GIF that already fits stays a GIF. |
+| 20 Feed cache | Done as a copy on this device. Indexes are still read with `cache: 'no-store'`. |
 | 21 Reactions | Done. Likes shipped. |
 | 22 Light theme | Open |
 | 23 Upload tools | Done for crop, rotate, and progress. Distinct alt text is still the caption. |
@@ -50,15 +50,13 @@ The original must-fix and should-fix items, by number:
 
 ## Remaining
 
-- **Installable PWA.** `public/manifest.json` points at one SVG. There is no service worker and no 192 or 512 PNG. Do not call the app installable until those exist.
 - **Inrupt PodSpaces / ACP.** Sharing is WAC `.acl` Turtle. An ACP writer is a separate project.
-- **Social comments.** Done. The commenter writes their own Pod. The author publishes, hides, and can block. There is still no public Append on `podsta/comments/`.
-- **Image derivatives and EXIF stripping.** Public photos are the uploaded file.
-- **Conditional feed fetch.** Indexes are refetched. They are not cached in the browser (`cache: 'no-store'`), and there is no per-friend ETag cursor.
+- **Conditional feed fetch.** Indexes are still refetched with `cache: 'no-store'`. There is no per-friend ETag cursor.
 - **Light theme.** `darkMode: 'class'` is unused.
 - **TypeScript** at the Pod boundary, when the shapes stop moving.
 - **Inrupt client major upgrade**, with a WAC smoke test. Not a drive-by `npm update`.
 - **In-app shortcut help.** `h`, `d`, `p`, and `n` are real. `f` still goes Home.
+- **Distinct alt text.** A photo description is still the caption.
 
 A central handle registry stays out. Matthew skipped it.
 

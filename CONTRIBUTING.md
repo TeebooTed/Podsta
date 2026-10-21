@@ -36,7 +36,7 @@ Lint is `eslint src`. Warnings do not fail the run. A production build that fail
 - Do not grant public Append on `podsta/comments/`. Comments stay owner-only until there is a model that does not let strangers write the owner's Pod.
 - Sharing writes WAC `.acl` files. Do not mark Inrupt PodSpaces as recommended while those files are the only access rules.
 - Do not add a handle registry. Display names like `@ada` are derived from the WebID.
-- Do not describe Podsta as an installable PWA. The manifest is a stub and there is no service worker.
+- The production app is an installable PWA. Keep a 192 and a 512 PNG in the manifest, and do not drop the service worker without saying so in the README.
 - Do not commit Pod passwords, refresh tokens, or real WebIDs from a private test session unless they are already public test accounts and the password stays out of the diff.
 
 ## Docs

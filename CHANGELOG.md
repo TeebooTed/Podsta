@@ -1,6 +1,14 @@
 # Changelog
 
-Dates are the days the work landed on `main`. This covers 9–10 October 2026.
+Dates are the days the work landed on `main`.
+
+## 21 October 2026
+
+- Installable production build. A service worker caches the app shell, and the feed and your own posts are saved on this device when a Pod does not answer.
+- Photos are resized before upload. A thumbnail is what the feed and the profile grid request. JPEG, PNG, and WebP are re-encoded in the browser so camera metadata is not stored.
+- Captions, comments, names, and bios are plain text. Pod and provider addresses have to be https. The production build sets a Content-Security-Policy.
+- The signed-out page does not download the Solid client until sign-in. Fonts ship with the app.
+- GitHub Pages deploy runs the tests before it publishes.
 
 ## 10 October 2026
 

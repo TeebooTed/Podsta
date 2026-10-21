@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
 import PhotoCarousel from './PhotoCarousel.jsx';
 import LikeControl from './LikeControl.jsx';
-import { photoUrls } from '../lib/album.js';
+import { cardPhotoUrls } from '../lib/album.js';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 
 /**
@@ -56,7 +56,7 @@ export default function PostCard({
   const dateStr = relativeTime(post.dateCreated);
   const isLong = post.type === 'text' && post.body && post.body.length > 280;
 
-  const images = photoUrls(post);
+  const images = cardPhotoUrls(post);
 
   return (
     <article
@@ -113,6 +113,7 @@ export default function PostCard({
           </div>
           {isLong && (
             <button
+              type="button"
               onClick={() => setExpanded((v) => !v)}
               className="mt-2 text-sm text-accent hover:text-accent-light"
             >

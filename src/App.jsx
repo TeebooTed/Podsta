@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
-import { restoreSession, logout, findPodUrl, login } from './lib/auth.js';
+import { restoreSession, logout, findPodUrl, login, onSessionExpired } from './lib/auth.js';
+import { describePodFailure } from './lib/errors.js';
+import { readSnapshot, snapshotKey, writeSnapshot } from './lib/offlineStore.js';
 import { lockExistingComments } from './lib/acl.js';
 import { postedToast } from './lib/shareFeedback.js';
 import {
@@ -64,6 +66,8 @@ export default function App() {
   const [podUrl, setPodUrl] = useState(null);
   const [ready, setReady] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [libraryWarning, setLibraryWarning] = useState('');
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   // ── App state (only meaningful when logged in) ────────────
   const [profile, setProfile] = useState({
@@ -105,9 +109,13 @@ export default function App() {
   // ── Boot: restore session, find pod, load data ────────────
   useEffect(() => {
     let cancelled = false;
+    let stopExpired = () => {};
     (async () => {
       try {
         const s = await restoreSession();
+        stopExpired = onSessionExpired(() => {
+          if (!cancelled) setSessionExpired(true);
+        });
         if (cancelled) return;
         setSession(s);
 
@@ -135,9 +143,14 @@ export default function App() {
               retryTransient(() => loadOwnPosts({ podUrl: pod, session: s }), {
                 attempts: 4,
                 wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 4000 * attempt)),
-              }).catch((err) => {
+              }).catch(async (err) => {
                 console.error('Posts load failed:', err);
-                showToast('Could not load posts', 'error');
+                const cached = await readSnapshot(snapshotKey('posts', s.info.webId)).catch(() => null);
+                if (cached?.posts?.length) {
+                  setLibraryWarning(describePodFailure(err));
+                  return cached.posts;
+                }
+                setLibraryWarning(describePodFailure(err));
                 return [];
               }),
               loadFriends({ podUrl: pod, session: s }).catch(() => []),
@@ -153,6 +166,7 @@ export default function App() {
             if (cancelled || gen !== sessionGenRef.current) return;
             setProfile(prof);
             setPosts(postsList);
+            writeSnapshot(snapshotKey('posts', s.info.webId), { posts: postsList }).catch(() => {});
             setFriends(friendsList);
             setContacts(contactList);
             setLibraryReady(true);
@@ -173,6 +187,7 @@ export default function App() {
     })();
     return () => {
       cancelled = true;
+      stopExpired();
     };
   }, [showToast]);
 
@@ -182,31 +197,38 @@ export default function App() {
     try {
       const list = await loadOwnPosts({ podUrl, session });
       setPosts(list);
+      setLibraryWarning('');
+      writeSnapshot(snapshotKey('posts', session.info.webId), { posts: list }).catch(() => {});
     } catch (err) {
       console.error('Reload posts failed:', err);
-      showToast('Could not refresh posts', 'error');
+      const cached = await readSnapshot(snapshotKey('posts', session.info.webId)).catch(() => null);
+      if (cached?.posts?.length) setPosts(cached.posts);
+      setLibraryWarning(describePodFailure(err));
     }
-  }, [podUrl, session, showToast]);
+  }, [podUrl, session]);
 
   // ── Compose handler ───────────────────────────────────────
   const handleCompose = useCallback(
-    async ({ type, file, files, caption, title, body, audience = 'private', onProgress, alreadyUploaded }) => {
+    async ({ type, file, files, caption, title, body, audience = 'private', onProgress, alreadyUploaded, thumbnails }) => {
       if (!podUrl || !session) throw new Error('Not signed in');
 
       let postUrl;
       let images = [];
+      let albumThumbs = [];
       if (type === 'photo') {
         const chosen = files?.length ? files : file ? [file] : [];
         const created = await createPhotoAlbum({
           podUrl,
           session,
           files: chosen,
+          thumbnails,
           caption,
           onProgress,
           alreadyUploaded,
         });
         postUrl = created.url;
         images = created.images;
+        albumThumbs = created.thumbnails || [];
       } else {
         postUrl = await createTextPost({ podUrl, session, title, body });
       }
@@ -218,6 +240,7 @@ export default function App() {
           url: postUrl,
           type,
           images,
+          thumbnails: type === 'photo' ? albumThumbs : [],
           caption: type === 'photo' ? caption : '',
           body: type === 'text' ? body : '',
           title: type === 'text' ? title : '',
@@ -695,6 +718,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen relative z-10">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-ink-50 focus:text-ink-950 focus:px-3 focus:py-2 focus:rounded"
+      >
+        Skip to content
+      </a>
       <Header
         session={session}
         profile={profile}
@@ -704,7 +733,23 @@ export default function App() {
         unseenCount={notifications.unseenCount}
       />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
+      <main id="main" className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
+        {sessionExpired && (
+          <div className="mb-6 px-4 py-3 bg-ink-800 border border-accent/40 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between" role="alert">
+            <p>Your sign-in expired. Sign in again to continue. Posts saved on this device stay here.</p>
+            <button type="button" className="btn-secondary" onClick={() => login(RECOMMENDED_PROVIDER.issuer, appUrl('/'))}>
+              Sign in
+            </button>
+          </div>
+        )}
+        {libraryWarning && (
+          <div className="mb-6 px-4 py-3 bg-ink-800 border border-ink-600 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between" role="alert">
+            <p>{libraryWarning}</p>
+            <button type="button" className="btn-secondary" onClick={() => reloadPosts()}>
+              Try again
+            </button>
+          </div>
+        )}
         {authError && (
           <div className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent" role="alert">
             {authError}

@@ -2,23 +2,29 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OTHER_PROVIDERS, RECOMMENDED_PROVIDER } from '../lib/provider.js';
 import { PATHS } from '../lib/navigation.js';
-import homeDesktop from '../../docs/screenshots/home-desktop.png';
-import homePhone from '../../docs/screenshots/home-phone.png';
-import profilePhone from '../../docs/screenshots/profile-phone.png';
+import homeDesktop from '../../docs/screenshots/home-desktop.webp';
+import homePhone from '../../docs/screenshots/home-phone.webp';
+import profilePhone from '../../docs/screenshots/profile-phone.webp';
 
 const SHOTS = [
   {
     src: homeDesktop,
+    width: 960,
+    height: 600,
     alt: 'Home feed on a desktop, with a post of two photos and a like count.',
     caption: 'Home is the people you follow',
   },
   {
     src: homePhone,
+    width: 480,
+    height: 1038,
     alt: 'The home feed on a phone, with Home, Discover, New post, and Profile along the bottom.',
     caption: 'The same feed on a phone',
   },
   {
     src: profilePhone,
+    width: 480,
+    height: 1038,
     alt: 'A profile on a phone, with a name, a short bio, and a grid of posts.',
     caption: 'Your own posts stay on your profile',
   },
@@ -81,9 +87,18 @@ export default function LoginPage({ error, onLogin, busy = false }) {
             </p>
           </div>
           <ul className="grid gap-4 sm:grid-cols-3 list-none p-0 m-0">
-            {SHOTS.map((shot) => (
+            {SHOTS.map((shot, index) => (
               <li key={shot.caption} className="card overflow-hidden">
-                <img src={shot.src} alt={shot.alt} className="w-full h-auto bg-ink-950" />
+                <img
+                  src={shot.src}
+                  alt={shot.alt}
+                  width={shot.width}
+                  height={shot.height}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  decoding={index === 0 ? 'sync' : 'async'}
+                  fetchPriority={index === 0 ? 'high' : 'low'}
+                  className="w-full h-auto bg-ink-950"
+                />
                 <p className="px-3 py-2 text-sm text-ink-100">{shot.caption}</p>
               </li>
             ))}

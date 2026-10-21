@@ -146,10 +146,12 @@ These limits are part of the design, not temporary bugs.
 - The comments container stays owner-only. Other people never get write access to the author's Pod. A published comment list is readable only at the post's audience. Blocks, reports, hides, and the commenter's own file are private.
 - Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
 - Notification seen-state is per browser. It is not in the Pod.
-- The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. The UI renders text as text. There is no `dangerouslySetInnerHTML`.
-- `vercel.json` sends a Content-Security-Policy (`frame-ancestors 'none'`, scripts from `'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. Fonts still load from Google Fonts, which the policy allows.
+- The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. Captions, comments, names, and bios are stored and shown as plain text. Tags are removed before they are written. There is no `dangerouslySetInnerHTML`.
+- Pod URLs and identity-provider issuers have to be https. `http://localhost` and `http://127.0.0.1` are the only exceptions. `javascript:` and URLs with a username or password are rejected. Image addresses in an index are dropped unless they pass the same check.
+- The production build sends a Content-Security-Policy. Scripts come from this origin. `vercel.json` also sets `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. GitHub Pages cannot set those headers, so the policy is a meta tag there. Fonts are files in the build, not a request to another site.
+- The Solid client refreshes the session when the provider issued a refresh token (`offline_access`). When that fails, the app says the sign-in expired and keeps the posts it already saved on this device.
 - ACL Turtle escapes IRIs. A `>` in a WebID must not close the IRI.
-- Public photos are stored as uploaded. Podsta does not strip EXIF. A public JPEG can still contain a location.
+- JPEG, PNG, and WebP uploads are redrawn in the browser before they are stored, which drops EXIF. An animated GIF that already fits is stored as a GIF. The feed uses a JPEG thumbnail when one was uploaded.
 - There is no central directory and no handle registry. `@ada` means `@ada` on solidcommunity.net. The invite link carries the full WebID, which is the identifier.
 
 ## Pod providers
