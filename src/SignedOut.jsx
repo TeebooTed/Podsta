@@ -86,7 +86,7 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
                           );
                         } catch (err) {
                           showToast(
-                            "We couldn't sign you in. Your pod host didn't answer or said no. Check the address and try again, or pick Solid Community from the list.",
+                            "We couldn't sign you in. That account didn't answer or said no. Check the name and try again, or pick Solid Community under Advanced.",
                             'error',
                           );
                           console.error('Sign-up redirect failed:', err);
