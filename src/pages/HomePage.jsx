@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import PostCard from '../components/PostCard.jsx';
 import SkeletonCard from '../components/SkeletonCard.jsx';
 import EmptyState from '../components/EmptyState.jsx';
-import Lightbox from '../components/Lightbox.jsx';
+import LazyLightbox from '../components/LazyLightbox.jsx';
 import CommentsDrawer from '../components/CommentsDrawer.jsx';
 import Avatar from '../components/Avatar.jsx';
 import PullIndicator from '../components/PullIndicator.jsx';
@@ -451,7 +451,7 @@ export default function HomePage({
       )}
 
       {lightboxIndex !== null && (
-        <Lightbox
+        <LazyLightbox
           posts={photoPosts}
           index={lightboxIndex}
           session={session}
