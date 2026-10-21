@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('signed-out home explains how to sign in', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Podsta', level: 1 })).toBeVisible();
-  await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /sign in/i }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /don't have a Pod/i })).toBeVisible();
 });
 
@@ -24,5 +24,5 @@ test('an invite without a WebID does not crash', async ({ page }) => {
 test('a missing route still offers sign-in', async ({ page }) => {
   await page.goto('/not-a-page');
   await expect(page.getByRole('heading', { name: 'Podsta', level: 1 })).toBeVisible();
-  await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /sign in/i }).first()).toBeVisible();
 });
