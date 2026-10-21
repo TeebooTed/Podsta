@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import Lightbox from '../components/Lightbox.jsx';
 import CommentsDrawer from '../components/CommentsDrawer.jsx';
 import Avatar from '../components/Avatar.jsx';
+import PullIndicator from '../components/PullIndicator.jsx';
 import { loadFriendFeed } from '../lib/feed.js';
 import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
@@ -14,6 +15,7 @@ import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 import { readSnapshot, snapshotKey, writeSnapshot } from '../lib/offlineStore.js';
 import { plainText } from '../lib/text.js';
 import { useLikes } from '../hooks/useLikes.js';
+import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import { samePerson } from '../lib/webId.js';
 
 /**
@@ -27,6 +29,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
   const [failed, setFailed] = useState(false);
   const [fromCache, setFromCache] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [commentsPost, setCommentsPost] = useState(null);
   const [blockRevision, setBlockRevision] = useState(0);
@@ -67,6 +70,11 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
     setHydrated({});
     setReloadKey((n) => n + 1);
   }, []);
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    reload();
+  }, [reload]);
+  const pullState = usePullToRefresh(refresh, { enabled: friends?.length > 0 && !refreshing, refreshing });
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +95,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
         setUnreachable(0);
         setFailed(false);
         setLoading(false);
+        setRefreshing(false);
         return;
       }
       if (!hadCache) setLoading(true);
@@ -103,7 +112,10 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
         console.error('Feed load failed:', err);
         if (!cancelled) setFailed(true);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     })();
     return () => {
@@ -170,7 +182,33 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="display-serif text-4xl mb-6">Home</h1>
+      <PullIndicator {...pullState} />
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <h1 className="display-serif text-4xl">Home</h1>
+        {friends?.length > 0 && (
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            className="btn-ghost text-sm inline-flex items-center gap-2 disabled:opacity-60"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className={`w-4 h-4 ${refreshing ? 'animate-spin-slow' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+              <path d="M20 4v7h-7" />
+            </svg>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        )}
+      </div>
 
       {friends?.length > 0 && (
         <section className="mb-6" aria-label="Following">
