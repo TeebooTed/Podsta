@@ -28,5 +28,5 @@ test('a missing route still offers create and sign-in', async ({ page }) => {
   await page.goto('/not-a-page');
   await expect(page.getByRole('heading', { name: 'Podsta', level: 1 })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create my Pod' }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /^sign in$/i }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /^sign in\b/i }).first()).toBeVisible();
 });
