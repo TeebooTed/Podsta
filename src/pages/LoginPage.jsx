@@ -83,7 +83,7 @@ const FAQ = [
   },
   {
     q: 'Who can see my photos?',
-    a: "You choose for each post. Only me means only you. Contacts means people you have approved, and following someone doesn't approve them. Public means anyone with the link. Your profile setting sets the limit: a hidden profile can only make Only me posts. One heads-up: Podsta uploads public photos exactly as you send them today, so any location your camera saved stays in the file and anyone who opens a public photo could read it. A coming upload change will strip that location data before a photo leaves your device.",
+    a: "You choose for each post. Only me means only you. Contacts means people you have approved, and following someone doesn't approve them. Public means anyone with the link. Your profile setting sets the limit: a hidden profile can only make Only me posts. Before a photo leaves your device, Podsta redraws it and removes the camera location and other photo details, so they never reach your pod.",
   },
   {
     q: 'Is Podsta free?',

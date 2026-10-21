@@ -1,6 +1,5 @@
 import mark from '../assets/podsta-mark.svg';
-import wordmark from '../assets/podsta-wordmark.svg';
-import wordmarkLight from '../assets/podsta-wordmark-light.svg';
+import WordmarkSvg from './WordmarkSvg.jsx';
 
 // Heights keep the lockup at least 96px wide (brand/BRAND.md minimum).
 const SIZES = {
@@ -11,7 +10,7 @@ const SIZES = {
 
 /**
  * The brand lockup from brand/: the pea-pod tile and the lowercase "podsta" wordmark, spaced as built.
- * Plum type on light themes, Cream type in dark mode. Without the word, only the tile shows.
+ * One inline SVG: Plum type on light themes, Cream type in dark mode. Without the word, only the tile shows.
  */
 export default function Logo({ size = 'sm', showWord = true, className = '' }) {
   const s = SIZES[size] || SIZES.sm;
@@ -21,21 +20,8 @@ export default function Logo({ size = 'sm', showWord = true, className = '' }) {
     );
   }
   return (
-    <span className={`inline-flex items-center ${className}`}>
-      <img
-        src={wordmark}
-        alt="Podsta"
-        width="2124"
-        height="510"
-        className={`${s.lockup} w-auto dark:hidden`}
-      />
-      <img
-        src={wordmarkLight}
-        alt="Podsta"
-        width="2124"
-        height="510"
-        className={`${s.lockup} w-auto hidden dark:block`}
-      />
-    </span>
+    <WordmarkSvg
+      className={`${s.lockup} w-auto aspect-[4248/1020] shrink-0 text-plum dark:text-cream ${className}`}
+    />
   );
 }
