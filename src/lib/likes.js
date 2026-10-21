@@ -33,7 +33,12 @@ export function likeSetUrl(ownerPodUrl, postUrl) {
   return `${ownerPodUrl}${PATHS.likeSets}${hashPostUrl(postUrl)}.ttl`;
 }
 
-export function likeSetAudience(post) {
+/**
+ * Like counts are private unless the author opts in.
+ * The liker's own list stays private either way.
+ */
+export function likeSetAudience(post, showCounts = false) {
+  if (!showCounts) return 'private';
   if (
     post?.audience === 'public' ||
     post?.audience === 'contacts' ||
@@ -280,7 +285,7 @@ export async function createLikesFile({ podUrl, session, entries }) {
   return url;
 }
 
-export async function publishLikeSet({ ownerPodUrl, session, post, webIds }) {
+export async function publishLikeSet({ ownerPodUrl, session, post, webIds, showCounts = false }) {
   if (!samePerson(session?.info?.webId, post?.ownerWebId) && post?.ownerWebId) {
     throw new Error('Only the author can publish who liked a post');
   }
@@ -292,7 +297,7 @@ export async function publishLikeSet({ ownerPodUrl, session, post, webIds }) {
   }
   const url = likeSetUrl(ownerPodUrl, post.url);
   await writeTurtle(url, serializeSet({ postUrl: post.url, webIds }), session);
-  await applyAudience([url], likeSetAudience(post), {
+  await applyAudience([url], likeSetAudience(post, showCounts), {
     ownerWebId: session.info.webId,
     groupUrl: groupFragment(ownerPodUrl),
     session,
@@ -315,7 +320,7 @@ export async function postLikeNotice({ session, ownerPodUrl, postUrl, removed = 
   return { ok: Boolean(response?.ok || response?.status === 201), status: response?.status || 0 };
 }
 
-export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked, knownEntries }) {
+export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked, knownEntries, showCounts = false }) {
   const me = session?.info?.webId;
   if (!me) throw new Error('Sign in to like a post');
   const postUrl = assertTurtleIri(post?.url);
@@ -370,6 +375,7 @@ export async function setOwnLike({ podUrl, session, post, ownerPodUrl, liked, kn
         session,
         post: { ...post, url: postUrl, ownerWebId: me },
         webIds,
+        showCounts,
       });
       notified = true;
     } catch {
@@ -451,7 +457,14 @@ export async function readInboxLikes(inboxUrl, fetchFn, limit = 40) {
   return notices;
 }
 
-export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries, blockedWebIds }) {
+export async function refreshOwnedLikeSets({
+  podUrl,
+  session,
+  posts,
+  ownEntries,
+  blockedWebIds,
+  showCounts = false,
+}) {
   const me = session.info.webId;
   const notices = await readInboxLikes(`${podUrl}inbox/`, session.fetch);
   let blocked = blockedWebIds;
@@ -488,6 +501,7 @@ export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries,
       session,
       post: { ...post, ownerWebId: me },
       webIds,
+      showCounts,
     });
     published.push({ url: post.url, webIds });
   }

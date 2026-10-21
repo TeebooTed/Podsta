@@ -53,6 +53,7 @@ async function withLevel(podUrl, session, fields, stored) {
     avatarUrl: fields.avatarUrl || '',
     coverUrl: fields.coverUrl || '',
     pinned: fields.pinned || [],
+    showLikeCounts: Boolean(fields.showLikeCounts),
     discoverability: resolved.level,
     discoverabilityInferred: resolved.inferred,
   };

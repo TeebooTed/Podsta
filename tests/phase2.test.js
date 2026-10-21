@@ -106,3 +106,19 @@ test('feed merges successful friends and counts the ones it could not reach', ()
     ['https://b.example/new', 'https://a.example/old'],
   );
 });
+
+test('the feed stays newest first when an older post has more likes', () => {
+  const merged = mergeFeedResults([
+    {
+      status: 'fulfilled',
+      value: [
+        { url: 'old', dateCreated: '2026-01-01T00:00:00.000Z', likes: 100 },
+        { url: 'new', dateCreated: '2026-04-01T00:00:00.000Z', likes: 0 },
+      ],
+    },
+  ]);
+  assert.deepEqual(
+    merged.entries.map((entry) => entry.url),
+    ['new', 'old'],
+  );
+});

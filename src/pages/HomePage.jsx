@@ -38,6 +38,7 @@ export default function HomePage({
   inviteNotice = null,
   undoingInvite = false,
   onUndoInvite,
+  showLikeCounts = false,
 }) {
   const [feedEntries, setFeedEntries] = useState([]);
   const [unreachable, setUnreachable] = useState(0);
@@ -59,6 +60,7 @@ export default function HomePage({
     podUrl,
     webId: session?.info?.webId || '',
     blockRevision,
+    showCounts: showLikeCounts,
     posts: feedEntries.map((entry) => ({
       url: entry.url,
       ownerWebId: entry.ownerWebId,

@@ -7,6 +7,7 @@ Dates are the days the work landed on `main`.
 - One-tap photo filters: Original, Warm, Fade, Mono, Cool, and Punch. The choice is drawn into the photo in the browser before it is uploaded. Camera location is still removed.
 - **Create my Pod** is the one-tap default on the signed-out page. It opens Solid Community. Sign-in for an account you already have stays on the page, and other pod hosts stay under Advanced.
 - An invite link or QR code follows that person after sign-in and sends a contact request. Home shows their public posts. A private profile stays private. Undo is on Home.
+- Like counts are private by default. Other people can still like a post, and you can see your own count. Turn on "Show like counts" on your profile to publish the number with the post's audience. The home feed stays newest first.
 - After you post, follow, like, or comment, Podsta can ask to show notifications on this device. The badge and the notices cover new comments, likes, and contact requests from the same check the app already runs. There is no push server.
 - CI signs two test accounts into a local Community Solid Server and checks posting for Only me, Contacts, and Public, plus follow, contacts-only visibility, a comment, a like, and notifications between them.
 - Posts, likes, and comments wait on this device when the pod is unreachable or the browser is offline, then send when the connection returns. The caption and photos from a failed upload stay until they are sent or discarded.

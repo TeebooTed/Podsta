@@ -921,6 +921,7 @@ export default function App() {
                 inviteNotice={inviteNotice}
                 undoingInvite={undoingInvite}
                 onUndoInvite={handleUndoInvite}
+                showLikeCounts={Boolean(profile.showLikeCounts)}
               />
             }
           />

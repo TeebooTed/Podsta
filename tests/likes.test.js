@@ -59,9 +59,10 @@ test('a later removal drops that person, and names stay hidden until the list is
   const shown = presentLikes({ webIds: [BOB, ADA], readable: true, mine: true, me: ADA });
   assert.equal(shown.count, 2);
   assert.deepEqual(shown.names, ['@bob', 'You']);
-  assert.equal(likeSetAudience({ audience: 'private' }), 'private');
-  assert.equal(likeSetAudience({ audience: 'contacts' }), 'contacts');
-  assert.equal(likeSetAudience({ isPublic: true }), 'public');
+  assert.equal(likeSetAudience({ audience: 'public' }), 'private');
+  assert.equal(likeSetAudience({ audience: 'contacts' }, true), 'contacts');
+  assert.equal(likeSetAudience({ isPublic: true }, true), 'public');
+  assert.equal(likeSetAudience({ audience: 'private' }, true), 'private');
 });
 
 function mockPod(handler) {

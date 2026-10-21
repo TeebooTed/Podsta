@@ -1102,11 +1102,21 @@ export async function blockPerson({ podUrl, session, webId, post }) {
       fetchFn: session.fetch,
     });
     if (likes.readable) {
+      let showCounts = false;
+      try {
+        const card = await session.fetch(`${podUrl}${PATHS.profile}`, {
+          headers: { Accept: 'text/turtle' },
+        });
+        if (card.ok) showCounts = /showLikeCounts[^.\n]*"public"/.test(await card.text());
+      } catch {
+        showCounts = false;
+      }
       await publishLikeSet({
         ownerPodUrl: podUrl,
         session,
         post: { ...post, ownerWebId: session.info.webId },
         webIds: filterBlocked(likes.webIds, webIds),
+        showCounts,
       });
     }
   }

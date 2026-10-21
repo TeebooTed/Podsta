@@ -18,10 +18,12 @@ import { safeHttpUrl } from './urls.js';
  * exactly as visible as the profile itself.
  *   - coverImage: URL of the cover photo.
  *   - pinnedPosts: up to three post URLs, space separated so their order survives.
+ *   - showLikeCounts: "public" when the author wants counts visible. Absent means private.
  */
 export const EXTRAS = {
   cover: 'https://podsta.app/vocab#coverImage',
   pinned: 'https://podsta.app/vocab#pinnedPosts',
+  counts: 'https://podsta.app/vocab#showLikeCounts',
 };
 
 export const MAX_PINNED = 3;
@@ -34,15 +36,16 @@ export function normalizePinned(list) {
 }
 
 export function readExtras(thing) {
-  if (!thing) return { coverUrl: '', pinned: [] };
+  if (!thing) return { coverUrl: '', pinned: [], showLikeCounts: false };
   return {
     coverUrl: safeHttpUrl(getStringNoLocale(thing, EXTRAS.cover) || '') || '',
     pinned: normalizePinned(getStringNoLocale(thing, EXTRAS.pinned) || ''),
+    showLikeCounts: getStringNoLocale(thing, EXTRAS.counts) === 'public',
   };
 }
 
 /** Leaves a field alone when it is undefined, so a name save keeps the cover and pins. */
-export function writeExtras(thing, { coverUrl, pinned } = {}) {
+export function writeExtras(thing, { coverUrl, pinned, showLikeCounts } = {}) {
   let next = thing;
   if (coverUrl !== undefined) {
     const safe = coverUrl ? safeHttpUrl(coverUrl) : '';
@@ -54,6 +57,11 @@ export function writeExtras(thing, { coverUrl, pinned } = {}) {
     next = list.length
       ? setStringNoLocale(next, EXTRAS.pinned, list.join(' '))
       : removeAll(next, EXTRAS.pinned);
+  }
+  if (showLikeCounts !== undefined) {
+    next = showLikeCounts
+      ? setStringNoLocale(next, EXTRAS.counts, 'public')
+      : removeAll(next, EXTRAS.counts);
   }
   return next;
 }
@@ -95,7 +103,7 @@ export function isPinnable(post) {
   return post.audience === undefined && post.isPublic === undefined;
 }
 
-export async function saveProfileExtras({ podUrl, session, coverUrl, pinned }) {
+export async function saveProfileExtras({ podUrl, session, coverUrl, pinned, showLikeCounts }) {
   const url = `${podUrl}${PATHS.profile}`;
   let ds;
   try {
@@ -104,7 +112,7 @@ export async function saveProfileExtras({ podUrl, session, coverUrl, pinned }) {
     ds = createSolidDataset();
   }
   const thing = getThing(ds, url) ?? createThing({ url });
-  await saveSolidDatasetAt(url, setThing(ds, writeExtras(thing, { coverUrl, pinned })), {
+  await saveSolidDatasetAt(url, setThing(ds, writeExtras(thing, { coverUrl, pinned, showLikeCounts })), {
     fetch: session.fetch,
   });
 }

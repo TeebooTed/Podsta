@@ -214,6 +214,7 @@ export default function ProfilePage({
     webId: ownWebId,
     posts,
     blockRevision,
+    showCounts: Boolean(profile?.showLikeCounts),
   });
 
   const onToggleLike = async (post) => {
@@ -386,6 +387,40 @@ export default function ProfilePage({
           onEdit={() => setPickingPins(true)}
         />
       )}
+
+      <section className="card p-6 sm:p-8" aria-labelledby="counts-heading">
+        <h2 id="counts-heading" className="display-serif text-2xl mb-2">
+          Like counts
+        </h2>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={Boolean(profile?.showLikeCounts)}
+            onChange={async (event) => {
+              const showLikeCounts = event.target.checked;
+              try {
+                await saveProfileExtras({ podUrl, session, showLikeCounts });
+                onProfileUpdated?.({ ...profile, showLikeCounts });
+                showToast(
+                  showLikeCounts
+                    ? 'Like counts show on posts you share'
+                    : 'Like counts stay on your pod',
+                );
+              } catch (err) {
+                showToast(err?.message || 'Could not save that setting', 'error');
+              }
+            }}
+          />
+          <span>
+            <span className="font-bold text-ink-50">Show like counts</span>
+            <span className="block text-ink-200 leading-relaxed mt-1">
+              Off by default. People can still like a post. They see the number only when this is
+              on, and only as widely as that post.
+            </span>
+          </span>
+        </label>
+      </section>
 
       <section className="card p-6 sm:p-8" aria-labelledby="invite-heading">
         <h2 id="invite-heading" className="display-serif text-2xl mb-2">
