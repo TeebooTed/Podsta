@@ -13,6 +13,7 @@ import {
 import { addReport } from '../lib/blocks.js';
 import { hashString, relativeTime } from '../lib/utils.js';
 import { notifyOutboxChanged, OFFLINE_COPY, QUEUED_COPY, queueSocialItem } from '../lib/outbox.js';
+import { markSocial } from '../lib/deviceNotices.js';
 import { MAX_COMMENT_LENGTH } from '../lib/vocab.js';
 import { samePerson } from '../lib/webId.js';
 import Avatar from './Avatar.jsx';
@@ -161,6 +162,7 @@ export default function CommentsDrawer({
         { webId: me, session, podUrl: viewerPodUrl },
       );
       notifyOutboxChanged();
+      markSocial(me);
       if (result.queued) {
         commentDraftRef.current = '';
         setText('');

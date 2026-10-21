@@ -70,8 +70,8 @@ export default function NotificationsPage({
           <Illustration name="welcome" className="w-40 mx-auto mb-1" />
           <h2 className="display-serif text-2xl text-ink-50">Nothing new</h2>
           <p className="text-sm text-ink-200 mt-2 leading-relaxed">
-            New posts from people you follow, comments on your posts and contact requests will show
-            up here.
+            New posts from people you follow, comments and likes on your posts, and contact requests
+            will show up here.
           </p>
         </div>
       )}

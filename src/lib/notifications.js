@@ -17,6 +17,7 @@ import { withTimeout } from './timeoutFetch.js';
  * Notifications Podsta can see without a server of its own:
  *   - new posts in the feeds of people you follow
  *   - comments on your posts, when one exists from someone else
+ *   - likes posted to your inbox
  *   - contact requests written on a followed Pod, or posted to your inbox
  *   - approvals, when their contacts group lists you or their inbox notice arrived
  *
@@ -85,6 +86,7 @@ export function buildNotifications({
   commentThreads = [],
   requests = [],
   approvals = [],
+  likes = [],
 }) {
   const items = [];
 
@@ -133,6 +135,23 @@ export function buildNotifications({
       title: `${name} asked to be a contact`,
       detail: '',
       href: personPath(request.authorWebId),
+    });
+  }
+
+  for (const like of likes) {
+    if (!like?.authorWebId || samePerson(like.authorWebId, webId)) continue;
+    if (like.removed) continue;
+    const postUrl = like.postUrl || like.aboutUrl || '';
+    const name = actorName(like.authorWebId, like.authorName);
+    items.push({
+      id: `like:${postUrl}:${like.authorWebId}`,
+      kind: 'like',
+      created: like.created || '',
+      actorWebId: like.authorWebId,
+      actorName: name,
+      title: `${name} liked your post`,
+      detail: '',
+      href: postUrl ? postPath(postUrl) : '',
     });
   }
 
@@ -223,6 +242,7 @@ export async function collectNotifications({
   }
 
   const requests = [];
+  const likes = [];
   for (const friend of cappedFriends) {
     const located = await mark(results, async () => {
       if (friend.podUrl) return friend.podUrl;
@@ -246,6 +266,7 @@ export async function collectNotifications({
   const approvals = [];
   if (inbox.ok) {
     for (const notice of inbox.value || []) {
+      if (notice.kind === 'like') likes.push(notice);
       if (notice.kind === 'contact-request') requests.push(notice);
       if (notice.kind === 'contact-approval') {
         approvals.push({
@@ -273,7 +294,7 @@ export async function collectNotifications({
   }
 
   return {
-    items: buildNotifications({ webId, feedEntries, commentThreads, requests, approvals }),
+    items: buildNotifications({ webId, feedEntries, commentThreads, requests, approvals, likes }),
     outgoingTargets,
     ...sourceOutcome(results),
   };

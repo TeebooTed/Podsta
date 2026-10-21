@@ -133,12 +133,14 @@ Each check looks at:
 
 - public posts of up to 40 people you follow (30 posts)
 - comments on your 15 newest posts, and only comments whose author is a different WebID
-- contact requests on Pods you follow, plus the latest 15 resources in your server inbox
+- contact requests on Pods you follow, plus the latest 15 resources in your server inbox, including likes and contact notices in those resources
 - approvals, when their contacts group lists you or an approval notice arrived
 
 The first check that can see anything is a baseline: those items are marked seen, so history does not light the badge. A check that fails completely is not a baseline. A later item still lights it. A partial failure keeps items the previous check already showed.
 
 Seen state is `localStorage`, key `podsta.notifications.seen:<encoded WebID>`. Mark as read clears the badge. Opening the page does not. Another browser starts again.
+
+After a person posts, follows, likes, or comments, Podsta can ask once to use notifications on this device. Agreeing opens the browser's permission dialog. From then on, the same poll sets the installed app's badge from the unseen count and sends a notification for a new comment, like, or contact request. The first batch already on screen is marked quiet, so turning it on does not repeat history. A hidden tab still pauses the poll. There is no push server.
 
 A Solid streaming channel, when the provider accepts the session, only wakes a poll. It does not invent a notification. On solidcommunity.net the subscription returned HTTP 400, so the page stays on the polling sentence and does not claim a live channel. If a channel does connect, the timer slows to three minutes. The poll is still the source of truth.
 

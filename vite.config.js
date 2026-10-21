@@ -47,6 +47,7 @@ export default defineConfig({
       manifest: false,
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon-180.png', 'icons/*.png'],
       workbox: {
+        importScripts: ['notice-click.js'],
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2,txt,json}'],
         globIgnores: ['**/*.map', '**/solid-client-id.json'],

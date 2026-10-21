@@ -4,6 +4,7 @@ import { makePublic } from './acl.js';
 import { assertTurtleIri } from './urls.js';
 import { normalizeWebId, samePerson } from './webId.js';
 import { resolveProfile } from './friends.js';
+import { parseLikeNotice } from './likes.js';
 
 /**
  * A contact request is written by the sender, in the sender's Pod.
@@ -114,6 +115,22 @@ export function parseNotice(text) {
     recipientWebId,
     aboutUrl: iriAfter(text, 'url'),
     created: stringAfter(text, 'dateCreated'),
+  };
+}
+
+/** A contact notice, or a like from the same inbox the poll already reads. */
+export function inboxItemFromText(text) {
+  const contact = parseNotice(text);
+  if (contact) return contact;
+  const like = parseLikeNotice(text);
+  if (!like || like.removed || !like.authorWebId) return null;
+  return {
+    kind: 'like',
+    authorWebId: like.authorWebId,
+    recipientWebId: '',
+    aboutUrl: like.postUrl,
+    postUrl: like.postUrl,
+    created: like.created || '',
   };
 }
 
@@ -247,7 +264,7 @@ export async function readInboxNotices(inboxUrl, fetchFn, limit = 15) {
       const item = await readText(url, fetchFn);
       if (responseDisposition(item.status) === 'absent') continue;
       if (!item.ok) continue;
-      const notice = parseNotice(await item.text());
+      const notice = inboxItemFromText(await item.text());
       if (notice?.authorWebId) notices.push(notice);
     } catch {
       // One unreadable inbox item does not hide the rest.
