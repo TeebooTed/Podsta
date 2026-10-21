@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import Avatar from '../components/Avatar.jsx';
 import PostGrid from '../components/PostGrid.jsx';
 import { saveProfile, uploadAvatar, uploadCover } from '../lib/profile.js';
-import { pinnedFrom, saveProfileExtras } from '../lib/profileExtras.js';
+import { deleteOldCover, pinnedFrom, saveProfileExtras } from '../lib/profileExtras.js';
 import ProfileCover from '../components/ProfileCover.jsx';
 import PinnedPosts, { PinPicker } from '../components/PinnedPosts.jsx';
 import ProfileShareCard from '../components/ProfileShareCard.jsx';
@@ -138,6 +138,7 @@ export default function ProfilePage({
           })
         : next;
       await saveProfileExtras({ podUrl, session, coverUrl: url });
+      deleteOldCover({ podUrl, session, oldUrl: coverUrl, newUrl: url });
       setCoverUrl(url);
       onProfileUpdated({ ...profile, coverUrl: url });
       showToast(url ? 'Cover saved' : 'Cover removed');

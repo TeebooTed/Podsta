@@ -8,6 +8,7 @@ import {
   getStringNoLocale,
   setStringNoLocale,
   removeAll,
+  deleteFile,
 } from '@inrupt/solid-client';
 import { PATHS } from './vocab.js';
 import { safeHttpUrl } from './urls.js';
@@ -64,6 +65,16 @@ export function togglePinned(pinned, url) {
   return [...list, url];
 }
 
+export function movePinned(pinned, from, to) {
+  const list = normalizePinned(pinned);
+  if (from < 0 || from >= list.length) return list;
+  const target = Math.max(0, Math.min(list.length - 1, to));
+  if (target === from) return list;
+  const [item] = list.splice(from, 1);
+  list.splice(target, 0, item);
+  return list;
+}
+
 /**
  * Pinned posts that can still be shown, in pin order. Only public posts count,
  * so the owner and every visitor see the same row.
@@ -96,4 +107,30 @@ export async function saveProfileExtras({ podUrl, session, coverUrl, pinned }) {
   await saveSolidDatasetAt(url, setThing(ds, writeExtras(thing, { coverUrl, pinned })), {
     fetch: session.fetch,
   });
+}
+
+/** True for a cover Podsta uploaded into this pod, never for a link to somewhere else. */
+export function isOwnCoverFile(podUrl, url) {
+  if (!podUrl || !url) return false;
+  try {
+    const href = new URL(url).href;
+    const folder = new URL('podsta/covers/', podUrl).href;
+    return href.startsWith(folder) && href.length > folder.length && !href.endsWith('/');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * After a new cover is saved, or the cover is removed, the old file is deleted so
+ * replaced photos don't pile up in the pod. Best effort: a failure leaves a stray file.
+ */
+export async function deleteOldCover({ podUrl, session, oldUrl, newUrl, deleteFn = deleteFile }) {
+  if (!oldUrl || oldUrl === newUrl || !isOwnCoverFile(podUrl, oldUrl)) return false;
+  try {
+    await deleteFn(oldUrl, { fetch: session.fetch });
+    return true;
+  } catch {
+    return false;
+  }
 }

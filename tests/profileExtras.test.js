@@ -4,7 +4,10 @@ import { createThing, getStringNoLocale, setStringNoLocale } from '@inrupt/solid
 import {
   EXTRAS,
   MAX_PINNED,
+  deleteOldCover,
+  isOwnCoverFile,
   isPinnable,
+  movePinned,
   normalizePinned,
   pinnedFrom,
   readExtras,
@@ -87,4 +90,49 @@ test('card text wraps to the line limit and ends with an ellipsis when cut', () 
   const [long] = wrapLines('x'.repeat(40), 100, 1, measure);
   assert.ok(measure(long) <= 100 && long.endsWith('…'));
   assert.deepEqual(wrapLines('', 100, 2, measure), []);
+});
+
+test('moving a pin shifts the others and clamps to the ends', () => {
+  assert.deepEqual(movePinned([A, B, C], 0, 2), [B, C, A]);
+  assert.deepEqual(movePinned([A, B, C], 2, 0), [C, A, B]);
+  assert.deepEqual(movePinned([A, B, C], 1, 9), [A, C, B]);
+  assert.deepEqual(movePinned([A, B, C], 1, 1), [A, B, C]);
+  assert.deepEqual(movePinned([A, B], 5, 0), [A, B]);
+});
+
+test('only cover files Podsta uploaded into this pod count as old covers', () => {
+  const pod = 'https://pod.example/ada/';
+  assert.equal(isOwnCoverFile(pod, 'https://pod.example/ada/podsta/covers/cover-1.jpg'), true);
+  assert.equal(isOwnCoverFile(pod, 'https://pod.example/ada/podsta/covers/'), false);
+  assert.equal(isOwnCoverFile(pod, 'https://pod.example/ada/podsta/posts/a.ttl'), false);
+  assert.equal(isOwnCoverFile(pod, 'https://pod.example/ada/podsta/covers/../profile.ttl'), false);
+  assert.equal(isOwnCoverFile(pod, 'https://pod.example/ben/podsta/covers/cover-1.jpg'), false);
+  assert.equal(isOwnCoverFile(pod, 'https://elsewhere.example/ada/podsta/covers/c.jpg'), false);
+  assert.equal(isOwnCoverFile(pod, 'not a url'), false);
+});
+
+test('the old cover is deleted after a replace or remove, and nothing else is', async () => {
+  const pod = 'https://pod.example/ada/';
+  const old = 'https://pod.example/ada/podsta/covers/cover-1.jpg';
+  const deleted = [];
+  const deleteFn = async (url) => deleted.push(url);
+  const session = { fetch: () => {} };
+  const run = (oldUrl, newUrl) =>
+    deleteOldCover({ podUrl: pod, session, oldUrl, newUrl, deleteFn });
+  assert.equal(await run(old, 'https://pod.example/ada/podsta/covers/cover-2.jpg'), true);
+  assert.equal(await run(old, ''), true);
+  assert.equal(await run(old, old), false);
+  assert.equal(await run('', 'https://pod.example/ada/podsta/covers/cover-2.jpg'), false);
+  assert.equal(await run('https://elsewhere.example/c.jpg', ''), false);
+  assert.deepEqual(deleted, [old, old]);
+  const failing = await deleteOldCover({
+    podUrl: pod,
+    session,
+    oldUrl: old,
+    newUrl: '',
+    deleteFn: async () => {
+      throw new Error('403');
+    },
+  });
+  assert.equal(failing, false);
 });
