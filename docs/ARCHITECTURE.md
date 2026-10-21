@@ -53,6 +53,8 @@ Older single-file photos are still a binary under `podsta/photos/` plus an optio
 
 Captions are at most 280 characters. Text posts are at most 5,000. Comments are at most 500.
 
+An Instagram import stores `podsta:importedFrom` on the post. The value is a stable key for that Instagram post, so the same export is not saved twice. `schema:dateCreated` is the original post time. The photo bytes are redrawn before upload, the same as any other photo, so camera location is not stored.
+
 ### Indexes
 
 Most Pod servers will not list a container to the public, so Podsta does not discover posts that way.

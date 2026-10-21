@@ -43,6 +43,7 @@ export const PODSTA = {
   discoverability: 'https://podsta.app/vocab#discoverability', // "public" | "contacts" | "hidden"
   ContactRequest: 'https://podsta.app/vocab#ContactRequest',
   ContactApproval: 'https://podsta.app/vocab#ContactApproval',
+  importedFrom: 'https://podsta.app/vocab#importedFrom',
 };
 
 // Pod paths — relative to the user's pod URL.
