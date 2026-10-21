@@ -10,7 +10,7 @@ import { displayHandle } from './handles.js';
 import { samePerson, normalizeWebId } from './webId.js';
 import { groupFragment } from './discoverability.js';
 import { applyAudience } from './acl.js';
-import { containedLikeUrls, likeSetAudience, loadLikeSet, publishLikeSet } from './likes.js';
+import { containedLikeUrls, loadLikeSet, publishLikeSet } from './likes.js';
 import { filterBlocked, isBlocked, loadBlocks, saveBlocks } from './blocks.js';
 import { isNotFound, retryTransient } from './timeoutFetch.js';
 import { MAX_COMMENT_LENGTH } from './vocab.js';
@@ -85,7 +85,14 @@ function legacyFileUrl(ownerPodUrl, postUrl) {
 }
 
 export function commentSetAudience(post) {
-  return likeSetAudience(post);
+  if (
+    post?.audience === 'public' ||
+    post?.audience === 'contacts' ||
+    post?.audience === 'private'
+  ) {
+    return post.audience;
+  }
+  return post?.isPublic ? 'public' : 'private';
 }
 
 export function commenterLabel({ webId, me, name = '', nameReadable = false }) {
