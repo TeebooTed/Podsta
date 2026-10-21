@@ -4,15 +4,28 @@ Date: 21 Oct 2026, 10:15 AM (America/Phoenix). Evidence files are in `/workspace
 ## What the source does now
 The Pages workflow builds with `PAGES_BASE=/Podsta/`. That sets the Vite base, and the app uses it for the router, asset URLs, and the service worker. `public/manifest.json` uses `start_url` and `scope` `./`. `public/solid-client-id.json` lists one redirect: `https://teebooted.github.io/Podsta/`. The build copies `index.html` to `404.html` and writes `start/index.html` with that guide's own canonical URL. `index.html` has the canonical link, Open Graph and Twitter tags, a SoftwareApplication JSON-LD block, and a no-JS fallback. `public/robots.txt`, `sitemap.xml`, `llms.txt`, and `podsta-share-1200x630.png` ship with the site. The manifest theme is Plum `#2B1B3D` and the background is Cream `#FFF7EE`.
 
-GitHub Pages is still off for this repository. Creating the site returns 403 for this token. A repo admin has to open Settings → Pages → Build and deployment and set Source to GitHub Actions, then re-run Deploy GitHub Pages. The same token cannot set the description, homepage, or topics.
+## Launch checklist (21 Oct 2026, evening)
+
+Checked against `main` and the live site. The audit below this section is the morning pass, written before Pages was on. Its Show HN and Product Hunt drafts are still the copy to use. Do not follow its "the site does not exist" steps.
+
+Done in the repo and on the live site:
+
+- https://teebooted.github.io/Podsta/ returns 200. `/start/` is a real 200 page with its own canonical URL. `robots.txt`, `sitemap.xml`, `llms.txt`, the manifest, icons, and `podsta-share-1200x630.png` are on that path.
+- Head tags match the P1 list: canonical, Open Graph, Twitter, JSON-LD (`SoftwareApplication`, which the Pages build check requires), no-JS fallback, `theme-color`, and `color-scheme`.
+- Fonts are self-hosted. The manifest theme is Plum `#2B1B3D` and the background is Cream `#FFF7EE`.
+- Repo homepage is the live URL. The description and topics are set. The README has the live demo link.
+
+Still outside this repository:
+
+- `https://teebooted.github.io/robots.txt` is 404. Crawlers ignore `/Podsta/robots.txt`. A root `robots.txt` needs a user-site repo or a custom domain. Until then, submit `https://teebooted.github.io/Podsta/sitemap.xml` in Search Console and Bing as a URL-prefix property.
+- No GitHub release or tag yet. `package.json` is `1.0.0`.
+- No custom social preview image in the repo settings (the API cannot upload one). Use the 1200×630 share image.
+- No hero GIF in the README. The screenshots are there.
+- Listings are not submitted: solidproject.org/apps, the Solid Forum, awesome-solid, Show HN, Product Hunt. Drafts are at the bottom of this file. Post those when a person is around to answer.
 
 ## Summary
-1. **The live site does not exist yet.** https://teebooted.github.io/Podsta/ (and `/podsta/` and the bare host) return GitHub's "There isn't a GitHub Pages site here" 404. The API call `GET /repos/TeebooTed/Podsta/pages` also returns 404, and `has_pages` is false. Nothing on the live site can be crawled, so I couldn't run PageSpeed/Lighthouse.
-2. **The repo is built for Vercel at a root path, not GitHub Pages at `/Podsta/`.** `vercel.json` has the SPA rewrite and security headers. In `vite.config.js` `base` isn't set, `index.html` and `manifest.json` use root-absolute paths (`/favicon.svg`, `/manifest.json`, `start_url: "/"`), `BrowserRouter` has no `basename`, and the Solid login redirect is `${origin}/`. On a project Pages site, every one of those points at `teebooted.github.io/` and breaks.
-3. **Head tags (from `index.html` in the source):** title, description, `og:title`, `og:description` and `og:type` are present, and `lang="en"` is set. Missing: canonical, `og:url`, `og:image`, all Twitter tags, apple-touch-icon, JSON-LD, and a no-JS fallback (`<div id="root"></div>` only).
-4. **Repo metadata (from the API):** description "Instagram for Solid Pods", **homepage empty**, **topics none**, MIT LICENSE present, **0 releases/tags**, 0 stars, last push 10 Oct 2026 (UTC). The social preview is GitHub's auto-generated card (opengraph.githubassets.com), not a custom image.
-5. **The README is strong:** a pitch line, a features list, 8 screenshots, Solid explained, a quick start, dev commands, a license, and links to CONTRIBUTING and CHANGELOG. It is missing a **live demo link** and a hero GIF. It also says "Podsta is not an installable app. `public/manifest.json` is a stub", which matches the code.
-6. **Listings:** the official catalog is https://solidproject.org/apps, added via a PR or issue on https://github.com/solid/solidproject.org (README: "please submit a pull request to this repository or open an issue"; last push 3 Oct 2026). The only live awesome list is https://github.com/kustomzone/awesome-solid (last push 9 Feb 2026, no CONTRIBUTING file). `solid/awesome-solid` returns 404. Show HN and Product Hunt both need a working URL people can try, so **they're blocked until hosting works**.
+1. **The live site is up.** https://teebooted.github.io/Podsta/ returns the app. Use the launch checklist above.
+2. The morning findings (Pages off, missing head tags, empty homepage and topics, "not an installable app") are superseded. Do not re-apply the P1 code changes in the prioritized list. The Pages build, head tags, manifest, and README demo link already exist. The listing drafts further down are still current.
 
 ## Current state evidence
 | Check | Result |
