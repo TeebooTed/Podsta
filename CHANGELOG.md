@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- A return visit reloads when a new service worker takes over, and an open tab checks for that update when it becomes visible again. The app shell still opens with the network off.
 - The theme script stays blocking so the first paint has the right colors, and it now runs after the stylesheet and app module are already discovered.
 - The photo viewer, the invite QR code, and Instagram import load when they are opened. The like confetti stays a few CSS dots on the landing hero, not a separate library.
 - Create my Pod still opens Solid Community in one tap, and the landing page says to create the pod before Continue authentication, then come back and tap Sign in. Continuing first leaves the new account with no address, and Solid Community does not send you back on its own.
