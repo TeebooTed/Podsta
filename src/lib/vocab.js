@@ -16,6 +16,7 @@ export const SCHEMA = {
   description: 'http://schema.org/description',
   url: 'http://schema.org/url',
   about: 'http://schema.org/about',
+  keywords: 'http://schema.org/keywords',
 };
 
 export const FOAF = {

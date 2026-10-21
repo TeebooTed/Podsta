@@ -15,6 +15,7 @@ import LikeControl from './LikeControl.jsx';
 import { LockIcon, PeopleIcon, StackIcon } from './icons.jsx';
 import { hashString } from '../lib/utils.js';
 import SaveButton from './SaveButton.jsx';
+import CaptionText from './CaptionText.jsx';
 
 // Plum text stays above AA on every stop of these gradients.
 const NOTE_TINTS = [
@@ -316,7 +317,9 @@ export default function PostGrid({
           title={openPost.title || 'Note'}
           maxWidth="max-w-lg"
         >
-          <p className="text-ink-100 leading-relaxed whitespace-pre-wrap">{openPost.body}</p>
+          <p className="text-ink-100 leading-relaxed whitespace-pre-wrap">
+            <CaptionText text={openPost.body} />
+          </p>
           <p className="text-xs text-ink-300 mt-3">{relativeTime(openPost.dateCreated)}</p>
           {actions(openPost)}
         </Modal>

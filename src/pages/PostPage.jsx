@@ -11,6 +11,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import SkeletonCard from '../components/SkeletonCard.jsx';
 import { samePerson } from '../lib/webId.js';
 import SaveButton from '../components/SaveButton.jsx';
+import CaptionText from '../components/CaptionText.jsx';
 import { isSaved } from '../lib/saves.js';
 
 /**
@@ -120,9 +121,15 @@ export default function PostPage({ session, posts = [], podUrl, showToast, saves
               This photo is private on your pod. Open your profile to see it.
             </p>
           )}
-          {post.caption && <p className="mt-4 text-ink-100 leading-relaxed">{post.caption}</p>}
+          {post.caption && (
+            <p className="mt-4 text-ink-100 leading-relaxed">
+              <CaptionText text={post.caption} />
+            </p>
+          )}
           {post.body && (
-            <p className="mt-4 text-ink-100 leading-relaxed whitespace-pre-wrap">{post.body}</p>
+            <p className="mt-4 text-ink-100 leading-relaxed whitespace-pre-wrap">
+              <CaptionText text={post.body} />
+            </p>
           )}
           <p className="text-xs text-ink-300 mt-3">{relativeTime(post.dateCreated)}</p>
           {onToggleSave && (

@@ -10,6 +10,7 @@ export const PATHS = {
   invite: '/invite',
   notifications: '/notifications',
   saved: '/saved',
+  tag: '/tag',
 };
 
 export const DESKTOP_NAV = [
@@ -34,6 +35,12 @@ export function postPath(resourceUrl) {
   return `${PATHS.post}?url=${encodeURIComponent(resourceUrl)}`;
 }
 
+export function tagPath(tag) {
+  const name = String(tag || '').trim().replace(/^#+/, '').toLocaleLowerCase();
+  if (!name) return '';
+  return `${PATHS.tag}?name=${encodeURIComponent(name)}`;
+}
+
 export function appPostUrl(origin, resourceUrl) {
   const root = String(origin || '').replace(/\/$/, '');
   return `${root}${postPath(resourceUrl)}`;
@@ -48,6 +55,7 @@ export function sectionFromPath(pathname = '') {
   if (pathname.startsWith(PATHS.invite)) return 'invite';
   if (pathname.startsWith(PATHS.notifications)) return 'notifications';
   if (pathname.startsWith(PATHS.saved)) return 'saved';
+  if (pathname.startsWith(PATHS.tag)) return 'tag';
   return 'home';
 }
 

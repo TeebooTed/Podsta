@@ -20,6 +20,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 - Likes stored in the liker's Pod. The author publishes the count and the names for posts they are willing to show.
 - In-app notifications for new posts from people you follow, comments and likes on your posts, and contact requests or approvals. The app polls. After you post, follow, like, or comment, this device can show a badge and a notification for new comments, likes, and contact requests. It does not run a notification server.
 - Saved posts. The list is a private file in your Pod (`podsta/favorites.ttl`). It stores the post address and the time you saved it, not a copy of the photo or the caption. A post you can no longer read shows as unavailable.
+- Captions and notes can include `#tags`. A tag page lists only posts you can already read: yours, including private ones, and posts from people you follow. There is no central tag directory.
 - Discover by WebID, with copy-my-WebID, invite links, and a QR code. A short name like `@ada` is derived from the WebID. It is not a registered handle.
 - A sign-up guide for people without a Pod. Solid Community is the recommended host. An existing Web Access Control Pod can sign in directly.
 - Phone layout with Home, Discover, New post, and Profile. Desktop uses the header. Keyboard: `h` home, `d` discover, `p` profile, `s` saved, `n` new post. Shortcuts are ignored while you are typing or a dialog is open. Saved posts are also in the account menu.
