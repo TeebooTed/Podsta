@@ -18,7 +18,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 - Instagram import on Profile. Choose the JSON zip or the unzipped folder from Instagram's download, preview the posts, and save the ones you pick. Original dates and captions are kept, camera location is removed, and new posts start as Only me unless you choose otherwise. Posts already saved are skipped, and a stopped import can continue.
 - Comments live in the commenter's Pod. The author publishes the list with the same audience as the post, and can hide one or block that person. Other people cannot write the author's Pod.
 - Likes stored in the liker's Pod. The author publishes the count and the names for posts they are willing to show.
-- In-app notifications for new posts from people you follow, comments on your posts, and contact requests or approvals. The app polls. It does not run a notification server.
+- In-app notifications for new posts from people you follow, comments and likes on your posts, and contact requests or approvals. The app polls. After you post, follow, like, or comment, this device can show a badge and a notification for new comments, likes, and contact requests. It does not run a notification server.
 - Discover by WebID, with copy-my-WebID, invite links, and a QR code. A short name like `@ada` is derived from the WebID. It is not a registered handle.
 - A sign-up guide for people without a Pod. Solid Community is the recommended host. An existing Web Access Control Pod can sign in directly.
 - Phone layout with Home, Discover, New post, and Profile. Desktop uses the header. Keyboard: `h` home, `d` discover, `p` profile, `n` new post. Shortcuts are ignored while you are typing or a dialog is open.

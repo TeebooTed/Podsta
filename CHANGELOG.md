@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- After you post, follow, like, or comment, Podsta can ask to show notifications on this device. The badge and the notices cover new comments, likes, and contact requests from the same check the app already runs. There is no push server.
 - CI signs two test accounts into a local Community Solid Server and checks posting for Only me, Contacts, and Public, plus follow, contacts-only visibility, a comment, a like, and notifications between them.
 - Posts, likes, and comments wait on this device when the pod is unreachable or the browser is offline, then send when the connection returns. The caption and photos from a failed upload stay until they are sent or discarded.
 - Instagram import on Profile. A signed-in person can choose Instagram's JSON zip or unzipped folder, preview the posts, and save the ones they pick. Dates and captions stay, camera location is removed, and the audience starts as Only me. Posts already in the pod are skipped, and a stopped import can continue.

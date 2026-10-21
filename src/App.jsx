@@ -47,8 +47,11 @@ import Composer from './components/Composer.jsx';
 import Modal from './components/Modal.jsx';
 import Toast from './components/Toast.jsx';
 import { useNotificationFeed } from './hooks/useNotificationFeed.js';
+import { useDeviceNotices } from './hooks/useDeviceNotices.js';
+import { markSocial } from './lib/deviceNotices.js';
 import { useOutbox } from './hooks/useOutbox.js';
 import OutboxBanner from './components/OutboxBanner.jsx';
+import DeviceNoticePrompt from './components/DeviceNoticePrompt.jsx';
 import { useTheme } from './hooks/useTheme.js';
 import Logo from './components/Logo.jsx';
 
@@ -231,6 +234,7 @@ export default function App() {
         podUrl,
         webId: session.info.webId,
       });
+      markSocial(session.info.webId);
       if (result.queued) {
         showToast(result.offline ? OFFLINE_COPY : QUEUED_COPY, 'info');
         return;
@@ -365,6 +369,7 @@ export default function App() {
           if (prev.some((f) => f.webId === added.webId)) return prev;
           return [...prev, added];
         });
+        markSocial(session.info.webId);
         showToast(`Now following ${added.name || 'user'}`);
       } catch (err) {
         showToast(
@@ -553,6 +558,13 @@ export default function App() {
     friends,
     posts,
   });
+  const deviceNotices = useDeviceNotices({
+    enabled: Boolean(session?.info?.isLoggedIn && podUrl && !onboardingOpen && !welcomeWebId),
+    webId: session?.info?.webId || '',
+    items: notifications.items,
+    seen: notifications.seen,
+    unseenCount: notifications.unseenCount,
+  });
 
   const handleAskContact = useCallback(
     async (webId) => {
@@ -560,6 +572,7 @@ export default function App() {
       setAskWebId(webId);
       try {
         const result = await sendContactRequest({ podUrl, session, targetWebId: webId });
+        markSocial(session.info.webId);
         setSentRequests((prev) => [...prev, result.targetWebId]);
         if (result.inboxDelivered) {
           showToast('Contact request sent');
@@ -739,6 +752,9 @@ export default function App() {
             flushing={outbox.flushing}
             onDiscard={outbox.discard}
           />
+        )}
+        {deviceNotices.ask && (
+          <DeviceNoticePrompt onEnable={deviceNotices.enable} onDismiss={deviceNotices.dismiss} />
         )}
         {sessionExpired && (
           <div

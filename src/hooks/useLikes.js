@@ -6,6 +6,7 @@ import {
   refreshOwnedLikeSets,
 } from '../lib/likes.js';
 import { notifyOutboxChanged, queueSocialItem } from '../lib/outbox.js';
+import { markSocial } from '../lib/deviceNotices.js';
 import { hashString } from '../lib/utils.js';
 import { samePerson } from '../lib/webId.js';
 import { isBlocked, loadBlocks } from '../lib/blocks.js';
@@ -131,6 +132,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
         { webId, session, podUrl, knownEntries: entriesConfirmed ? entries : undefined },
       );
       notifyOutboxChanged();
+      if (liked) markSocial(webId);
       if (result.queued) {
         const next = liked
           ? [...entries.filter((entry) => entry.postUrl !== post.url), { postUrl: post.url, created: new Date().toISOString() }]
