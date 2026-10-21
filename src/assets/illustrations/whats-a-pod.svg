@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450"><ellipse cx="300" cy="240" rx="230" ry="180" fill="#FFE9D9"/>
+<g transform="rotate(-12 300 230)">
+<path d="M110 230 C110 160 190 145 300 145 C410 145 490 160 490 230 C490 300 410 315 300 315 C190 315 110 300 110 230Z" fill="#3DD9A8" stroke="#2B1B3D" stroke-width="8"/>
+<path d="M140 230 C140 185 200 175 300 175 C400 175 460 185 460 230 C460 275 400 285 300 285 C200 285 140 275 140 230Z" fill="#FFF7EE"/>
+<rect x="170" y="195" width="70" height="70" rx="14" fill="#FFC547"/><circle cx="300" cy="230" r="38" fill="#FF6B57"/><path d="M285 230 l10 10 l20 -22" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="360" y="200" width="66" height="60" rx="12" fill="#E8457A"/><circle cx="393" cy="230" r="14" fill="#FFF7EE"/>
+<path d="M490 230 C520 210 530 180 522 150" stroke="#2B1B3D" stroke-width="8" fill="none" stroke-linecap="round"/></g>
+<rect x="250" y="350" width="100" height="70" rx="14" fill="#2B1B3D"/><path d="M272 350 v-22 a28 28 0 0 1 56 0 v22" stroke="#2B1B3D" stroke-width="10" fill="none"/><circle cx="300" cy="383" r="10" fill="#FFC547"/></svg>

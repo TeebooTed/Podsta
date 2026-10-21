@@ -106,12 +106,14 @@ export default function PublicPerson({
       ) : (
         <section className="card p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row gap-5 items-start">
-            <Avatar src={person?.profileShared ? person.avatarUrl : ''} name={avatarName} size="xl" />
+            <Avatar
+              src={person?.profileShared ? person.avatarUrl : ''}
+              name={avatarName}
+              size="xl"
+            />
             <div className="min-w-0 flex-1">
               <h1 className="display-serif text-4xl break-words">{heading}</h1>
-              {names.qualified && (
-                <p className="text-sm text-ink-100 mt-1">{names.qualified}</p>
-              )}
+              {names.qualified && <p className="text-sm text-ink-100 mt-1">{names.qualified}</p>}
               <p className="text-xs font-mono text-ink-200 mt-1 break-all">{webId}</p>
               {person?.profileShared && person.bio && (
                 <p className="text-sm text-ink-100 mt-3 leading-relaxed">{person.bio}</p>
@@ -130,7 +132,8 @@ export default function PublicPerson({
                     {followBusy ? 'Following…' : signedIn ? 'Follow' : 'Sign in to follow'}
                   </button>
                 )}
-                {signedIn && !samePerson(selfWebId, webId) &&
+                {signedIn &&
+                  !samePerson(selfWebId, webId) &&
                   (requestedWebIds.some((id) => samePerson(id, webId)) ? (
                     <span className="text-sm text-signal self-center">Request sent</span>
                   ) : (
@@ -150,7 +153,11 @@ export default function PublicPerson({
       )}
 
       {!loading && person?.profileShared && posts.length === 0 && (
-        <EmptyState title="No public posts" message="When they share a post publicly, it will appear in this grid." />
+        <EmptyState
+          art="welcome"
+          title="No public posts"
+          message="When they share a post publicly, it will appear in this grid."
+        />
       )}
 
       {posts.length > 0 && (
@@ -159,23 +166,37 @@ export default function PublicPerson({
             <li key={post.url}>
               <button
                 type="button"
-                className="relative block w-full aspect-square bg-ink-800 overflow-hidden text-left"
+                className="group/tile relative block w-full aspect-square bg-ink-800 overflow-hidden text-left rounded-md sm:rounded-xl focus-visible:outline-offset-2"
                 disabled={post.type !== 'photo'}
                 onClick={() => {
                   const idx = photos.findIndex((photo) => photo.url === post.url);
                   if (idx >= 0) setPhotoIndex(idx);
                 }}
-                aria-label={post.type === 'photo' ? post.caption || 'Open photo' : post.title || 'Note'}
+                aria-label={
+                  post.type === 'photo' ? post.caption || 'Open photo' : post.title || 'Note'
+                }
               >
                 {post.type === 'photo' &&
-                safeHttpUrl(primaryPhotoUrl({ ...post, type: 'photo', mediaUrl: post.images?.[0] || post.url })) ? (
+                safeHttpUrl(
+                  primaryPhotoUrl({
+                    ...post,
+                    type: 'photo',
+                    mediaUrl: post.images?.[0] || post.url,
+                  }),
+                ) ? (
                   <img
-                    src={primaryPhotoUrl({ ...post, type: 'photo', mediaUrl: post.images?.[0] || post.url })}
+                    src={primaryPhotoUrl({
+                      ...post,
+                      type: 'photo',
+                      mediaUrl: post.images?.[0] || post.url,
+                    })}
                     alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover/tile:scale-[1.04] group-focus-visible/tile:scale-[1.04]"
                   />
                 ) : (
-                  <span className="absolute inset-0 p-2 flex items-end display-serif text-sm text-ink-100 line-clamp-4">
+                  <span className="absolute inset-0 p-2.5 sm:p-4 flex items-end bg-gradient-to-br from-sunshine to-accent-light font-display font-semibold text-sm sm:text-lg leading-snug text-plum line-clamp-4">
                     {post.title || post.caption || 'Note'}
                   </span>
                 )}

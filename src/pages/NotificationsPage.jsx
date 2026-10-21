@@ -1,3 +1,4 @@
+import Illustration from '../components/Illustration.jsx';
 import { Link } from 'react-router-dom';
 import { pollStatusCopy } from '../lib/pollSchedule.js';
 import { relativeTime } from '../lib/utils.js';
@@ -50,6 +51,7 @@ export default function NotificationsPage({
 
       {items.length === 0 && !checking && (
         <div className="card mt-8 p-8 text-center">
+          <Illustration name="welcome" className="w-40 mx-auto mb-1" />
           <h2 className="display-serif text-2xl text-ink-50">Nothing new</h2>
           <p className="text-sm text-ink-200 mt-2 leading-relaxed">
             New posts from people you follow, comments on your posts, and contact requests show up here.

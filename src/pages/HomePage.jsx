@@ -284,7 +284,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
         </div>
       ) : !friends?.length ? (
         <EmptyState
-          icon="✦"
+          art="no-followers"
           title={copy.title}
           message={copy.message}
           action={
@@ -316,7 +316,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
         />
       ) : renderablePosts.length === 0 ? (
         <EmptyState
-          icon="◯"
+          art="welcome"
           title="Nothing public yet"
           message="The people you follow have not shared a post. When they do, it will show up here."
           action={

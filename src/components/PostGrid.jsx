@@ -206,6 +206,7 @@ export default function PostGrid({
   if (!loading && posts.length === 0) {
     return (
       <EmptyState
+        art="first-post"
         title="Nothing here yet"
         message="Photos and notes you write show up in this grid. New posts stay private until you share them."
         action={

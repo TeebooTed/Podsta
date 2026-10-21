@@ -185,7 +185,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
           </div>
         ) : (
           <EmptyState
-            icon="∅"
+            art="no-followers"
             title="No public directory yet"
             message="People appear here when you can reach them through a published follow list and they have opted in. Podsta has no central phone book. Paste a WebID you already know."
           />
