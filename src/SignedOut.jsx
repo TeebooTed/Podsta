@@ -111,7 +111,11 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
             <Route
               path="*"
               element={
-                <LoginPage error={error} onLogin={(issuer) => startLogin(issuer, appUrl('/'))} />
+                <LoginPage
+                  error={error}
+                  onLogin={(issuer) => startLogin(issuer, appUrl('/'))}
+                  onCreate={startSignup}
+                />
               }
             />
           </Routes>

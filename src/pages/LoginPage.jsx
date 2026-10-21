@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { OTHER_PROVIDERS, RECOMMENDED_PROVIDER } from '../lib/provider.js';
-import { PATHS } from '../lib/navigation.js';
 import Logo from '../components/Logo.jsx';
 import Illustration from '../components/Illustration.jsx';
 import HeroCollage from '../components/HeroCollage.jsx';
@@ -91,7 +89,7 @@ const FAQ = [
   },
   {
     q: 'How do I get a pod?',
-    a: 'Tap "I don\'t have a pod." Podsta walks you over to Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password.',
+    a: 'Tap "Create my Pod." That opens Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password. Other pod hosts are under Advanced.',
   },
   {
     q: 'Can I use a pod I already have?',
@@ -178,10 +176,10 @@ function KeyPicker() {
 }
 
 /**
- * Public landing, then existing-Pod sign-in.
- * The identity provider choice is open before anyone signs in.
+ * Public landing. Create my Pod is the one-tap default on Solid Community.
+ * Other hosts, and sign-in for an account you already have, sit under Advanced.
  */
-export default function LoginPage({ error, onLogin, busy = false }) {
+export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
   const [advanced, setAdvanced] = useState(false);
   const [customIssuer, setCustomIssuer] = useState('');
   const [localError, setLocalError] = useState(null);
@@ -196,6 +194,21 @@ export default function LoginPage({ error, onLogin, busy = false }) {
       console.error('Login failed:', err);
       setLocalError(
         "We couldn't sign you in. Your pod host didn't answer or said no. Check the address and try again, or pick Solid Community from the list.",
+      );
+      setPending(false);
+    }
+  };
+
+  const createPod = async () => {
+    if (!onCreate) return;
+    setPending(true);
+    setLocalError(null);
+    try {
+      await onCreate();
+    } catch (err) {
+      console.error('Create pod failed:', err);
+      setLocalError(
+        "We couldn't open Solid Community. Try again, or open Advanced and pick another host.",
       );
       setPending(false);
     }
@@ -236,24 +249,24 @@ export default function LoginPage({ error, onLogin, busy = false }) {
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
-                onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
-                disabled={working}
+                onClick={createPod}
+                disabled={working || !onCreate}
                 className="btn-primary text-base px-7 py-3.5"
               >
-                {working ? 'Opening your pod host…' : 'Sign in'}
+                {working ? 'Opening Solid Community…' : 'Create my Pod'}
               </button>
-              <Link to={PATHS.start} className="btn-secondary text-base px-7 py-3.5">
-                Get a pod
-              </Link>
+              <a href="#sign-in" className="btn-secondary text-base px-7 py-3.5 text-center">
+                I already have an account
+              </a>
             </div>
             <p className="mt-4 text-sm text-ink-200">
-              Signs in with {RECOMMENDED_PROVIDER.host}.{' '}
+              One tap opens {RECOMMENDED_PROVIDER.host}.{' '}
               <a
                 href="#sign-in"
                 onClick={() => setAdvanced(true)}
                 className="underline decoration-2 underline-offset-2 hover:text-ink-50"
               >
-                Use a different pod host
+                Advanced
               </a>
             </p>
             <ul className="mt-8 flex flex-wrap gap-2 text-xs font-extrabold text-ink-100">
@@ -342,8 +355,8 @@ export default function LoginPage({ error, onLogin, busy = false }) {
           <ol className="grid gap-6 sm:grid-cols-3">
             {[
               [
-                'Get a pod',
-                "Make one on Solid Community with an email and a password. It's quick. Already have one? Skip ahead.",
+                'Create my Pod',
+                "One tap opens Solid Community. Make the account there with an email and a password. Already have one? Skip ahead.",
               ],
               ['Sign in to Podsta', 'Sign in with your pod. Podsta never sees your password.'],
               [
@@ -440,34 +453,35 @@ export default function LoginPage({ error, onLogin, busy = false }) {
                 id="signin-heading"
                 className="font-display font-semibold text-3xl text-ink-50 mb-2 text-balance"
               >
-                Sign in with your pod
+                Create my Pod
               </h2>
               <p className="text-sm text-ink-100 mb-5 leading-relaxed">
-                Podsta doesn't have its own accounts. Your photos and posts live in a pod you
-                control. New here? We'll help you get one in a couple of minutes.
+                One tap opens {RECOMMENDED_PROVIDER.label}. You make the account there with an email
+                and a password. Podsta never sees that password. Your photos stay in the pod that
+                account creates.
               </p>
+
+              <button
+                type="button"
+                onClick={createPod}
+                disabled={working || !onCreate}
+                className="w-full text-left px-5 py-3.5 bg-accent hover:bg-accent-light text-plum rounded-2xl shadow-soft transition disabled:opacity-50"
+              >
+                <span className="block font-extrabold">Create my Pod</span>
+                <span className="block text-xs mt-0.5">{RECOMMENDED_PROVIDER.host}</span>
+              </button>
 
               <button
                 type="button"
                 onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
                 disabled={working}
-                className="w-full text-left px-5 py-3.5 bg-accent hover:bg-accent-light text-plum rounded-2xl shadow-soft transition disabled:opacity-50"
+                className="mt-2 w-full text-left px-5 py-3.5 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded-2xl transition disabled:opacity-50"
               >
-                <span className="block font-extrabold">Sign in</span>
-                <span className="block text-xs mt-0.5">
-                  {RECOMMENDED_PROVIDER.host} · I already have a pod
+                <span className="block font-extrabold text-ink-50">Sign in</span>
+                <span className="block text-xs text-ink-200 mt-0.5">
+                  I already have an account on {RECOMMENDED_PROVIDER.host}
                 </span>
               </button>
-
-              <Link
-                to={PATHS.start}
-                className="mt-2 w-full text-left px-5 py-3.5 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded-2xl transition block"
-              >
-                <span className="block font-extrabold text-ink-50">I don't have a pod</span>
-                <span className="block text-xs text-ink-200 mt-0.5">
-                  Make one on {RECOMMENDED_PROVIDER.label}, then come back
-                </span>
-              </Link>
 
               <div className="mt-4 pt-4 border-t border-ink-600/70">
                 <button
@@ -477,7 +491,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
                   aria-expanded={advanced}
                   aria-controls="other-providers"
                 >
-                  {advanced ? 'Hide other hosts' : 'I use a different pod host'}
+                  {advanced ? 'Hide advanced' : 'Advanced'}
                 </button>
                 {advanced && (
                   <div id="other-providers" className="mt-2 space-y-2 animate-slide-down">
