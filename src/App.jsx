@@ -69,6 +69,14 @@ import Logo from './components/Logo.jsx';
 import { isSaved, loadSaves, setSaved } from './lib/saves.js';
 import SavedPage from './pages/SavedPage.jsx';
 import TagPage from './pages/TagPage.jsx';
+import PackPage from './pages/PackPage.jsx';
+import {
+  consumePackFollow,
+  packAppUrl,
+  packFollowResult,
+  peopleToFollow,
+  rememberPackFollow,
+} from './lib/pack.js';
 
 /**
  * Top-level component. Holds:
@@ -117,8 +125,11 @@ export default function App() {
   const location = useLocation();
   const followedPending = useRef(false);
   const inviteReturned = useRef(new Set());
+  const packPending = useRef(false);
   const [inviteNotice, setInviteNotice] = useState(null);
   const [undoingInvite, setUndoingInvite] = useState(false);
+  const [packNotice, setPackNotice] = useState('');
+  const [followingPack, setFollowingPack] = useState(false);
   const theme = useTheme();
 
   // ── Per-resource in-flight trackers (so cards know to disable buttons) ──
@@ -617,6 +628,61 @@ export default function App() {
     }
   }, [inviteNotice, podUrl, session, showToast]);
 
+  const followPackMembers = useCallback(
+    async (webIds) => {
+      if (!podUrl || !session) return packFollowResult(0, 0);
+      const todo = peopleToFollow(webIds, { selfWebId: session.info.webId, following: friends });
+      if (!todo.length) return packFollowResult(0, 0);
+      let followed = 0;
+      for (const webId of todo) {
+        try {
+          const added = await addFriend({
+            podUrl,
+            session,
+            webId,
+            discoverability: profile.discoverability,
+          });
+          followed += 1;
+          setFriends((prev) =>
+            prev.some((friend) => samePerson(friend.webId, added.webId)) ? prev : [...prev, added],
+          );
+        } catch {
+          // One address can fail without dropping the rest of the pack.
+        }
+      }
+      if (followed) markSocial(session.info.webId);
+      return packFollowResult(todo.length, followed);
+    },
+    [podUrl, session, friends, profile.discoverability],
+  );
+
+  const handleFollowPack = useCallback(
+    async (webIds) => {
+      setFollowingPack(true);
+      try {
+        setPackNotice(await followPackMembers(webIds));
+      } finally {
+        setFollowingPack(false);
+      }
+    },
+    [followPackMembers],
+  );
+
+  useEffect(() => {
+    if (!session?.info?.isLoggedIn || !podUrl || !libraryReady || packPending.current) return;
+    const pending = consumePackFollow(window.sessionStorage);
+    if (!pending.length) return;
+    packPending.current = true;
+    (async () => {
+      try {
+        setPackNotice(await followPackMembers(pending));
+      } catch (err) {
+        packPending.current = false;
+        showToast(err?.message || "We couldn't follow the people in that pack.", 'error');
+      }
+    })();
+  }, [session, podUrl, libraryReady, followPackMembers, showToast]);
+
   const startLogin = useCallback((issuer, redirectUrl) => {
     window.sessionStorage.removeItem(SIGNUP_KEY);
     return login(issuer, redirectUrl);
@@ -966,6 +1032,36 @@ export default function App() {
             }
           />
           <Route
+            path="/pack"
+            element={
+              <div className="min-h-screen px-4 pt-6 pb-16">
+                <div className="max-w-3xl mx-auto">
+                  <p className="mb-6">
+                    <Link to="/" aria-label="Podsta home" className="inline-block rounded-xl">
+                      <Logo size="md" />
+                    </Link>
+                  </p>
+                  <PackPage
+                    session={null}
+                    friends={[]}
+                    signedIn={false}
+                    onSignInToFollow={async (webIds, resourceUrl) => {
+                      try {
+                        rememberPackFollow(window.sessionStorage, webIds);
+                        await login(
+                          RECOMMENDED_PROVIDER.issuer,
+                          packAppUrl(currentAppRoot(), resourceUrl),
+                        );
+                      } catch (err) {
+                        showToast(err?.message || 'Could not open Solid Community.', 'error');
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            }
+          />
+          <Route
             path="*"
             element={
               <LoginPage
@@ -1197,6 +1293,21 @@ export default function App() {
                 savingUrl={savingUrl}
                 onToggleSave={handleToggleSave}
                 showToast={showToast}
+              />
+            }
+          />
+          <Route
+            path="/pack"
+            element={
+              <PackPage
+                session={session}
+                friends={friends}
+                signedIn
+                addingWebId={addingWebId}
+                followingAll={followingPack}
+                notice={packNotice}
+                onFollow={handleAddFriend}
+                onFollowAll={handleFollowPack}
               />
             }
           />

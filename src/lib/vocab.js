@@ -48,6 +48,7 @@ export const PODSTA = {
   importedFrom: 'https://podsta.app/vocab#importedFrom',
   Save: 'https://podsta.app/vocab#Save',
   imageAlt: 'https://podsta.app/vocab#imageAlt',
+  Pack: 'https://podsta.app/vocab#Pack',
 };
 
 // Pod paths — relative to the user's pod URL.
@@ -68,6 +69,7 @@ export const PATHS = {
   contactsIndex: 'podsta/contacts-index.ttl',
   listing: 'podsta/listing.ttl',
   favorites: 'podsta/favorites.ttl', // private saved-post list. URLs only.
+  starterPack: 'podsta/packs/starter.ttl', // public list of addresses. URLs only.
   profile: 'podsta/profile.ttl',
   inbox: 'podsta/inbox/',
   contactRequests: 'podsta/contact-requests.ttl',

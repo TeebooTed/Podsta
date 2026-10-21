@@ -4,9 +4,11 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- Starter packs. Profile can save up to 50 addresses in a public file in your pod and share that file with a link or a QR code. Opening it shows those people, with Follow all and a follow button for each one. There is no central directory.
 - A weekly photo prompt on Home, such as Something green. It shows only when someone you follow posted in the last seven days. Not this week hides it on this device until next week. There is no extra notification.
 - Sign in with your account. The sign-in card says "Your account" and accepts a name like @ada or @ada@solidweb.org. That name only chooses the host. It is not looked up, and there is no registry. A blank name still opens Solid Community.
 - One-tap photo looks in the new-post window: Cream, Sunshine, Coral, Berry, Plum, Mint, and Soft, each with a live thumbnail. Square or 4:5, brightness, and warmth are drawn into the photo on this device. As shot still posts in the same few taps. Camera location is still removed, and an untouched GIF still stays a GIF.
+- One-tap photo filters: Original, Warm, Fade, Mono, Cool, and Punch. The choice is drawn into the photo in the browser before it is uploaded. Camera location is still removed.
 - **Create my Pod** is the one-tap default on the signed-out page. It opens Solid Community. Sign-in for an account you already have stays on the page, and other pod hosts stay under Advanced.
 - An invite also connects both ways. The new person approves the inviter as a contact and posts a notice to the inviter's inbox. The inviter's app follows back and approves the new person. Nothing is written into the other person's pod except that inbox notice.
 - An invite link or QR code follows that person after sign-in and sends a contact request. Home shows their public posts. A private profile stays private. Undo is on Home.

@@ -20,6 +20,7 @@ import InviteQr from '../components/InviteQr.jsx';
 import PullIndicator from '../components/PullIndicator.jsx';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import InstagramImport from '../components/InstagramImport.jsx';
+import StarterPack from '../components/StarterPack.jsx';
 import { PATHS } from '../lib/navigation.js';
 import { isSaved } from '../lib/saves.js';
 
@@ -460,6 +461,8 @@ export default function ProfilePage({
           </div>
         </div>
       </section>
+
+      <StarterPack session={session} podUrl={podUrl} friends={friends} showToast={showToast} />
 
       <InstagramImport
         session={session}

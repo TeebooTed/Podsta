@@ -60,7 +60,7 @@ You need a Solid Pod on a server that uses Web Access Control.
 
 **You already have an account.** Choose **I already have an account**, type your name such as `@ada`, and choose **Sign in**. A blank name opens Solid Community. A name from somewhere else looks like `@ada@solidweb.org`. That only picks the host. It does not look the name up, and it is not a registry. Other hosts are under **Advanced**. [solidweb.org](https://solidweb.org) also uses Web Access Control. Inrupt PodSpaces is listed so you can see why it is not supported: it uses access policies this app cannot write.
 
-After sign-in you can skip the short tour. The profile starts Hidden. Copy your WebID from Home or Discover and send it to someone, or follow a WebID you already know. Invite links use `/invite?webid=`. Signing in through one follows that person, approves them as a contact, sends a contact request, and opens Home. A notice in their inbox asks their app to follow back and approve you. Public posts can show there. A private profile stays private. Undo is on Home.
+After sign-in you can skip the short tour. The profile starts Hidden. Copy your WebID from Home or Discover and send it to someone, or follow a WebID you already know. Invite links use `/invite?webid=`. Signing in through one follows that person, approves them as a contact, sends a contact request, and opens Home. A notice in their inbox asks their app to follow back and approve you. Public posts can show there. A private profile stays private. Undo is on Home. A starter pack is a public file in your pod, `podsta/packs/starter.ttl`, with up to 50 addresses. Its link and QR code open `/pack?url=`. Follow all and each person use the same follow rules as Discover.
 
 ## For developers
 
@@ -80,7 +80,7 @@ npm run preview   # serve the production build
 
 `dist/` is a static site. GitHub Pages serves it at `/Podsta/`. `vercel.json` rewrites every route to `index.html` and sets a Content-Security-Policy, `X-Frame-Options: DENY`, and a referrer policy. The Pages build injects the same policy as a meta tag, because Pages cannot set response headers. Production needs HTTPS. Localhost is the exception Solid allows for development.
 
-GitHub Pages builds with `PAGES_BASE=/Podsta/`. That workflow copies `index.html` to `404.html`, so `/invite` and `/post` still open. The Solid client id for that origin is `public/solid-client-id.json`. Localhost and CI stay at `/`, and localhost keeps dynamic registration.
+GitHub Pages builds with `PAGES_BASE=/Podsta/`. That workflow copies `index.html` to `404.html`, so `/invite`, `/post`, and `/pack` still open. The Solid client id for that origin is `public/solid-client-id.json`. Localhost and CI stay at `/`, and localhost keeps dynamic registration.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the Pod layout, access rules, and notification polling. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change, and [CHANGELOG.md](CHANGELOG.md) for what shipped. [docs/IMPROVEMENT_PLAN.md](docs/IMPROVEMENT_PLAN.md) records what is still open.
 

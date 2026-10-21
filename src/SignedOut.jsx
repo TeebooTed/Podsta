@@ -7,10 +7,12 @@ import Logo from './components/Logo.jsx';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { inviteUrl, rememberFollow, rememberSignup, SIGNUP_KEY } from './lib/invite.js';
 import { rememberInviteConnect } from './lib/inviteConnect.js';
+import { packAppUrl, rememberPackFollow } from './lib/pack.js';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
 
 const PersonPage = lazy(() => import('./pages/PersonPage.jsx'));
 const PostPage = lazy(() => import('./pages/PostPage.jsx'));
+const PackPage = lazy(() => import('./pages/PackPage.jsx'));
 
 function Wordmark() {
   return (
@@ -107,6 +109,36 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
                   <div className="max-w-3xl mx-auto">
                     <Wordmark />
                     <PostPage session={null} posts={[]} podUrl="" showToast={showToast} />
+                  </div>
+                </div>
+              }
+            />
+            <Route
+              path="/pack"
+              element={
+                <div className="min-h-screen px-4 pt-6 pb-16">
+                  <div className="max-w-3xl mx-auto">
+                    <Wordmark />
+                    <PackPage
+                      session={null}
+                      friends={[]}
+                      signedIn={false}
+                      onSignInToFollow={async (webIds, resourceUrl) => {
+                        try {
+                          rememberPackFollow(window.sessionStorage, webIds);
+                          await startLogin(
+                            RECOMMENDED_PROVIDER.issuer,
+                            packAppUrl(currentAppRoot(), resourceUrl),
+                          );
+                        } catch (err) {
+                          showToast(
+                            "We couldn't sign you in. Your pod host didn't answer or said no. Check the address and try again, or pick Solid Community from the list.",
+                            'error',
+                          );
+                          console.error('Sign-up redirect failed:', err);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               }
