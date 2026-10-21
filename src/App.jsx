@@ -315,6 +315,7 @@ export default function App() {
           await editPhotoCaption({
             post,
             newCaption: changes.caption || '',
+            alts: changes.alts,
             podUrl,
             ownerWebId: session.info.webId,
             session,

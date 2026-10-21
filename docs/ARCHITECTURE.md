@@ -50,7 +50,7 @@ Paths are relative to the Pod root (`src/lib/vocab.js`).
 
 A text post is Turtle at `podsta/posts/<id>.ttl` with `schema:articleBody`, an optional `schema:name`, and `schema:dateCreated`.
 
-A new photo post, including a single photo, is an album. The Turtle file has `podsta:PostType "photo"`, an optional `schema:caption`, and one `schema:image` per picture. The bytes are PUT to `podsta/photos/` with `If-None-Match: *`. Up to 10 images, 10 MB each, JPEG, PNG, GIF, or WebP. Rotate or zoom saves a JPEG. An untouched GIF stays a GIF.
+A new photo post, including a single photo, is an album. The Turtle file has `podsta:PostType "photo"`, an optional `schema:caption`, and one `schema:image` per picture. Each photo can also have a description (`schema:description` on that image's URL inside the same file), at most 200 characters. The description uses the post's audience. The shared index repeats it as `podsta:imageAlt` only when the post itself is in that index. It is separate from the caption. An empty description is omitted. The bytes are PUT to `podsta/photos/` with `If-None-Match: *`. Up to 10 images, 10 MB each, JPEG, PNG, GIF, or WebP. Rotate or zoom saves a JPEG. An untouched GIF stays a GIF.
 
 Older single-file photos are still a binary under `podsta/photos/` plus an optional `.meta` caption. The feed treats a photo Turtle file as an album and a bare image URL as one picture.
 

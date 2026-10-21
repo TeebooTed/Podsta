@@ -8,6 +8,7 @@ import { cardPhotoUrls } from '../lib/album.js';
 import SaveButton from './SaveButton.jsx';
 import CaptionText from './CaptionText.jsx';
 import ShareButton from './ShareButton.jsx';
+import { altList } from '../lib/altText.js';
 import { sharePayload } from '../lib/shareOut.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
@@ -110,6 +111,7 @@ export default function PostCard({
       {post.type === 'photo' ? (
         <PhotoCarousel
           urls={images}
+          descriptions={altList(post, images)}
           alt={post.caption ? `Open photo: ${post.caption}` : 'Open photo'}
           session={session}
           isPublic={Boolean(post.isPublic)}

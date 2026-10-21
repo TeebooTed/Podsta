@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { loadPublicPost } from '../lib/posts.js';
 import { photoUrls } from '../lib/album.js';
+import { altList } from '../lib/altText.js';
 import PhotoCarousel from '../components/PhotoCarousel.jsx';
 import CommentsDrawer from '../components/CommentsDrawer.jsx';
 import { safeHttpUrl } from '../lib/urls.js';
@@ -113,6 +114,7 @@ export default function PostPage({ session, posts = [], podUrl, showToast, saves
           {post.type === 'photo' && post.isPublic !== false && photoUrls(post).length > 0 && (
             <PhotoCarousel
               urls={photoUrls(post)}
+              descriptions={altList(post, photoUrls(post))}
               alt={post.caption || 'Photo'}
               session={session}
               isPublic

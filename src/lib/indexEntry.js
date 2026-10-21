@@ -1,6 +1,7 @@
 import { photoUrls } from './album.js';
 import { plainText } from './text.js';
 import { hashtagsIn } from './hashtags.js';
+import { altsAligned } from './altText.js';
 
 /**
  * Denormalized public-index fields. Empty caption and title are kept so an edit
@@ -21,5 +22,6 @@ export function publicIndexEntryFromPost(post, changes = {}) {
     images: post.type === 'photo' ? photoUrls(post) : [],
     thumbnails: post.type === 'photo' ? (Array.isArray(post.thumbnails) ? post.thumbnails.filter(Boolean) : []) : [],
     tags: hashtagsIn(tagSource),
+    alts: post.type === 'photo' ? altsAligned(photoUrls(post), post.alts) : [],
   };
 }

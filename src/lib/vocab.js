@@ -46,6 +46,7 @@ export const PODSTA = {
   ContactApproval: 'https://podsta.app/vocab#ContactApproval',
   importedFrom: 'https://podsta.app/vocab#importedFrom',
   Save: 'https://podsta.app/vocab#Save',
+  imageAlt: 'https://podsta.app/vocab#imageAlt',
 };
 
 // Pod paths — relative to the user's pod URL.
@@ -76,6 +77,7 @@ export const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MAX_ALBUM_PHOTOS = 10;
 export const MAX_TEXT_LENGTH = 5000;
 export const MAX_CAPTION_LENGTH = 280;
+export const MAX_ALT_LENGTH = 200;
 export const MAX_COMMENT_LENGTH = 500;
 export const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',

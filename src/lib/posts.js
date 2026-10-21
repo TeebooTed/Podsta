@@ -9,6 +9,7 @@ import {
   createThing,
   setThing,
   getThing,
+  removeThing,
   setStringNoLocale,
   getStringNoLocale,
   addUrl,
@@ -49,6 +50,7 @@ import {
   groupFragment,
 } from './discoverability.js';
 import { ensureContactsGroup } from './contactsGroup.js';
+import { altsAligned, cleanAlt } from './altText.js';
 
 /**
  * A "post" in Podsta is one of two things:
@@ -173,6 +175,7 @@ export async function createPhotoAlbum({
   session,
   files,
   caption,
+  alts = [],
   onProgress,
   alreadyUploaded = [],
   thumbnails = [],
@@ -254,6 +257,15 @@ export async function createPhotoAlbum({
     if (storedThumbs[index]) thing = addUrl(thing, SCHEMA.thumbnail, storedThumbs[index]);
   });
   ds = setThing(ds, thing);
+  const storedAlts = altsAligned(
+    uploaded,
+    uploaded.map((url, index) => ({ url, alt: cleanAlt(alts[index]) })),
+  );
+  for (const item of storedAlts) {
+    let imageThing = createThing({ url: item.url });
+    imageThing = setStringNoLocale(imageThing, SCHEMA.description, item.alt);
+    ds = setThing(ds, imageThing);
+  }
   try {
     await saveSolidDatasetAt(postUrl, ds, { fetch: session.fetch });
   } catch (err) {
@@ -264,7 +276,7 @@ export async function createPhotoAlbum({
   }
 
   onProgress?.({ index: list.length - 1, count: list.length, ratio: 1, phase: 'done' });
-  return { url: postUrl, images: uploaded, thumbnails: storedThumbs.filter(Boolean) };
+  return { url: postUrl, images: uploaded, thumbnails: storedThumbs.filter(Boolean), alts: storedAlts };
 }
 
 async function loadPhotoCaption(photoUrl, fetchFn) {
@@ -272,14 +284,15 @@ async function loadPhotoCaption(photoUrl, fetchFn) {
   try {
     const ds = await getSolidDataset(`${photoUrl}.meta`, { fetch: timed });
     const thing = getThing(ds, photoUrl);
-    if (!thing) return { caption: '', dateCreated: '', audience: '' };
+    if (!thing) return { caption: '', alt: '', dateCreated: '', audience: '' };
     return {
       caption: plainText(getStringNoLocale(thing, SCHEMA.caption) || ''),
+      alt: getStringNoLocale(thing, SCHEMA.description) || '',
       dateCreated: getStringNoLocale(thing, SCHEMA.dateCreated) || '',
       audience: getStringNoLocale(thing, PODSTA.audience) || '',
     };
   } catch {
-    return { caption: '', dateCreated: '', audience: '' };
+    return { caption: '', alt: '', dateCreated: '', audience: '' };
   }
 }
 
@@ -330,6 +343,7 @@ export async function loadOwnPhotos({ podUrl, session, exclude }) {
         caption: meta.caption,
         body: '',
         title: '',
+        alts: meta.alt ? [{ url, alt: meta.alt }] : [],
         dateCreated,
         isPublic: pub,
         audience,
@@ -390,6 +404,13 @@ async function loadTextPost(postUrl, fetchFn) {
     const dateCreated = getStringNoLocale(thing, SCHEMA.dateCreated) || '';
     const audience = getStringNoLocale(thing, PODSTA.audience) || '';
     if (kind === 'photo') {
+      const alts = images
+        .map((image) => {
+          const imageThing = getThing(ds, image);
+          const alt = imageThing ? getStringNoLocale(imageThing, SCHEMA.description) || '' : '';
+          return alt ? { url: image, alt } : null;
+        })
+        .filter(Boolean);
       return {
         id: postUrl,
         url: postUrl,
@@ -401,6 +422,7 @@ async function loadTextPost(postUrl, fetchFn) {
         audience,
         images,
         thumbnails: getUrlAll(thing, SCHEMA.thumbnail),
+        alts,
         mediaUrl: images[0] || null,
         mediaBlob: null,
       };
@@ -550,7 +572,7 @@ export async function setPostAudience({ post, audience, level, podUrl, ownerWebI
 // EDIT & DELETE
 // ─────────────────────────────────────────────────────────────
 
-export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, session }) {
+export async function editPhotoCaption({ post, newCaption, alts, podUrl, ownerWebId, session }) {
   const caption = limitedPlain(newCaption, MAX_CAPTION_LENGTH, 'Captions');
   if (isAlbumPost(post)) {
     let ds;
@@ -574,11 +596,25 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
       if (!existing.has(image)) thing = addUrl(thing, SCHEMA.image, image);
     }
     ds = setThing(ds, thing);
+    const nextAlts = Array.isArray(alts) ? altsAligned(photoUrls(post), alts) : post.alts || [];
+    if (Array.isArray(alts)) {
+      for (const image of photoUrls(post)) {
+        const alt = nextAlts.find((item) => item.url === image)?.alt || '';
+        const imageThing = getThing(ds, image);
+        if (!alt) {
+          if (imageThing) ds = removeThing(ds, imageThing);
+          continue;
+        }
+        let described = imageThing ?? createThing({ url: image });
+        described = setStringNoLocale(described, SCHEMA.description, alt);
+        ds = setThing(ds, described);
+      }
+    }
     await saveSolidDatasetAt(post.url, ds, { fetch: session.fetch });
     const audience = effectiveAudience({ stored: post.audience, isPublic: post.isPublic });
     if (audience === 'private') return;
     try {
-      const entry = publicIndexEntryFromPost({ ...post, caption, audience }, { caption });
+      const entry = publicIndexEntryFromPost({ ...post, caption, audience, alts: nextAlts }, { caption });
       if (audience === 'public') {
         await addToPublicIndex(podUrl, entry, ownerWebId, session);
       } else {
@@ -599,6 +635,8 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
   }
   let thing = getThing(ds, post.url) ?? createThing({ url: post.url });
   thing = setStringNoLocale(thing, SCHEMA.caption, caption);
+  const legacyAlt = Array.isArray(alts) ? cleanAlt(alts.find((item) => item.url === post.url)?.alt || alts[0]?.alt || '') : '';
+  if (Array.isArray(alts)) thing = setStringNoLocale(thing, SCHEMA.description, legacyAlt);
   if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
     thing = setStringNoLocale(
       thing,
@@ -611,8 +649,11 @@ export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, s
 
   const audience = effectiveAudience({ stored: post.audience, isPublic: post.isPublic });
   if (audience === 'private') return;
+  const nextAlts = Array.isArray(alts)
+    ? altsAligned([post.url], [{ url: post.url, alt: legacyAlt }])
+    : post.alts || [];
   try {
-    const entry = publicIndexEntryFromPost({ ...post, caption, audience }, { caption });
+    const entry = publicIndexEntryFromPost({ ...post, caption, audience, alts: nextAlts }, { caption });
     if (audience === 'public') {
       if (caption) await makePublic(`${post.url}.meta`, ownerWebId, session);
       await addToPublicIndex(podUrl, entry, ownerWebId, session);
@@ -706,6 +747,7 @@ async function loadPublicPostOnce({ url, type, fetchFn }) {
       caption: meta.caption,
       body: '',
       title: '',
+      alts: meta.alt ? [{ url, alt: meta.alt }] : [],
       dateCreated: meta.dateCreated || '',
       images: [url],
       mediaUrl: url,
