@@ -4,6 +4,7 @@ import { readPublicIndex } from './publicIndex.js';
 import { FOAF, PATHS, SCHEMA } from './vocab.js';
 import { withTimeout } from './timeoutFetch.js';
 import { safeHttpUrl } from './urls.js';
+import { readExtras } from './profileExtras.js';
 
 /**
  * A stranger's view of a person. Reads the WebID only to find the Pod,
@@ -19,6 +20,8 @@ export async function loadStranger({ webId, fetchFn }) {
     name: '',
     bio: '',
     avatarUrl: '',
+    coverUrl: '',
+    pinned: [],
     posts: [],
     profileShared: false,
   };
@@ -34,6 +37,7 @@ export async function loadStranger({ webId, fetchFn }) {
       result.name = getStringNoLocale(thing, FOAF.name) || '';
       result.bio = getStringNoLocale(thing, SCHEMA.description) || '';
       result.avatarUrl = safeHttpUrl(getStringNoLocale(thing, SCHEMA.image) || '') || '';
+      Object.assign(result, readExtras(thing));
     }
   } catch {
     result.profileShared = false;

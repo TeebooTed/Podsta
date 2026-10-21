@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import Avatar from '../components/Avatar.jsx';
 import PostGrid from '../components/PostGrid.jsx';
-import { saveProfile, uploadAvatar } from '../lib/profile.js';
+import { saveProfile, uploadAvatar, uploadCover } from '../lib/profile.js';
+import { pinnedFrom, saveProfileExtras } from '../lib/profileExtras.js';
+import ProfileCover from '../components/ProfileCover.jsx';
+import PinnedPosts, { PinPicker } from '../components/PinnedPosts.jsx';
+import ProfileShareCard from '../components/ProfileShareCard.jsx';
 import DiscoverabilitySettings from '../components/DiscoverabilitySettings.jsx';
 import { DEFAULT_LEVEL } from '../lib/discoverability.js';
 import { useLikes } from '../hooks/useLikes.js';
@@ -64,6 +68,17 @@ export default function ProfilePage({
   const [level, setLevel] = useState(profile?.discoverability || DEFAULT_LEVEL);
   const [savingLevel, setSavingLevel] = useState(false);
   const fileRef = useRef(null);
+  const [coverUrl, setCoverUrl] = useState(profile?.coverUrl || '');
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [pinned, setPinned] = useState(profile?.pinned || []);
+  const [pickingPins, setPickingPins] = useState(false);
+  const [savingPins, setSavingPins] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+
+  useEffect(() => {
+    setCoverUrl(profile?.coverUrl || '');
+    setPinned(profile?.pinned || []);
+  }, [profile]);
 
   useEffect(() => {
     setName(profile?.name || '');
@@ -107,6 +122,59 @@ export default function ProfilePage({
       showToast(`Avatar upload failed: ${err.message}`, 'error');
     } finally {
       setUploadingAvatar(false);
+    }
+  };
+
+  const saveCover = async (next, file) => {
+    setCoverBusy(true);
+    try {
+      const url = file
+        ? await uploadCover({
+            podUrl,
+            session,
+            file,
+            ownerWebId: session.info.webId,
+            discoverability: profile?.discoverability || DEFAULT_LEVEL,
+          })
+        : next;
+      await saveProfileExtras({ podUrl, session, coverUrl: url });
+      setCoverUrl(url);
+      onProfileUpdated({ ...profile, coverUrl: url });
+      showToast(url ? 'Cover saved' : 'Cover removed');
+    } catch (err) {
+      showToast("We couldn't save that to your pod. Try again in a moment.", 'error');
+      console.error('Cover save failed:', err);
+    } finally {
+      setCoverBusy(false);
+    }
+  };
+
+  const handleCoverFile = (file) => {
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      showToast("We can't use that file. Podsta takes JPEG, PNG, GIF and WebP photos.", 'error');
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      showToast('That photo is too big. Each one can be up to 10 MB. Try a smaller copy.', 'error');
+      return;
+    }
+    saveCover('', file);
+  };
+
+  const savePins = async (next) => {
+    setSavingPins(true);
+    try {
+      await saveProfileExtras({ podUrl, session, pinned: next });
+      setPinned(next);
+      onProfileUpdated({ ...profile, pinned: next });
+      setPickingPins(false);
+      showToast(next.length ? 'Pins saved' : 'Pins cleared');
+    } catch (err) {
+      showToast("We couldn't save that to your pod. Try again in a moment.", 'error');
+      console.error('Pin save failed:', err);
+    } finally {
+      setSavingPins(false);
     }
   };
 
@@ -207,10 +275,24 @@ export default function ProfilePage({
         contactBusy={contactBusy}
       />
 
-      <section className="card p-6 sm:p-8">
+      <section className="card overflow-hidden p-6 pt-0 sm:p-8 sm:pt-0">
+        <ProfileCover
+          url={coverUrl}
+          fetchFn={session?.fetch}
+          editable
+          busy={coverBusy}
+          onPick={handleCoverFile}
+          onRemove={() => saveCover('')}
+          className="-mx-6 sm:-mx-8 mb-4"
+        />
         <div className="flex flex-col sm:flex-row gap-6 items-start">
-          <div className="relative shrink-0">
-            <Avatar src={avatarUrl} name={name || 'You'} size="xl" />
+          <div className="relative shrink-0 -mt-14 sm:-mt-12">
+            <Avatar
+              src={avatarUrl}
+              name={name || 'You'}
+              size="xl"
+              className="ring-4 ring-ink-800 shadow-lift"
+            />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -285,6 +367,14 @@ export default function ProfilePage({
         </div>
       </section>
 
+      {(pinned.length > 0 || posts.some((post) => post.audience === 'public' || post.isPublic)) && (
+        <PinnedPosts
+          posts={pinnedFrom(pinned, posts)}
+          ownerView
+          onEdit={() => setPickingPins(true)}
+        />
+      )}
+
       <section className="card p-6 sm:p-8" aria-labelledby="invite-heading">
         <h2 id="invite-heading" className="display-serif text-2xl mb-2">
           Invite
@@ -314,6 +404,11 @@ export default function ProfilePage({
               <button type="button" onClick={copyAddress} className="btn-secondary">
                 Copy my address
               </button>
+              {ownInvite && (
+                <button type="button" onClick={() => setCardOpen(true)} className="btn-secondary">
+                  Make a profile card
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -393,6 +488,27 @@ export default function ProfilePage({
           </div>
         </div>
       </section>
+
+      <PinPicker
+        open={pickingPins}
+        onClose={() => setPickingPins(false)}
+        posts={posts}
+        pinned={pinned}
+        onSave={savePins}
+        saving={savingPins}
+      />
+      <ProfileShareCard
+        open={cardOpen}
+        onClose={() => setCardOpen(false)}
+        name={name}
+        handle={ownHandle.qualified}
+        bio={bio}
+        avatarUrl={avatarUrl}
+        coverUrl={coverUrl}
+        inviteUrl={ownInvite}
+        fetchFn={session?.fetch}
+        showToast={showToast}
+      />
     </div>
   );
 }

@@ -12,6 +12,9 @@ import { photoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { SkeletonGrid, SkeletonProfileHeader } from './Skeletons.jsx';
 import { PATHS as ROUTES } from '../lib/navigation.js';
 import PullIndicator from './PullIndicator.jsx';
+import ProfileCover from './ProfileCover.jsx';
+import PinnedPosts from './PinnedPosts.jsx';
+import { pinnedFrom } from '../lib/profileExtras.js';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 
 function loadPerson(webId, session) {
@@ -124,12 +127,17 @@ export default function PublicPerson({
           <SkeletonGrid count={6} />
         </>
       ) : (
-        <section className="card p-6 sm:p-8">
+        <section className="card overflow-hidden p-6 pt-0 sm:p-8 sm:pt-0">
+          <ProfileCover
+            url={person?.profileShared ? person.coverUrl : ''}
+            className="-mx-6 sm:-mx-8 mb-4"
+          />
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             <Avatar
               src={person?.profileShared ? person.avatarUrl : ''}
               name={avatarName}
               size="xl"
+              className="relative -mt-14 sm:-mt-12 ring-4 ring-ink-800 shadow-lift shrink-0"
             />
             <div className="min-w-0 flex-1">
               <h1 className="display-serif text-4xl break-words">{heading}</h1>
@@ -137,6 +145,11 @@ export default function PublicPerson({
               <p className="text-xs font-mono text-ink-200 mt-1 break-all">{webId}</p>
               {person?.profileShared && person.bio && (
                 <p className="text-sm text-ink-100 mt-3 leading-relaxed">{person.bio}</p>
+              )}
+              {posts.length > 0 && (
+                <p className="text-sm text-ink-300 mt-3">
+                  {posts.length} public {posts.length === 1 ? 'post' : 'posts'}
+                </p>
               )}
               {notice && <p className="text-sm text-ink-100 mt-3 leading-relaxed">{notice}</p>}
               <div className="mt-4 flex flex-wrap gap-2">
@@ -170,6 +183,16 @@ export default function PublicPerson({
             </div>
           </div>
         </section>
+      )}
+
+      {!loading && person?.profileShared && (
+        <PinnedPosts
+          posts={pinnedFrom(person.pinned, posts)}
+          onOpen={(post) => {
+            const idx = photos.findIndex((photo) => photo.url === post.url);
+            if (idx >= 0) setPhotoIndex(idx);
+          }}
+        />
       )}
 
       {!loading && person?.profileShared && posts.length === 0 && (
