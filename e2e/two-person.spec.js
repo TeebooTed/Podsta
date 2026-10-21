@@ -156,14 +156,10 @@ test('two people can post, follow, and hear about each other', async ({ browser 
 
 async function signIn(page, account, { followWebId = '' } = {}) {
   await page.goto(`${APP}/`);
-<<<<<<< HEAD
   if (followWebId) {
     await page.evaluate((id) => sessionStorage.setItem('podsta.follow', id), followWebId);
   }
-  await page.getByRole('button', { name: 'I use a different pod host' }).click();
-=======
   await page.getByRole('button', { name: 'Advanced' }).click();
->>>>>>> 87e080a (Make Create my Pod the one-tap default.)
   await page.locator('#custom-issuer').fill(SOLID_ISSUER);
   await page.getByRole('button', { name: 'Sign in with this host' }).click();
   await page.waitForURL(/localhost:3456/, { timeout: 30000 });
