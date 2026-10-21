@@ -12,9 +12,20 @@ import { safeHttpUrl } from '../lib/urls.js';
 import { cardPhotoUrls, photoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { audienceAllowed, ceilingNote, AUDIENCE_OPTIONS } from '../lib/discoverability.js';
 import LikeControl from './LikeControl.jsx';
+import { LockIcon, PeopleIcon, StackIcon } from './icons.jsx';
+import { hashString } from '../lib/utils.js';
+
+// Plum text stays above AA on every stop of these gradients.
+const NOTE_TINTS = [
+  'from-sunshine to-accent-light',
+  'from-mint to-sunshine',
+  'from-cream to-sunshine',
+  'from-accent-light to-sunshine',
+];
 
 function TileImage({ post, session }) {
   const [src, setSrc] = useState(null);
+  const [loaded, setLoaded] = useState(false);
   const [viewRef, visible] = useInView();
 
   useEffect(() => {
@@ -54,10 +65,18 @@ function TileImage({ post, session }) {
 
   return (
     <div ref={viewRef} className="absolute inset-0">
-      {src ? (
-        <img src={src} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 skeleton" />
+      {!loaded && <div className="absolute inset-0 skeleton" />}
+      {src && (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition duration-500 ease-out group-hover/tile:scale-[1.04] group-focus-visible/tile:scale-[1.04] ${
+            loaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
       )}
     </div>
   );
@@ -178,7 +197,7 @@ export default function PostGrid({
     return (
       <div className="grid grid-cols-3 gap-1 sm:gap-2" aria-hidden="true">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="aspect-square skeleton" />
+          <div key={i} className="aspect-square skeleton rounded-md sm:rounded-xl" />
         ))}
       </div>
     );
@@ -219,26 +238,32 @@ export default function PostGrid({
                   setConfirmDelete(false);
                   setOpenUrl(post.url);
                 }}
-                className="relative block w-full aspect-square bg-ink-800 overflow-hidden text-left"
+                className="group/tile relative block w-full aspect-square bg-ink-800 overflow-hidden text-left rounded-md sm:rounded-xl focus-visible:outline-offset-2"
                 aria-label={`${visibility} post: ${label}`}
               >
                 {post.type === 'photo' ? (
                   <TileImage post={post} session={session} />
                 ) : (
-                  <span className="absolute inset-0 p-2 sm:p-3 flex items-end">
-                    <span className="display-serif text-sm sm:text-base text-ink-100 line-clamp-4">
+                  <span
+                    className={`absolute inset-0 p-2.5 sm:p-4 flex items-end bg-gradient-to-br ${
+                      NOTE_TINTS[parseInt(hashString(post.url || ''), 36) % NOTE_TINTS.length]
+                    } transition-transform duration-500 ease-out group-hover/tile:scale-[1.03]`}
+                  >
+                    <span className="font-display font-semibold text-sm sm:text-lg leading-snug text-plum line-clamp-4">
                       {post.title || post.body}
                     </span>
                   </span>
                 )}
+                <span className="pointer-events-none absolute inset-0 bg-plum/0 group-hover/tile:bg-plum/10 transition-colors duration-300" />
                 {count > 1 && (
-                  <span className="absolute top-1 right-1 text-[10px] uppercase tracking-wide bg-ink-950/80 text-ink-50 px-1.5 py-0.5 rounded">
-                    {count}
+                  <span className="absolute top-1.5 right-1.5 text-cream drop-shadow-[0_1px_3px_rgba(43,27,61,0.7)]">
+                    <StackIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </span>
                 )}
                 {audience !== 'public' && (
-                  <span className="absolute top-1 left-1 text-[10px] uppercase tracking-wide bg-ink-950/80 text-ink-100 px-1.5 py-0.5 rounded">
-                    {audience === 'contacts' ? 'Contacts' : 'Private'}
+                  <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-plum/75 backdrop-blur-sm text-cream pl-1.5 pr-2 py-0.5 rounded-full">
+                    {audience === 'contacts' ? <PeopleIcon /> : <LockIcon />}
+                    <span className="hidden sm:inline">{audience === 'contacts' ? 'Contacts' : 'Private'}</span>
                   </span>
                 )}
               </button>

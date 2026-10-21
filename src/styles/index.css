@@ -231,6 +231,19 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Swipe track: native momentum and snapping, no double-tap page zoom. */
+  .snap-track {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+  .snap-track > * { scroll-snap-align: center; scroll-snap-stop: always; }
 }
 
 .lightbox-image {

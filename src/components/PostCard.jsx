@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Avatar from './Avatar.jsx';
 import PhotoCarousel from './PhotoCarousel.jsx';
 import LikeControl from './LikeControl.jsx';
+import { ChatIcon, LinkIcon } from './icons.jsx';
 import { cardPhotoUrls } from '../lib/album.js';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 
@@ -69,7 +70,10 @@ export default function PostCard({
           <Avatar src={ownerAvatar} name={ownerName} size="sm" />
           <div className="flex-1 min-w-0">
             {ownerHref ? (
-              <Link to={ownerHref} className="font-medium text-sm truncate block hover:text-accent-ink">
+              <Link
+                to={ownerHref}
+                className="font-medium text-sm truncate block hover:text-accent-ink"
+              >
                 {ownerName || 'You'}
               </Link>
             ) : (
@@ -96,13 +100,18 @@ export default function PostCard({
           session={session}
           isPublic={Boolean(post.isPublic)}
           onOpen={() => onOpenLightbox?.()}
+          onDoubleTap={
+            onToggleLike
+              ? () => {
+                  if (!like?.liked && !likeBusy) onToggleLike(post);
+                }
+              : undefined
+          }
         />
       ) : (
         <div className="px-5 py-4">
           {post.title && (
-            <h2 className="display-serif text-2xl mb-2 leading-tight text-balance">
-              {post.title}
-            </h2>
+            <h2 className="display-serif text-2xl mb-2 leading-tight text-balance">{post.title}</h2>
           )}
           <div
             className={`text-ink-100 leading-relaxed whitespace-pre-wrap text-pretty ${
@@ -123,13 +132,12 @@ export default function PostCard({
         </div>
       )}
 
-      {/* Photo caption */}
-      {post.type === 'photo' && post.caption && (
-        <p className="px-4 pt-3 text-sm text-ink-100 leading-relaxed">{post.caption}</p>
-      )}
-
       {/* Footer */}
-      <div className="px-4 py-3 mt-auto flex flex-wrap items-center gap-2 border-t border-ink-800/50">
+      <div
+        className={`px-2 py-1.5 mt-auto flex flex-wrap items-center gap-1 ${
+          post.type === 'photo' ? '' : 'border-t border-ink-600/50'
+        }`}
+      >
         {onToggleLike && (
           <LikeControl
             liked={like?.liked}
@@ -154,11 +162,7 @@ export default function PostCard({
                           }
                           disabled:opacity-50`}
             >
-              {toggling
-                ? 'Working…'
-                : post.isPublic
-                  ? '✓ Public — make private'
-                  : 'Share publicly'}
+              {toggling ? 'Working…' : post.isPublic ? '✓ Public — make private' : 'Share publicly'}
             </button>
 
             {/* Comments */}
@@ -169,7 +173,7 @@ export default function PostCard({
                 className="min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
                 aria-label="View comments"
               >
-                <span aria-hidden="true">💬</span>
+                <ChatIcon className="w-4 h-4" />
               </button>
             )}
 
@@ -248,10 +252,10 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => onShowComments?.(post)}
-              className="flex-1 min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
+              className="grid place-items-center w-11 h-11 rounded-full text-ink-100 hover:text-ink-50 hover:bg-ink-700 transition-colors"
             >
-              <span aria-hidden="true">💬 </span>
-              Comments
+              <ChatIcon className="w-6 h-6" />
+              <span className="sr-only">Comments</span>
             </button>
             <button
               type="button"
@@ -259,14 +263,21 @@ export default function PostCard({
                 const ok = await copyToClipboard(linkUrl || post.url);
                 onCopyLink?.(post, ok);
               }}
-              className="min-h-8 px-3 py-1.5 bg-ink-700 hover:bg-ink-600 rounded-lg text-xs text-ink-100 transition"
+              className="ml-auto grid place-items-center w-11 h-11 rounded-full text-ink-100 hover:text-ink-50 hover:bg-ink-700 transition-colors"
               aria-label="Copy link"
             >
-              <span aria-hidden="true">🔗</span>
+              <LinkIcon className="w-5 h-5" />
             </button>
           </>
         )}
       </div>
+      {/* Photo caption */}
+      {post.type === 'photo' && post.caption && (
+        <p className="px-4 pb-4 -mt-0.5 text-sm text-ink-100 leading-relaxed text-pretty">
+          {ownerName && <span className="font-extrabold text-ink-50 mr-1.5">{ownerName}</span>}
+          {post.caption}
+        </p>
+      )}
     </article>
   );
 }
