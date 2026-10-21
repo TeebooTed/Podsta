@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getFile } from '@inrupt/solid-client';
 import { safeHttpUrl } from '../lib/urls.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
+import { useInView } from '../hooks/useInView.js';
 
 /**
  * One photo, or a row of them. Arrows stay on the photo set.
@@ -19,6 +20,7 @@ export default function PhotoCarousel({
   const photoKey = photos.join('|');
   const [frame, setFrame] = useState(0);
   const [src, setSrc] = useState('');
+  const [viewRef, visible] = useInView();
   const index = photos.length ? Math.min(frame, photos.length - 1) : 0;
   const current = photos[index] || '';
 
@@ -27,8 +29,8 @@ export default function PhotoCarousel({
   }, [photoKey]);
 
   useEffect(() => {
-    if (!current) {
-      setSrc('');
+    if (!current || !visible) {
+      if (!current) setSrc('');
       return undefined;
     }
     if (isPublic) {
@@ -43,6 +45,10 @@ export default function PhotoCarousel({
         const file = await getFile(current, { fetch: withTimeout(session.fetch, 30000) });
         if (cancelled) return;
         objectUrl = URL.createObjectURL(file);
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
         setSrc(objectUrl);
       } catch {
         if (!cancelled) setSrc('');
@@ -52,17 +58,23 @@ export default function PhotoCarousel({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [current, isPublic, session]);
+  }, [current, isPublic, session, visible]);
 
   const imageClass = fit === 'contain' ? 'max-h-[80vh] max-w-full object-contain' : 'w-full max-h-[600px] object-cover';
   const image = src ? (
-    <img src={src} alt={photos.length > 1 ? `${alt}, photo ${index + 1} of ${photos.length}` : alt} className={imageClass} />
+    <img
+      src={src}
+      alt={photos.length > 1 ? `${alt}, photo ${index + 1} of ${photos.length}` : alt}
+      className={imageClass}
+      loading="lazy"
+      decoding="async"
+    />
   ) : (
     <div className="w-full aspect-[4/3] skeleton" />
   );
 
   return (
-    <div className="relative bg-ink-900">
+    <div className="relative bg-ink-900" ref={viewRef}>
       {onOpen ? (
         <button type="button" className="block w-full cursor-zoom-in" onClick={onOpen}>
           {image}

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - cursor/github-pages-bcc8
   workflow_dispatch:
 
 permissions:
@@ -17,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,15 +25,22 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: End-to-end tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
       - run: npm run build
         env:
           PAGES_BASE: /Podsta/
+      - run: node scripts/checkPagesBuild.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
-    needs: build
+    needs: verify
     runs-on: ubuntu-latest
     environment:
       name: github-pages

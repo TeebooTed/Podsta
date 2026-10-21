@@ -11,6 +11,8 @@ import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
+import { readSnapshot, snapshotKey, writeSnapshot } from '../lib/offlineStore.js';
+import { plainText } from '../lib/text.js';
 import { useLikes } from '../hooks/useLikes.js';
 import { samePerson } from '../lib/webId.js';
 
@@ -23,6 +25,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
   const [hydrated, setHydrated] = useState({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [commentsPost, setCommentsPost] = useState(null);
@@ -66,30 +69,43 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
   }, []);
 
   useEffect(() => {
-    if (!friends?.length) {
-      setFeedEntries([]);
-      setUnreachable(0);
-      setFailed(false);
-      setLoading(false);
-      return undefined;
-    }
     let cancelled = false;
-    setLoading(true);
-    setFailed(false);
-    loadFriendFeed({ friends, session })
-      .then(({ entries, unreachable: missed }) => {
+    const webId = session?.info?.webId || '';
+    (async () => {
+      let hadCache = false;
+      if (webId) {
+        const cached = await readSnapshot(snapshotKey('feed', webId)).catch(() => null);
+        if (!cancelled && cached?.entries?.length) {
+          setFeedEntries(cached.entries);
+          setFromCache(true);
+          hadCache = true;
+          setLoading(false);
+        }
+      }
+      if (!friends?.length) {
+        if (!hadCache) setFeedEntries([]);
+        setUnreachable(0);
+        setFailed(false);
+        setLoading(false);
+        return;
+      }
+      if (!hadCache) setLoading(true);
+      setFailed(false);
+      try {
+        const { entries, unreachable: missed } = await loadFriendFeed({ friends, session });
         if (cancelled) return;
         setFeedEntries(entries);
         setUnreachable(missed);
+        setFromCache(false);
         if (missed > 0 && entries.length === 0) setFailed(true);
-      })
-      .catch((err) => {
+        if (webId) await writeSnapshot(snapshotKey('feed', webId), { entries }).catch(() => {});
+      } catch (err) {
         console.error('Feed load failed:', err);
         if (!cancelled) setFailed(true);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -124,13 +140,14 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
       id: entry.url,
       url: entry.url,
       type: entry.type,
-      title: entry.title || '',
-      caption: entry.caption || '',
+      title: plainText(entry.title || ''),
+      caption: plainText(entry.caption || ''),
       body: '',
       dateCreated: entry.dateCreated,
       isPublic: entry.audience !== 'contacts',
       audience: entry.audience || 'public',
       images: entry.images || [],
+      thumbnails: entry.thumbnails || [],
       mediaUrl: entry.images?.[0] || entry.url,
       mediaBlob: null,
       ownerWebId: entry.ownerWebId,
@@ -210,7 +227,18 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
         {loading ? 'Loading the feed' : failed ? errorCopy.title : ''}
       </div>
 
-      {loading ? (
+      {(fromCache || (failed && renderablePosts.length > 0)) && (
+        <p className="mb-4 text-sm text-ink-100 bg-ink-800 border border-ink-700 rounded-lg px-3 py-2" role="status">
+          {fromCache
+            ? 'Showing the feed saved on this device.'
+            : 'Some Pods did not respond. Showing the posts already loaded.'}{' '}
+          <button type="button" onClick={reload} className="underline text-ink-50">
+            Try again
+          </button>
+        </p>
+      )}
+
+      {loading && renderablePosts.length === 0 ? (
         <div className="space-y-5">
           {Array.from({ length: 2 }).map((_, i) => (
             <SkeletonCard key={i} />
@@ -237,7 +265,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
             </div>
           }
         />
-      ) : failed ? (
+      ) : failed && renderablePosts.length === 0 ? (
         <EmptyState
           icon="!"
           title={errorCopy.title}

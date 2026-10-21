@@ -4,7 +4,7 @@ Podsta is a static React app. After sign-in, the browser talks to Solid Pods wit
 
 The stack is React 18, React Router 6, Vite 5, and Tailwind 3. Routes live in `src/lib/navigation.js`: `/` (Home), `/discover`, `/profile`, `/people?webid=`, `/post?url=`, `/start`, `/invite`, `/notifications`.
 
-GitHub Pages serves the production build at `/Podsta/`. Vite's `base` is `/Podsta/` only in that workflow. Unknown paths use a copy of `index.html` named `404.html`, and the Solid client id document is `solid-client-id.json` on that origin. Sign-in there always returns to the home URL. Local development stays at `/`.
+GitHub Pages serves the production build at `/Podsta/`. Vite's `base` is `/Podsta/` only in that workflow (`PAGES_BASE`). The router basename, the manifest `start_url` and `scope`, and asset URLs follow that base. Unknown paths use a copy of `index.html` named `404.html`. `/start/` is its own file so the guide returns 200. The Solid client id document is `solid-client-id.json` on that origin, and sign-in there always returns to `https://teebooted.github.io/Podsta/`. Local development and CI stay at `/`.
 
 ## Pod layout
 
@@ -146,10 +146,12 @@ These limits are part of the design, not temporary bugs.
 - The comments container stays owner-only. Other people never get write access to the author's Pod. A published comment list is readable only at the post's audience. Blocks, reports, hides, and the commenter's own file are private.
 - Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
 - Notification seen-state is per browser. It is not in the Pod.
-- The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. The UI renders text as text. There is no `dangerouslySetInnerHTML`.
-- `vercel.json` sends a Content-Security-Policy (`frame-ancestors 'none'`, scripts from `'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. Fonts (Fredoka and Nunito) are bundled with the app, so the policy allows fonts and styles from `'self'` only.
+- The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. Captions, comments, names, and bios are stored and shown as plain text. Tags are removed before they are written. There is no `dangerouslySetInnerHTML`.
+- Pod URLs and identity-provider issuers have to be https. `http://localhost` and `http://127.0.0.1` are the only exceptions. `javascript:` and URLs with a username or password are rejected. Image addresses in an index are dropped unless they pass the same check.
+- The production build sends a Content-Security-Policy. Scripts come from this origin. `vercel.json` also sets `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. GitHub Pages cannot set those headers, so the policy is a meta tag there. Fonts are files in the build, not a request to another site.
+- The Solid client refreshes the session when the provider issued a refresh token (`offline_access`). When that fails, the app says the sign-in expired and keeps the posts it already saved on this device.
 - ACL Turtle escapes IRIs. A `>` in a WebID must not close the IRI.
-- Public photos are stored as uploaded. Podsta does not strip EXIF. A public JPEG can still contain a location.
+- JPEG, PNG, and WebP uploads are redrawn in the browser before they are stored. The camera orientation is baked into the pixels. EXIF and GPS are not uploaded. An animated GIF that already fits is stored as a GIF. The feed uses a JPEG thumbnail when one was uploaded.
 - There is no central directory and no handle registry. `@ada` means `@ada` on solidcommunity.net. The invite link carries the full WebID, which is the identifier.
 
 ## Pod providers

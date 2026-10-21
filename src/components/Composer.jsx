@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { validatePhotoFile } from '../lib/posts.js';
-import { isIdentityAdjust, renderAdjustedPhoto } from '../lib/photoAdjust.js';
+import { isIdentityAdjust, preparePhoto } from '../lib/photoAdjust.js';
 import {
   MAX_TEXT_LENGTH,
   MAX_CAPTION_LENGTH,
@@ -121,19 +121,23 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
     setSubmitting(true);
     try {
       let prepared = files;
+      let thumbs = [];
       if (mode === 'photo') {
         prepared = files.slice();
+        thumbs = new Array(files.length).fill(null);
         for (let index = uploaded.length; index < files.length; index += 1) {
-          const baked = await renderAdjustedPhoto(files[index], adjustments[index]);
-          const problem = validatePhotoFile(baked);
+          const baked = await preparePhoto(files[index], adjustments[index]);
+          const problem = validatePhotoFile(baked.file);
           if (problem) throw new Error(problem);
-          prepared[index] = baked;
+          prepared[index] = baked.file;
+          thumbs[index] = baked.thumbnail;
         }
       }
       await onSubmit({
         type: mode,
         file: prepared[0] || null,
         files: prepared,
+        thumbnails: thumbs,
         caption: caption.trim(),
         title: title.trim(),
         body: body.trim(),

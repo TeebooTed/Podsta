@@ -4,7 +4,14 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
-- New look from the brand kit in `brand/`: Cream and Plum with Coral, Berry, Sunshine and Mint, Fredoka headings and Nunito text, and the pea-pod logo. Light by default. Dark follows the system, and Auto, Light or Dark can be picked from the account menu. Fonts are bundled, so Podsta no longer calls Google Fonts. Text colors meet WCAG AA in both themes.
+- Installable production build. A service worker caches the app shell, and the feed and your own posts are saved on this device when a Pod does not answer.
+- Photos are resized before upload. A thumbnail is what the feed and the profile grid request. JPEG, PNG, and WebP are re-encoded in the browser so camera metadata is not stored.
+- Captions, comments, names, and bios are plain text. Pod and provider addresses have to be https. The production build sets a Content-Security-Policy.
+- The signed-out page does not download the Solid client until sign-in. Fonts ship with the app.
+- GitHub Pages deploy runs the tests before it publishes. The public URL is `https://teebooted.github.io/Podsta/`, with a canonical link, share image, sitemap, and `/start/` as a real page. Sign-in on that origin returns to the home URL.
+- Photo uploads bake the camera orientation into the pixels and do not store EXIF or GPS.
+- The install icons, favicon, and share image come from the brand kit. The manifest theme is Plum `#2B1B3D` and the splash background is Cream `#FFF7EE`.
+- New look from the brand kit in `brand/`: Cream and Plum with Coral, Berry, Sunshine and Mint, Fredoka headings and Nunito text, and the pea-pod logo. Light by default. Dark follows the system, and Auto, Light or Dark can be picked from the account menu. The bundled fonts are now Fredoka and Nunito, Latin and Latin Extended only. Text colors meet WCAG AA in both themes.
 
 ## 10 October 2026
 

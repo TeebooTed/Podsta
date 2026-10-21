@@ -20,6 +20,18 @@ export function safeHttpUrl(value) {
   return null;
 }
 
+/**
+ * Identity-provider issuers are origins. Rejects javascript:, data:,
+ * credentials in the URL, and plain http except on localhost.
+ */
+export function safeIssuer(value) {
+  const href = safeHttpUrl(value);
+  if (!href) return null;
+  const url = new URL(href);
+  if (url.username || url.password) return null;
+  return url.origin;
+}
+
 /** Pod roots are joined with relative paths, so they need a trailing slash. */
 export function asPodRoot(value) {
   const href = safeHttpUrl(value);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useInView } from '../hooks/useInView.js';
 import { getFile } from '@inrupt/solid-client';
 import Lightbox from './Lightbox.jsx';
 import Modal from './Modal.jsx';
@@ -8,32 +9,38 @@ import EmptyState from './EmptyState.jsx';
 import { relativeTime } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { safeHttpUrl } from '../lib/urls.js';
-import { photoUrls, primaryPhotoUrl } from '../lib/album.js';
+import { cardPhotoUrls, photoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { audienceAllowed, ceilingNote, AUDIENCE_OPTIONS } from '../lib/discoverability.js';
 import LikeControl from './LikeControl.jsx';
 
 function TileImage({ post, session }) {
   const [src, setSrc] = useState(null);
+  const [viewRef, visible] = useInView();
 
   useEffect(() => {
+    if (!visible) return undefined;
     if (post.mediaBlob) {
       const url = URL.createObjectURL(post.mediaBlob);
       setSrc(url);
       return () => URL.revokeObjectURL(url);
     }
-    const direct = primaryPhotoUrl(post) || post.mediaUrl || post.url;
+    const direct = cardPhotoUrls(post)[0] || primaryPhotoUrl(post) || post.mediaUrl || post.url;
     if (post.isPublic && safeHttpUrl(direct)) {
       setSrc(direct);
       return undefined;
     }
     let cancelled = false;
-    let objectUrl;
+    let objectUrl = '';
     (async () => {
       try {
-        if (!session?.fetch) return;
+        if (!session?.fetch || !safeHttpUrl(direct)) return;
         const file = await getFile(direct, { fetch: withTimeout(session.fetch, 30000) });
         if (cancelled) return;
         objectUrl = URL.createObjectURL(file);
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
         setSrc(objectUrl);
       } catch {
         if (!cancelled) setSrc(null);
@@ -43,10 +50,17 @@ function TileImage({ post, session }) {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [post, session]);
+  }, [post, session, visible]);
 
-  if (!src) return <div className="absolute inset-0 skeleton" />;
-  return <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover" />;
+  return (
+    <div ref={viewRef} className="absolute inset-0">
+      {src ? (
+        <img src={src} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 skeleton" />
+      )}
+    </div>
+  );
 }
 
 /**

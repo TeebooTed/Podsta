@@ -14,7 +14,17 @@ import {
   addUrl,
   getUrlAll,
 } from '@inrupt/solid-client';
-import { PATHS, SCHEMA, PODSTA, ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES, MAX_ALBUM_PHOTOS } from './vocab.js';
+import {
+  PATHS,
+  SCHEMA,
+  PODSTA,
+  ALLOWED_IMAGE_TYPES,
+  MAX_PHOTO_BYTES,
+  MAX_ALBUM_PHOTOS,
+  MAX_CAPTION_LENGTH,
+  MAX_TEXT_LENGTH,
+} from './vocab.js';
+import { plainText } from './text.js';
 import { audienceResourceUrls, isAlbumPost, photoUrls } from './album.js';
 import { overallRatio, putPhotoFile, uploadRatio } from './uploadProgress.js';
 import { applyAudience, isPublic, lockCommentsToOwner, makeGroupReadable, makePublic } from './acl.js';
@@ -62,6 +72,25 @@ async function ensureContainer(containerUrl, session) {
 // PHOTO POSTS
 // ─────────────────────────────────────────────────────────────
 
+function limitedPlain(value, max, label) {
+  const text = plainText(value || '');
+  if (text.length > max) throw new Error(`${label} stops at ${max} characters`);
+  return text;
+}
+
+function thumbUrlFor(photoUrl) {
+  return String(photoUrl || '').replace(/(\.[a-z0-9]+)$/i, '.thumb.jpg');
+}
+
+async function putPhotoUnlessExists(args) {
+  try {
+    return await putPhotoFile(args);
+  } catch (err) {
+    if (err?.status === 412) return args.url;
+    throw err;
+  }
+}
+
 export function validatePhotoFile(file) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return `Image type ${file.type} not supported. Use JPEG, PNG, GIF, or WebP.`;
@@ -89,10 +118,11 @@ export async function uploadPhoto({ podUrl, session, file, caption }) {
   if (!photoUrl) throw new Error('Pod accepted upload but returned no URL');
 
   // Save caption metadata as a sibling .meta resource if provided.
-  if (caption?.trim()) {
+  const captionText = plainText(caption || '');
+  if (captionText) {
     let ds = createSolidDataset();
     let thing = createThing({ url: photoUrl });
-    thing = setStringNoLocale(thing, SCHEMA.caption, caption.trim());
+    thing = setStringNoLocale(thing, SCHEMA.caption, captionText);
     thing = setStringNoLocale(thing, SCHEMA.dateCreated, new Date().toISOString());
     ds = setThing(ds, thing);
     await saveSolidDatasetAt(`${photoUrl}.meta`, ds, { fetch: session.fetch });
@@ -118,8 +148,10 @@ export async function createPhotoAlbum({
   caption,
   onProgress,
   alreadyUploaded = [],
+  thumbnails = [],
 }) {
   const list = Array.from(files || []).filter(Boolean);
+  const captionText = limitedPlain(caption, MAX_CAPTION_LENGTH, 'Captions');
   if (!list.length) throw new Error('Choose a photo');
   if (list.length > MAX_ALBUM_PHOTOS) throw new Error(`Choose up to ${MAX_ALBUM_PHOTOS} photos`);
   for (const file of list) {
@@ -130,12 +162,15 @@ export async function createPhotoAlbum({
   const container = `${podUrl}${PATHS.photos}`;
   await ensureContainer(container, session);
   const uploaded = [...alreadyUploaded];
+  const storedThumbs = alreadyUploaded.map((url) => thumbUrlFor(url));
 
   for (let index = uploaded.length; index < list.length; index += 1) {
     const file = list[index];
     const photoUrl = `${container}${photoSlug(file, index)}`;
+    const thumbFile = thumbnails[index] || null;
+    const thumbUrl = thumbFile ? thumbUrlFor(photoUrl) : '';
     try {
-      await putPhotoFile({
+      await putPhotoUnlessExists({
         url: photoUrl,
         file,
         fetchFn: session.fetch,
@@ -148,7 +183,15 @@ export async function createPhotoAlbum({
           });
         },
       });
+      if (thumbFile && thumbUrl) {
+        await putPhotoUnlessExists({
+          url: thumbUrl,
+          file: thumbFile,
+          fetchFn: session.fetch,
+        });
+      }
       uploaded.push(photoUrl);
+      storedThumbs.push(thumbUrl);
     } catch (err) {
       const error = new Error(err?.message || 'Upload failed');
       error.uploaded = uploaded;
@@ -172,8 +215,11 @@ export async function createPhotoAlbum({
   let thing = createThing({ url: postUrl });
   thing = setStringNoLocale(thing, PODSTA.PostType, 'photo');
   thing = setStringNoLocale(thing, SCHEMA.dateCreated, new Date().toISOString());
-  if (caption?.trim()) thing = setStringNoLocale(thing, SCHEMA.caption, caption.trim());
-  for (const image of uploaded) thing = addUrl(thing, SCHEMA.image, image);
+  if (captionText) thing = setStringNoLocale(thing, SCHEMA.caption, captionText);
+  uploaded.forEach((image, index) => {
+    thing = addUrl(thing, SCHEMA.image, image);
+    if (storedThumbs[index]) thing = addUrl(thing, SCHEMA.thumbnail, storedThumbs[index]);
+  });
   ds = setThing(ds, thing);
   try {
     await saveSolidDatasetAt(postUrl, ds, { fetch: session.fetch });
@@ -185,7 +231,7 @@ export async function createPhotoAlbum({
   }
 
   onProgress?.({ index: list.length - 1, count: list.length, ratio: 1, phase: 'done' });
-  return { url: postUrl, images: uploaded };
+  return { url: postUrl, images: uploaded, thumbnails: storedThumbs.filter(Boolean) };
 }
 
 async function loadPhotoCaption(photoUrl, fetchFn) {
@@ -195,7 +241,7 @@ async function loadPhotoCaption(photoUrl, fetchFn) {
     const thing = getThing(ds, photoUrl);
     if (!thing) return { caption: '', dateCreated: '', audience: '' };
     return {
-      caption: getStringNoLocale(thing, SCHEMA.caption) || '',
+      caption: plainText(getStringNoLocale(thing, SCHEMA.caption) || ''),
       dateCreated: getStringNoLocale(thing, SCHEMA.dateCreated) || '',
       audience: getStringNoLocale(thing, PODSTA.audience) || '',
     };
@@ -269,7 +315,9 @@ export async function loadOwnPhotos({ podUrl, session, exclude }) {
 // ─────────────────────────────────────────────────────────────
 
 export async function createTextPost({ podUrl, session, title, body }) {
-  if (!body?.trim()) throw new Error('Text posts must have a body');
+  const bodyText = limitedPlain(body, MAX_TEXT_LENGTH, 'Text posts');
+  const titleText = plainText(title || '').slice(0, 500);
+  if (!bodyText) throw new Error('Text posts must have a body');
   const container = `${podUrl}${PATHS.posts}`;
   await ensureContainer(container, session);
 
@@ -278,8 +326,8 @@ export async function createTextPost({ podUrl, session, title, body }) {
 
   let ds = createSolidDataset();
   let thing = createThing({ url: postUrl });
-  thing = setStringNoLocale(thing, SCHEMA.body, body.trim());
-  if (title?.trim()) thing = setStringNoLocale(thing, SCHEMA.name, title.trim());
+  thing = setStringNoLocale(thing, SCHEMA.body, bodyText);
+  if (titleText) thing = setStringNoLocale(thing, SCHEMA.name, titleText);
   thing = setStringNoLocale(thing, SCHEMA.dateCreated, new Date().toISOString());
   thing = setStringNoLocale(thing, PODSTA.PostType, 'text');
   ds = setThing(ds, thing);
@@ -305,10 +353,11 @@ async function loadTextPost(postUrl, fetchFn) {
         type: 'photo',
         body: '',
         title: '',
-        caption: getStringNoLocale(thing, SCHEMA.caption) || '',
+        caption: plainText(getStringNoLocale(thing, SCHEMA.caption) || ''),
         dateCreated,
         audience,
         images,
+        thumbnails: getUrlAll(thing, SCHEMA.thumbnail),
         mediaUrl: images[0] || null,
         mediaBlob: null,
       };
@@ -317,8 +366,8 @@ async function loadTextPost(postUrl, fetchFn) {
       id: postUrl,
       url: postUrl,
       type: 'text',
-      body: getStringNoLocale(thing, SCHEMA.body) || '',
-      title: getStringNoLocale(thing, SCHEMA.name) || '',
+      body: plainText(getStringNoLocale(thing, SCHEMA.body) || ''),
+      title: plainText(getStringNoLocale(thing, SCHEMA.name) || ''),
       caption: '',
       dateCreated,
       audience,
@@ -449,7 +498,7 @@ export async function setPostAudience({ post, audience, level, podUrl, ownerWebI
 // ─────────────────────────────────────────────────────────────
 
 export async function editPhotoCaption({ post, newCaption, podUrl, ownerWebId, session }) {
-  const caption = (newCaption || '').trim();
+  const caption = limitedPlain(newCaption, MAX_CAPTION_LENGTH, 'Captions');
   if (isAlbumPost(post)) {
     let ds;
     try {
@@ -523,9 +572,11 @@ export async function editTextPost({ post, newTitle, newBody, podUrl, ownerWebId
   } catch {
     ds = createSolidDataset();
   }
+  const body = limitedPlain(newBody, MAX_TEXT_LENGTH, 'Text posts');
+  const title = plainText(newTitle || '').slice(0, 500);
   let thing = getThing(ds, post.url) ?? createThing({ url: post.url });
-  thing = setStringNoLocale(thing, SCHEMA.body, newBody.trim());
-  thing = setStringNoLocale(thing, SCHEMA.name, newTitle?.trim() || '');
+  thing = setStringNoLocale(thing, SCHEMA.body, body);
+  thing = setStringNoLocale(thing, SCHEMA.name, title);
   if (!getStringNoLocale(thing, SCHEMA.dateCreated)) {
     thing = setStringNoLocale(thing, SCHEMA.dateCreated, post.dateCreated || new Date().toISOString());
   }
@@ -534,8 +585,6 @@ export async function editTextPost({ post, newTitle, newBody, podUrl, ownerWebId
 
   const audience = effectiveAudience({ stored: post.audience, isPublic: post.isPublic });
   if (audience === 'private') return;
-  const title = newTitle?.trim() || '';
-  const body = newBody.trim();
   try {
     const entry = publicIndexEntryFromPost({ ...post, title, body, audience }, { title, body });
     if (audience === 'public') {

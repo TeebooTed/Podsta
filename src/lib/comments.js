@@ -9,6 +9,7 @@ import { containedLikeUrls, likeSetAudience, loadLikeSet, publishLikeSet } from 
 import { filterBlocked, isBlocked, loadBlocks, saveBlocks } from './blocks.js';
 import { isNotFound, retryTransient } from './timeoutFetch.js';
 import { MAX_COMMENT_LENGTH } from './vocab.js';
+import { plainText } from './text.js';
 
 /**
  * A comment is stored in the commenter's Pod. The commenter sends an inbox
@@ -102,7 +103,7 @@ export function serializeOwnComments(entries) {
     const created = new Date(entry.date || entry.created || Date.now());
     const modified = new Date(entry.modified || entry.date || Date.now());
     if (Number.isNaN(created.getTime()) || Number.isNaN(modified.getTime())) throw new Error('Invalid date');
-    const text = String(entry.text || '').trim();
+    const text = plainText(entry.text || '');
     if (!text) continue;
     if (text.length > MAX_COMMENT_LENGTH) throw new Error(`Comments stop at ${MAX_COMMENT_LENGTH} characters`);
     lines.push(
@@ -129,7 +130,7 @@ export function parseOwnComments(text) {
     .map((chunk) => ({
       id: readLiteral(chunk, 'identifier'),
       postUrl: readIri(chunk, 'about'),
-      text: readLiteral(chunk, 'text'),
+      text: plainText(readLiteral(chunk, 'text')),
       date: readLiteral(chunk, 'dateCreated'),
       modified: readLiteral(chunk, 'dateModified') || readLiteral(chunk, 'dateCreated'),
     }))
@@ -170,7 +171,7 @@ export function parseCommentNotice(text) {
     authorWebId: author,
     postUrl: about,
     id,
-    text: readLiteral(text, 'text'),
+    text: plainText(readLiteral(text, 'text')),
     action,
     removed: action === 'remove',
     created: readLiteral(text, 'dateCreated'),
@@ -220,7 +221,7 @@ export function serializeCommentSet({ postUrl, comments, migrated = false }) {
       '[] a podsta:Comment ;',
       `  schema:identifier "${turtleString(comment.id)}" ;`,
       `  schema:author <${author}> ;`,
-      `  schema:text "${turtleString(comment.text || '')}" ;`,
+      `  schema:text "${turtleString(plainText(comment.text || ''))}" ;`,
       `  schema:dateCreated "${created.toISOString()}" ;`,
       `  schema:dateModified "${modified.toISOString()}" .`,
       '',
@@ -234,7 +235,7 @@ export function parseCommentSet(text) {
     .map((chunk) => ({
       id: readLiteral(chunk, 'identifier'),
       author: readIri(chunk, 'author'),
-      text: readLiteral(chunk, 'text'),
+      text: plainText(readLiteral(chunk, 'text')),
       date: readLiteral(chunk, 'dateCreated'),
       modified: readLiteral(chunk, 'dateModified') || readLiteral(chunk, 'dateCreated'),
       postUrl: readIri(chunk, 'about') || readIri(text, 'about'),
@@ -706,7 +707,7 @@ async function refreshOwnedCommentSetsNow({ podUrl, session, posts }) {
 }
 
 function cleanText(text) {
-  const trimmed = String(text || '').trim();
+  const trimmed = plainText(text);
   if (!trimmed) throw new Error('Comment cannot be empty');
   if (trimmed.length > MAX_COMMENT_LENGTH) throw new Error(`Comments stop at ${MAX_COMMENT_LENGTH} characters`);
   return trimmed;

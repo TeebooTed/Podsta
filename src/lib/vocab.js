@@ -11,6 +11,7 @@ export const SCHEMA = {
   dateCreated: 'http://schema.org/dateCreated',
   author: 'http://schema.org/author',
   image: 'http://schema.org/image',
+  thumbnail: 'http://schema.org/thumbnail',
   name: 'http://schema.org/name',
   description: 'http://schema.org/description',
   url: 'http://schema.org/url',

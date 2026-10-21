@@ -13,6 +13,8 @@ import {
   getUrlAll,
 } from '@inrupt/solid-client';
 import { PATHS, SCHEMA, PODSTA } from './vocab.js';
+import { plainText } from './text.js';
+import { safeHttpUrl } from './urls.js';
 import { makeGroupReadable, makePublic } from './acl.js';
 import { withTimeout } from './timeoutFetch.js';
 
@@ -69,9 +71,10 @@ async function readIndex(podUrl, path, fetchFn) {
         url: getStringNoLocale(t, SCHEMA.url) || '',
         type: getStringNoLocale(t, PODSTA.PostType) || 'photo',
         dateCreated: getStringNoLocale(t, SCHEMA.dateCreated) || '',
-        title: getStringNoLocale(t, SCHEMA.name) || '',
-        caption: getStringNoLocale(t, SCHEMA.caption) || '',
-        images: getUrlAll(t, SCHEMA.image),
+        title: plainText(getStringNoLocale(t, SCHEMA.name) || ''),
+        caption: plainText(getStringNoLocale(t, SCHEMA.caption) || ''),
+        images: getUrlAll(t, SCHEMA.image).map((url) => safeHttpUrl(url)).filter(Boolean),
+        thumbnails: getUrlAll(t, SCHEMA.thumbnail).map((url) => safeHttpUrl(url)).filter(Boolean),
       }))
       .filter((e) => e.url)
       .sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
@@ -126,6 +129,9 @@ async function addToIndex(podUrl, path, entry, session, lock) {
   thing = setStringNoLocale(thing, SCHEMA.caption, entry.caption || '');
   for (const image of entry.images || []) {
     if (image) thing = addUrl(thing, SCHEMA.image, image);
+  }
+  for (const thumb of entry.thumbnails || []) {
+    if (thumb) thing = addUrl(thing, SCHEMA.thumbnail, thumb);
   }
 
   ds = setThing(ds, thing);
