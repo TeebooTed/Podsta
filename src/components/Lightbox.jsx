@@ -11,6 +11,25 @@ const SETTLE_MS = 280;
 const DOUBLE_TAP_MS = 280;
 const TAP_ZOOM = 2.5;
 const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const MAX_ZOOM = 5;
+
+/**
+ * Keeps a zoomed photo covering the stage: its edges can't be pulled inside the stage edges.
+ * With `give`, overshoot is allowed at a third of the finger's travel and snaps back on release.
+ */
+function limitPan(pan, zoom, stage, image, give = false) {
+  if (!stage || !image) return pan;
+  const axis = (value, stageSize, imageSize) => {
+    const room = Math.max(0, (imageSize * zoom - stageSize) / 2);
+    if (Math.abs(value) <= room) return value;
+    const edge = Math.sign(value) * room;
+    return give ? edge + (value - edge) / 3 : edge;
+  };
+  return {
+    x: axis(pan.x, stage.clientWidth, image.offsetWidth),
+    y: axis(pan.y, stage.clientHeight, image.offsetHeight),
+  };
+}
 
 function prefersReducedMotion() {
   return (
@@ -221,6 +240,15 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
 
   if (!post) return null;
 
+  const clampPan = (next, z = zoom, give = false) =>
+    limitPan(
+      next,
+      z,
+      stageRef.current,
+      stageRef.current?.querySelector('div:not([aria-hidden]) > img'),
+      give,
+    );
+
   const zoomAt = (clientX, clientY) => {
     if (zoom > 1) {
       setZoom(1);
@@ -232,7 +260,7 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
     const dx = clientX - (rect.left + rect.width / 2);
     const dy = clientY - (rect.top + rect.height / 2);
     setZoom(TAP_ZOOM);
-    setPan({ x: dx * (1 - TAP_ZOOM), y: dy * (1 - TAP_ZOOM) });
+    setPan(clampPan({ x: dx * (1 - TAP_ZOOM), y: dy * (1 - TAP_ZOOM) }, TAP_ZOOM));
   };
 
   const onTouchStart = (e) => {
@@ -263,12 +291,23 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY,
       );
-      setZoom(Math.min(5, Math.max(1, pinchStart.current.zoom * (dist / pinchStart.current.dist))));
+      const next = Math.min(
+        MAX_ZOOM,
+        Math.max(1, pinchStart.current.zoom * (dist / pinchStart.current.dist)),
+      );
+      setZoom(next);
+      setPan((p) => clampPan(p, next));
       return;
     }
     const touch = e.touches[0];
     if (zoom > 1 && panStart.current) {
-      setPan({ x: touch.clientX - panStart.current.x, y: touch.clientY - panStart.current.y });
+      setPan(
+        clampPan(
+          { x: touch.clientX - panStart.current.x, y: touch.clientY - panStart.current.y },
+          zoom,
+          true,
+        ),
+      );
       return;
     }
     const g = gesture.current;
@@ -290,6 +329,8 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
     if (zoom < 1.05 && zoom !== 1) {
       setZoom(1);
       setPan({ x: 0, y: 0 });
+    } else if (zoom > 1) {
+      setPan((p) => clampPan(p));
     }
     const g = gesture.current;
     gesture.current = null;
@@ -354,9 +395,9 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
 
   const onWheel = (e) => {
     e.stopPropagation();
-    const next = Math.min(5, Math.max(1, zoom - e.deltaY * 0.002));
+    const next = Math.min(MAX_ZOOM, Math.max(1, zoom - e.deltaY * 0.002));
     setZoom(next);
-    if (next === 1) setPan({ x: 0, y: 0 });
+    setPan((p) => (next === 1 ? { x: 0, y: 0 } : clampPan(p, next)));
   };
 
   const tracking = (Boolean(gesture.current?.axis) && !settling) || settling === 'reset';

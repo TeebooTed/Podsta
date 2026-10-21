@@ -72,6 +72,7 @@ export default {
         'pull-bounce': 'pullBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'fan-in': 'fanIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both',
         'hero-like': 'heroLike 4s ease-in-out 1.2s infinite',
+        'hero-confetti': 'heroConfetti 4s ease-out 1.2s infinite both',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -144,6 +145,15 @@ export default {
           '76%': { transform: 'scale(1.35)' },
           '84%': { transform: 'scale(0.9)' },
           '90%': { transform: 'scale(1.05)' },
+        },
+        heroConfetti: {
+          '0%, 74%': { transform: 'translate(0, 0) scale(0.4)', opacity: 0 },
+          '77%': { opacity: 1 },
+          '84%': {
+            transform: 'translate(calc(var(--dx) * 0.85), calc(var(--dy) * 0.85)) scale(1)',
+            opacity: 1,
+          },
+          '93%, 100%': { transform: 'translate(var(--dx), var(--dy)) scale(0.2)', opacity: 0 },
         },
         slideFromLeft: {
           from: { transform: 'translateX(-12%)', opacity: 0 },
