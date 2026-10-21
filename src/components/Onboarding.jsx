@@ -6,6 +6,14 @@ import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
+import Illustration from './Illustration.jsx';
+
+const STEP_ART = {
+  pod: 'whats-a-pod',
+  name: 'welcome',
+  webid: 'no-followers',
+  compose: 'first-post',
+};
 
 /**
  * Skippable first-run tour. Skip and "Not now" both finish the tour
@@ -73,15 +81,30 @@ export default function Onboarding({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="card w-full max-w-lg p-6 sm:p-8"
+        className="card w-full max-w-lg p-6 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto animate-slide-up"
       >
-        <p className="text-xs text-ink-300 mb-2">
+        <div className="flex items-center gap-1.5 mb-4" aria-hidden="true">
+          {ONBOARDING_STEPS.map((item, i) => (
+            <span
+              key={item.id}
+              className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                i <= step ? 'bg-accent' : 'bg-ink-700'
+              }`}
+            />
+          ))}
+        </div>
+        <p className="sr-only">
           Step {step + 1} of {ONBOARDING_STEPS.length}
         </p>
-        <h2 id={titleId} className="display-serif text-3xl mb-3 text-balance">
-          {current.title}
-        </h2>
-        <p className="text-sm text-ink-200 leading-relaxed mb-5">{current.body}</p>
+        <div key={current.id} className="animate-fade-in">
+          {STEP_ART[current.id] && (
+            <Illustration name={STEP_ART[current.id]} className="w-40 sm:w-48 mx-auto -mt-2 mb-1" />
+          )}
+          <h2 id={titleId} className="display-serif text-3xl mb-3 text-balance">
+            {current.title}
+          </h2>
+          <p className="text-sm text-ink-200 leading-relaxed mb-5">{current.body}</p>
+        </div>
 
         {current.id === 'name' && (
           <div className="mb-5">
@@ -119,7 +142,9 @@ export default function Onboarding({
                 />
                 <span>
                   <span className="block text-sm font-medium text-ink-50">{option.label}</span>
-                  <span className="block text-sm text-ink-200 mt-1 leading-relaxed">{option.description}</span>
+                  <span className="block text-sm text-ink-200 mt-1 leading-relaxed">
+                    {option.description}
+                  </span>
                 </span>
               </label>
             ))}
@@ -130,7 +155,9 @@ export default function Onboarding({
           <div className="mb-5 space-y-3">
             <p className="display-serif text-2xl">{displayHandle(webId).qualified || webId}</p>
             <div className="flex flex-col sm:flex-row gap-2">
-              <code className="text-xs font-mono bg-ink-900 px-3 py-2 rounded break-all flex-1">{webId}</code>
+              <code className="text-xs font-mono bg-ink-900 px-3 py-2 rounded break-all flex-1">
+                {webId}
+              </code>
               <button type="button" onClick={copy} className="btn-secondary shrink-0">
                 Copy WebID
               </button>

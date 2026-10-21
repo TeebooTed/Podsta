@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { OTHER_PROVIDERS, RECOMMENDED_PROVIDER } from '../lib/provider.js';
 import { PATHS } from '../lib/navigation.js';
 import Logo from '../components/Logo.jsx';
+import Illustration from '../components/Illustration.jsx';
+import { HeartIcon, LockIcon, PeopleIcon } from '../components/icons.jsx';
+import mark from '../assets/podsta-mark.svg';
 import homeDesktop from '../../docs/screenshots/home-desktop.webp';
 import homePhone from '../../docs/screenshots/home-phone.webp';
 import profilePhone from '../../docs/screenshots/profile-phone.webp';
@@ -12,31 +15,200 @@ const SHOTS = [
     src: homeDesktop,
     width: 960,
     height: 600,
-    alt: 'Home feed on a desktop, with a post of two photos and a like count.',
-    caption: 'Home is the people you follow',
-  },
-  {
-    src: homePhone,
-    width: 480,
-    height: 1038,
-    alt: 'The home feed on a phone, with Home, Discover, New post, and Profile along the bottom.',
-    caption: 'The same feed on a phone',
+    alt: 'The home feed on a desktop: a photo post from a friend, with like, comment, and link buttons.',
+    caption: 'Home is the people you follow, newest first',
   },
   {
     src: profilePhone,
     width: 480,
     height: 1038,
-    alt: 'A profile on a phone, with a name, a short bio, and a grid of posts.',
-    caption: 'Your own posts stay on your profile',
+    alt: "A friend's profile on a phone: their name, a one-line bio, Following, and a grid of their photos.",
+    caption: 'Profiles come straight from each pod',
   },
 ];
+
+const BENEFITS = [
+  {
+    title: 'Your photos stay yours',
+    body: "Every photo, caption and comment you write is saved in your pod. Podsta reads it from there and doesn't keep a copy anywhere else.",
+    tint: 'bg-sunshine',
+    icon: <img src={mark} alt="" className="w-8 h-8" width="32" height="32" />,
+  },
+  {
+    title: 'Private until you say so',
+    body: "New profiles start hidden and new posts start as Only me. When you're ready, share a post with the people you approve, or with everyone.",
+    tint: 'bg-mint',
+    icon: <LockIcon className="w-7 h-7 text-plum" />,
+  },
+  {
+    title: 'Friends, the old-fashioned way',
+    body: 'Follow people by their address or an invite link, or scan their QR code. Your feed shows posts from people you follow, newest first, with no strangers pushed in.',
+    tint: 'bg-accent',
+    icon: <PeopleIcon className="w-7 h-7 text-plum" />,
+  },
+];
+
+const KEYS = [
+  {
+    id: 'private',
+    label: 'Only me',
+    sentence: 'Only you hold a key. The post is in your pod and nobody else can open it.',
+    who: ['you'],
+  },
+  {
+    id: 'contacts',
+    label: 'Contacts',
+    sentence:
+      "You and the people you've approved get a key. Following you doesn't count as approval.",
+    who: ['you', 'contacts'],
+  },
+  {
+    id: 'public',
+    label: 'Public',
+    sentence: 'The locker is open to anyone with the link.',
+    who: ['you', 'contacts', 'everyone'],
+  },
+];
+
+const PEOPLE = [
+  { id: 'you', label: 'You', initials: 'You', tint: 'from-accent to-sunshine' },
+  { id: 'contacts', label: 'Approved contacts', initials: '2', tint: 'from-mint to-sunshine' },
+  { id: 'everyone', label: 'Everyone else', initials: '∞', tint: 'from-berry to-accent' },
+];
+
+const FAQ = [
+  {
+    q: 'What happens to my photos if Podsta disappears?',
+    a: 'They stay in your pod. Podsta never had its own copy, so there is nothing to lose on our side. Your photos are ordinary image files in a "podsta" folder in your pod, and your pod host keeps them for as long as your account lasts. You would need another pod-friendly tool, or your pod host\'s own file browser, to look at them without Podsta.',
+  },
+  {
+    q: 'Who can see my photos?',
+    a: "You choose for each post. Only me means only you. Contacts means people you have approved, and following someone doesn't approve them. Public means anyone with the link. Your profile setting sets the limit: a hidden profile can only make Only me posts. One heads-up: Podsta uploads public photos exactly as you send them, so any location your camera saved stays in the file.",
+  },
+  {
+    q: 'Is Podsta free?',
+    a: "Podsta has no accounts, no subscriptions and no paid features. It's also open source under the MIT license. Your pod comes from a pod host, and each host sets its own terms, so check theirs when you sign up.",
+  },
+  {
+    q: 'How do I get a pod?',
+    a: 'Tap "I don\'t have a pod." Podsta walks you over to Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password.',
+  },
+  {
+    q: 'Can I use a pod I already have?',
+    a: "Yes, if your pod host uses the same sharing system Solid Community does (it's called Web Access Control). Solid Community and SolidWeb both work. Inrupt PodSpaces uses a different system, so sharing doesn't work there yet.",
+  },
+  {
+    q: 'How do people find me?',
+    a: "There's no central list of names. Share your invite link or your QR code, or send someone your address. Your short name, like @ada, comes from your address. It isn't a username anyone else can claim.",
+  },
+  {
+    q: 'How do I know when something new happens?',
+    a: 'Podsta checks for news about once a minute while the tab is open, and lights the bell when something new turns up: posts from people you follow, comments on your posts, and contact requests.',
+  },
+];
+
+function PhoneMock() {
+  return (
+    <div className="relative mx-auto w-56 sm:w-64 lg:w-72" aria-hidden="true">
+      <div className="absolute -inset-10 rounded-full bg-gradient-to-br from-sunshine/60 via-accent/40 to-berry/30 blur-3xl" />
+      <div className="relative rotate-3 rounded-[2.4rem] bg-plum p-2 shadow-lift">
+        <img
+          src={homePhone}
+          alt=""
+          width="480"
+          height="1038"
+          loading="eager"
+          decoding="async"
+          className="block w-full h-auto rounded-[2rem] bg-cream"
+        />
+      </div>
+      <span className="absolute -left-8 top-16 inline-flex items-center gap-1.5 rounded-full bg-cream text-plum shadow-lift px-3 py-1.5 text-sm font-extrabold motion-safe:animate-float">
+        <HeartIcon filled className="w-4 h-4 text-accent" /> Liked
+      </span>
+      <span
+        className="absolute -right-6 top-1/2 inline-flex items-center gap-1.5 rounded-full bg-mint text-plum shadow-lift px-3 py-1.5 text-sm font-extrabold motion-safe:animate-float"
+        style={{ animationDelay: '-2s' }}
+      >
+        <LockIcon className="w-4 h-4" /> Only me
+      </span>
+      <span
+        className="absolute -left-4 bottom-12 inline-flex items-center gap-1.5 rounded-full bg-sunshine text-plum shadow-lift px-3 py-1.5 text-sm font-extrabold motion-safe:animate-float"
+        style={{ animationDelay: '-4s' }}
+      >
+        <img src={mark} alt="" className="w-5 h-5" /> In your pod
+      </span>
+    </div>
+  );
+}
+
+function KeyPicker() {
+  const [choice, setChoice] = useState('contacts');
+  const current = KEYS.find((key) => key.id === choice) || KEYS[0];
+  return (
+    <div className="card p-5 sm:p-6">
+      <p id="key-picker-label" className="font-display font-semibold text-xl text-ink-50 mb-3">
+        Who gets a key?
+      </p>
+      <div className="flex flex-wrap gap-2 mb-5" role="group" aria-labelledby="key-picker-label">
+        {KEYS.map((key) => (
+          <button
+            key={key.id}
+            type="button"
+            aria-pressed={choice === key.id}
+            onClick={() => setChoice(key.id)}
+            className={`min-h-11 px-4 rounded-full text-sm font-extrabold border-2 transition-colors ${
+              choice === key.id
+                ? 'bg-plum text-cream border-plum dark:bg-cream dark:text-plum dark:border-cream'
+                : 'border-ink-600 text-ink-100 hover:border-ink-400'
+            }`}
+          >
+            {key.label}
+          </button>
+        ))}
+      </div>
+      <ul className="flex items-start justify-around gap-2 mb-4">
+        {PEOPLE.map((person) => {
+          const allowed = current.who.includes(person.id);
+          return (
+            <li key={person.id} className="flex flex-col items-center gap-2 w-24 text-center">
+              <span
+                className={`relative grid place-items-center w-14 h-14 rounded-full font-display font-semibold text-plum transition duration-300 ease-out ${
+                  allowed
+                    ? `bg-gradient-to-br ${person.tint} scale-100 shadow-soft`
+                    : 'bg-ink-700 text-ink-300 scale-90 grayscale'
+                }`}
+                aria-hidden="true"
+              >
+                {person.initials}
+                <span
+                  className={`absolute -bottom-1 -right-1 grid place-items-center w-6 h-6 rounded-full border-2 border-ink-800 text-xs transition ${
+                    allowed ? 'bg-mint text-plum' : 'bg-ink-600 text-ink-200'
+                  }`}
+                >
+                  {allowed ? '✓' : <LockIcon className="w-3 h-3" />}
+                </span>
+              </span>
+              <span className="text-xs font-bold text-ink-100 leading-tight">
+                {person.label}
+                <span className="sr-only">{allowed ? ': can see it' : ': cannot see it'}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-sm text-ink-100 leading-relaxed min-h-[2.75rem]" aria-live="polite">
+        {current.sentence}
+      </p>
+    </div>
+  );
+}
 
 /**
  * Public landing, then existing-Pod sign-in.
  * The identity provider choice is open before anyone signs in.
  */
 export default function LoginPage({ error, onLogin, busy = false }) {
-  const [advanced, setAdvanced] = useState(true);
+  const [advanced, setAdvanced] = useState(false);
   const [customIssuer, setCustomIssuer] = useState('');
   const [localError, setLocalError] = useState(null);
   const [pending, setPending] = useState(false);
@@ -48,147 +220,355 @@ export default function LoginPage({ error, onLogin, busy = false }) {
       await onLogin(issuer);
     } catch (err) {
       console.error('Login failed:', err);
-      setLocalError(err?.message || 'Could not reach that provider. Check the address and try again.');
+      setLocalError(
+        err?.message || 'Could not reach that provider. Check the address and try again.',
+      );
       setPending(false);
     }
   };
 
   const working = busy || pending;
+  const shownError = error || localError;
 
   return (
-    <div className="min-h-screen px-4 pt-10 pb-16">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-10 max-w-2xl">
-          <h1 className="mb-4">
-            <Logo size="lg" />
-          </h1>
-          <p className="text-ink-100 text-lg leading-relaxed">
-            Text and photo posts that live in your Solid Pod. There is no Podsta server and no Podsta account.
-            You pick the identity provider.
-          </p>
-        </header>
-
-        <section className="mb-12" aria-labelledby="about-heading">
-          <h2 id="about-heading" className="display-serif text-3xl mb-3">
-            What Podsta is
-          </h2>
-          <div className="max-w-2xl space-y-3 text-sm text-ink-100 leading-relaxed mb-8">
-            <p>
-              A new profile is Hidden. You can later share it with contacts, or with anyone. A post cannot be more
-              open than the profile. Comments and likes stay in the writer's Pod. The author publishes the list
-              they are willing to show.
+    <div className="min-h-screen overflow-x-clip">
+      {/* Hero */}
+      <section className="px-4 pt-8 sm:pt-12 pb-16 sm:pb-24">
+        <div className="max-w-6xl mx-auto grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center">
+          <div>
+            <h1>
+              <Logo size="md" />
+              <span className="block mt-8 font-display font-bold text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight text-ink-50 text-balance">
+                <span className="block">Your photos.</span>
+                <span className="block">Your pod.</span>
+                <span className="block bg-gradient-to-r from-accent-ink via-berry-ink to-accent-ink bg-clip-text text-transparent">
+                  Your rules.
+                </span>
+              </span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-ink-100 leading-relaxed text-pretty">
+              Podsta is a photo and note sharing app. Everything you post is saved in your own pod,
+              a personal storage space on the web. Podsta has no server of its own and keeps no
+              copy. You decide who sees each post.
             </p>
-            <p>
-              Solid Community is the host for a first Pod, because it uses Web Access Control. An existing Pod on
-              any Web Access Control provider can sign in too. Paste that provider's address below.
+            {shownError && (
+              <p
+                className="mt-6 max-w-xl text-sm text-ink-50 bg-accent/20 border border-accent/40 rounded-2xl px-4 py-3"
+                role="alert"
+              >
+                {shownError}
+              </p>
+            )}
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
+                disabled={working}
+                className="btn-primary text-base px-7 py-3.5"
+              >
+                {working ? 'Opening your pod host…' : 'Sign in'}
+              </button>
+              <Link to={PATHS.start} className="btn-secondary text-base px-7 py-3.5">
+                Get a pod
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-ink-200">
+              Signs in with {RECOMMENDED_PROVIDER.host}.{' '}
+              <a
+                href="#sign-in"
+                onClick={() => setAdvanced(true)}
+                className="underline decoration-2 underline-offset-2 hover:text-ink-50"
+              >
+                Use a different pod host
+              </a>
             </p>
+            <ul className="mt-8 flex flex-wrap gap-2 text-xs font-extrabold text-ink-100">
+              <li className="chip bg-ink-800 border border-ink-600/70">No Podsta account</li>
+              <li className="chip bg-ink-800 border border-ink-600/70">No ads, no tracking</li>
+              <li className="chip bg-ink-800 border border-ink-600/70">Open source (MIT)</li>
+            </ul>
           </div>
-          <ul className="grid gap-4 sm:grid-cols-3 list-none p-0 m-0">
-            {SHOTS.map((shot, index) => (
-              <li key={shot.caption} className="card overflow-hidden">
-                <img
-                  src={shot.src}
-                  alt={shot.alt}
-                  width={shot.width}
-                  height={shot.height}
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  decoding={index === 0 ? 'sync' : 'async'}
-                  fetchPriority={index === 0 ? 'high' : 'low'}
-                  className="w-full h-auto bg-ink-950"
-                />
-                <p className="px-3 py-2 text-sm text-ink-100">{shot.caption}</p>
+          <PhoneMock />
+        </div>
+      </section>
+
+      {/* Benefits */}
+      <section className="px-4 pb-20" aria-labelledby="why-heading">
+        <div className="max-w-6xl mx-auto">
+          <h2 id="why-heading" className="sr-only">
+            Why Podsta
+          </h2>
+          <ul className="grid gap-4 sm:grid-cols-3">
+            {BENEFITS.map((benefit) => (
+              <li
+                key={benefit.title}
+                className="card p-6 transition duration-300 hover:-translate-y-1 hover:shadow-lift"
+              >
+                <span
+                  className={`grid place-items-center w-14 h-14 rounded-2xl ${benefit.tint} mb-4 -rotate-3`}
+                  aria-hidden="true"
+                >
+                  {benefit.icon}
+                </span>
+                <h3 className="font-display font-semibold text-xl text-ink-50 mb-2">
+                  {benefit.title}
+                </h3>
+                <p className="text-sm text-ink-100 leading-relaxed">{benefit.body}</p>
               </li>
             ))}
           </ul>
-        </section>
+        </div>
+      </section>
 
-        <section className="max-w-md" aria-labelledby="signin-heading">
-          <div className="card p-7">
-            <h2 id="signin-heading" className="display-serif text-2xl mb-2 text-balance">
-              Sign in with your Pod
+      {/* What's a pod */}
+      <section
+        className="px-4 py-20 bg-ink-900/60 border-y border-ink-600/50"
+        aria-labelledby="pod-heading"
+      >
+        <div className="max-w-6xl mx-auto grid gap-10 lg:grid-cols-2 items-center">
+          <div>
+            <Illustration name="whats-a-pod" className="w-56 sm:w-64 -ml-4 mb-2" />
+            <h2
+              id="pod-heading"
+              className="font-display font-bold text-4xl sm:text-5xl text-ink-50 mb-5 tracking-tight"
+            >
+              What's a pod?
             </h2>
-            <p className="text-sm text-ink-100 mb-5 leading-relaxed">
-              Podsta does not have its own accounts. Your posts live in a Solid Pod you control.{' '}
-              {RECOMMENDED_PROVIDER.label} is the place to start. It uses Web Access Control, which this beta can
-              share with.
-            </p>
-
-            {(error || localError) && (
-              <p className="mb-4 text-sm text-ink-50 bg-accent/20 border border-accent/40 rounded-lg px-3 py-2" role="alert">
-                {error || localError}
+            <div className="space-y-4 text-ink-100 leading-relaxed max-w-xl text-pretty">
+              <p>
+                A pod is your own little storage space on the web, a bit like a personal locker. You
+                get one from a pod host, the same way you get an email account from an email
+                provider.
               </p>
-            )}
-
-            <button
-              type="button"
-              onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
-              disabled={working}
-              className="w-full text-left px-4 py-3 bg-accent hover:bg-accent-light text-plum rounded-lg transition disabled:opacity-50"
-            >
-              <div className="font-medium">Sign in</div>
-              <div className="text-xs mt-0.5">{RECOMMENDED_PROVIDER.host} · I already have a Pod</div>
-            </button>
-
-            <Link
-              to={PATHS.start}
-              className="mt-2 w-full text-left px-4 py-3 bg-ink-800/60 hover:bg-ink-700 border border-ink-600 rounded-lg transition block"
-            >
-              <div className="font-medium text-ink-50">I don't have a Pod</div>
-              <div className="text-xs text-ink-200 mt-0.5">Create one on {RECOMMENDED_PROVIDER.label}, then come back</div>
-            </Link>
-
-            <div className="mt-4 pt-4 border-t border-ink-700">
-              <button
-                type="button"
-                onClick={() => setAdvanced((value) => !value)}
-                className="text-sm text-ink-100 hover:text-ink-50 min-h-8"
-                aria-expanded={advanced}
-                aria-controls="other-providers"
-              >
-                {advanced ? 'Hide other providers' : 'I use a different Pod host'}
-              </button>
-              {advanced && (
-                <div id="other-providers" className="mt-3 space-y-2">
-                  <p className="text-sm text-ink-100 leading-relaxed">
-                    Choose your own identity provider. Sharing works when that server uses Web Access Control.
-                  </p>
-                  {OTHER_PROVIDERS.map((provider) => (
-                    <button
-                      key={provider.url}
-                      type="button"
-                      onClick={() => doLogin(provider.url)}
-                      disabled={working}
-                      className="w-full text-left px-4 py-3 bg-ink-800/60 hover:bg-ink-700 border border-ink-700 hover:border-ink-600 rounded-lg transition disabled:opacity-50"
-                    >
-                      <div className="font-medium text-ink-50">{provider.label}</div>
-                      <div className="text-xs text-ink-200 mt-0.5">{provider.hint}</div>
-                    </button>
-                  ))}
-                  <label htmlFor="custom-issuer" className="block text-xs text-ink-200">
-                    Provider address. Sharing works only if this server uses Web Access Control.
-                  </label>
-                  <input
-                    id="custom-issuer"
-                    type="url"
-                    value={customIssuer}
-                    onChange={(event) => setCustomIssuer(event.target.value)}
-                    placeholder="https://your-solid-provider.example"
-                    className="input-field text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => customIssuer && doLogin(customIssuer)}
-                    disabled={working || !customIssuer}
-                    className="btn-secondary w-full text-sm"
-                  >
-                    Sign in with custom provider
-                  </button>
-                </div>
-              )}
+              <p>
+                When you post on Podsta, your photos and notes go into your locker. Podsta is the
+                window you look through. You choose who gets a key: just you, the people you
+                approve, or everyone.
+              </p>
+              <p>
+                Because your things live in your pod, other apps that work with pods can be allowed
+                in too. And if you stop using Podsta one day, your posts are still sitting in your
+                pod, where you left them.
+              </p>
             </div>
           </div>
-        </section>
-      </div>
+          <KeyPicker />
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="px-4 py-20" aria-labelledby="how-heading">
+        <div className="max-w-6xl mx-auto">
+          <h2
+            id="how-heading"
+            className="font-display font-bold text-4xl text-ink-50 mb-10 tracking-tight"
+          >
+            Up and running in three steps
+          </h2>
+          <ol className="grid gap-6 sm:grid-cols-3">
+            {[
+              [
+                'Get a pod',
+                "Make one on Solid Community with an email and a password. It's quick. Already have one? Skip ahead.",
+              ],
+              [
+                'Sign in to Podsta',
+                'Your pod host asks if Podsta may use your pod. Say yes so Podsta can save your posts there.',
+              ],
+              [
+                'Post and share',
+                'Add up to ten photos or a short note. It starts as Only me. Share it when you want to.',
+              ],
+            ].map(([title, body], i) => (
+              <li key={title} className="relative pl-16">
+                <span
+                  className="absolute left-0 top-0 grid place-items-center w-12 h-12 rounded-full bg-sunshine text-plum font-display font-bold text-xl shadow-soft"
+                  aria-hidden="true"
+                >
+                  {i + 1}
+                </span>
+                <h3 className="font-display font-semibold text-xl text-ink-50 mb-1.5">{title}</h3>
+                <p className="text-sm text-ink-100 leading-relaxed">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* A look inside */}
+      <section className="px-4 pb-20" aria-labelledby="look-heading">
+        <div className="max-w-6xl mx-auto">
+          <h2
+            id="look-heading"
+            className="font-display font-bold text-4xl text-ink-50 mb-8 tracking-tight"
+          >
+            A look inside
+          </h2>
+          <ul className="grid gap-6 md:grid-cols-[2fr_1fr] items-start">
+            {SHOTS.map((shot) => (
+              <li key={shot.caption}>
+                <figure className="card overflow-hidden p-2">
+                  <img
+                    src={shot.src}
+                    alt={shot.alt}
+                    width={shot.width}
+                    height={shot.height}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-auto rounded-2xl bg-ink-950"
+                  />
+                  <figcaption className="px-3 pt-3 pb-1.5 text-sm font-bold text-ink-100">
+                    {shot.caption}
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* FAQ + sign in */}
+      <section className="px-4 pb-20" aria-labelledby="faq-heading">
+        <div className="max-w-6xl mx-auto grid gap-12 lg:grid-cols-[1.2fr_0.8fr] items-start">
+          <div>
+            <h2
+              id="faq-heading"
+              className="font-display font-bold text-4xl text-ink-50 mb-6 tracking-tight"
+            >
+              Questions, answered
+            </h2>
+            <div className="space-y-3">
+              {FAQ.map((item) => (
+                <details
+                  key={item.q}
+                  className="group card px-5 py-1 open:shadow-lift transition-shadow"
+                >
+                  <summary className="flex items-center justify-between gap-4 cursor-pointer list-none py-3.5 font-display font-semibold text-lg text-ink-50 [&::-webkit-details-marker]:hidden">
+                    {item.q}
+                    <span
+                      className="grid place-items-center shrink-0 w-8 h-8 rounded-full bg-ink-700 text-ink-50 text-xl leading-none transition-transform duration-300 group-open:rotate-45"
+                      aria-hidden="true"
+                    >
+                      +
+                    </span>
+                  </summary>
+                  <p className="pb-4 text-sm text-ink-100 leading-relaxed text-pretty">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+
+          <section
+            id="sign-in"
+            className="lg:sticky lg:top-6 scroll-mt-6"
+            aria-labelledby="signin-heading"
+          >
+            <div className="card p-7 relative overflow-hidden">
+              <Illustration name="welcome" className="w-36 -mt-3 -ml-3 mb-1" />
+              <h2
+                id="signin-heading"
+                className="font-display font-bold text-3xl text-ink-50 mb-2 text-balance"
+              >
+                Sign in with your pod
+              </h2>
+              <p className="text-sm text-ink-100 mb-5 leading-relaxed">
+                Podsta doesn't have its own accounts. Your photos and posts live in a pod you
+                control. New here? We'll help you get one in a couple of minutes.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
+                disabled={working}
+                className="w-full text-left px-5 py-3.5 bg-accent hover:bg-accent-light text-plum rounded-2xl shadow-soft transition disabled:opacity-50"
+              >
+                <span className="block font-extrabold">Sign in</span>
+                <span className="block text-xs mt-0.5">
+                  {RECOMMENDED_PROVIDER.host} · I already have a pod
+                </span>
+              </button>
+
+              <Link
+                to={PATHS.start}
+                className="mt-2 w-full text-left px-5 py-3.5 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded-2xl transition block"
+              >
+                <span className="block font-extrabold text-ink-50">I don't have a pod</span>
+                <span className="block text-xs text-ink-200 mt-0.5">
+                  Make one on {RECOMMENDED_PROVIDER.label}, then come back
+                </span>
+              </Link>
+
+              <div className="mt-4 pt-4 border-t border-ink-600/70">
+                <button
+                  type="button"
+                  onClick={() => setAdvanced((value) => !value)}
+                  className="text-sm font-bold text-ink-100 hover:text-ink-50 min-h-11"
+                  aria-expanded={advanced}
+                  aria-controls="other-providers"
+                >
+                  {advanced ? 'Hide other hosts' : 'I use a different pod host'}
+                </button>
+                {advanced && (
+                  <div id="other-providers" className="mt-2 space-y-2 animate-slide-down">
+                    <p className="text-sm text-ink-100 leading-relaxed">
+                      Podsta works with pod hosts that share posts the same way Solid Community
+                      does.
+                    </p>
+                    {OTHER_PROVIDERS.map((provider) => (
+                      <button
+                        key={provider.url}
+                        type="button"
+                        onClick={() => doLogin(provider.url)}
+                        disabled={working}
+                        className="w-full text-left px-4 py-3 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded-2xl transition disabled:opacity-50"
+                      >
+                        <span className="block font-bold text-ink-50">{provider.label}</span>
+                        <span className="block text-xs text-ink-200 mt-0.5">{provider.hint}</span>
+                      </button>
+                    ))}
+                    <label htmlFor="custom-issuer" className="block text-xs text-ink-200 pt-2">
+                      Your pod host's web address. Sharing works only if this host uses Web Access
+                      Control.
+                    </label>
+                    <input
+                      id="custom-issuer"
+                      type="url"
+                      value={customIssuer}
+                      onChange={(event) => setCustomIssuer(event.target.value)}
+                      placeholder="https://your-pod-host.example"
+                      className="input-field text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => customIssuer && doLogin(customIssuer)}
+                      disabled={working || !customIssuer}
+                      className="btn-secondary w-full text-sm"
+                    >
+                      Sign in with this host
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <footer className="px-4 py-10 border-t border-ink-600/50">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between text-sm text-ink-200">
+          <Logo size="sm" />
+          <p>
+            Open source under the MIT license.{' '}
+            <a
+              href="https://github.com/TeebooTed/Podsta"
+              className="underline decoration-2 underline-offset-2 hover:text-ink-50"
+            >
+              Source on GitHub
+            </a>
+            . No ads, no tracking.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
