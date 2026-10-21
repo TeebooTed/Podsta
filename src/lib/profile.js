@@ -24,6 +24,8 @@ import {
 } from './discoverability.js';
 import { ensureContactsGroup } from './contactsGroup.js';
 import { makePublic } from './acl.js';
+import { readExtras, writeExtras } from './profileExtras.js';
+import { preparePhoto } from './photoAdjust.js';
 
 /**
  * Podsta-specific profile data lives at /podsta/profile.ttl. Visibility follows
@@ -49,6 +51,8 @@ async function withLevel(podUrl, session, fields, stored) {
     name: fields.name || '',
     bio: fields.bio || '',
     avatarUrl: fields.avatarUrl || '',
+    coverUrl: fields.coverUrl || '',
+    pinned: fields.pinned || [],
     discoverability: resolved.level,
     discoverabilityInferred: resolved.inferred,
   };
@@ -64,6 +68,7 @@ export async function loadProfile({ podUrl, session }) {
         name: plainText(getStringNoLocale(thing, FOAF.name) || ''),
         bio: plainText(getStringNoLocale(thing, SCHEMA.description) || ''),
         avatarUrl: getStringNoLocale(thing, SCHEMA.image) || '',
+        ...readExtras(thing),
       }, getStringNoLocale(thing, PODSTA.discoverability) || '');
     }
   } catch {
@@ -132,6 +137,7 @@ export async function saveProfile({ podUrl, session, profile, ownerWebId, discov
     restored = setStringNoLocale(restored, FOAF.name, profile.name || '');
     restored = setStringNoLocale(restored, SCHEMA.description, profile.bio || '');
     restored = setStringNoLocale(restored, SCHEMA.image, avatarUrl || '');
+    restored = writeExtras(restored, readExtras(thing));
     if (previousLevel) {
       restored = setStringNoLocale(restored, PODSTA.discoverability, previousLevel);
     }
@@ -141,10 +147,28 @@ export async function saveProfile({ podUrl, session, profile, ownerWebId, discov
 }
 
 /**
- * Upload a new avatar image and return its public URL.
+ * Upload a new avatar image and return its URL. Like every photo, it is redrawn first,
+ * so camera location and other photo details stay on the device.
  */
-export async function uploadAvatar({ podUrl, session, file, ownerWebId, discoverability = 'hidden' }) {
-  const container = `${podUrl}podsta/avatars/`;
+export function uploadAvatar(options) {
+  return uploadProfileImage({ ...options, folder: 'avatars', prefix: 'avatar' });
+}
+
+export function uploadCover(options) {
+  return uploadProfileImage({ ...options, folder: 'covers', prefix: 'cover' });
+}
+
+async function uploadProfileImage({
+  podUrl,
+  session,
+  file: original,
+  ownerWebId,
+  discoverability = 'hidden',
+  folder,
+  prefix,
+}) {
+  const { file } = await preparePhoto(original);
+  const container = `${podUrl}podsta/${folder}/`;
   try {
     await createContainerAt(container, { fetch: session.fetch });
   } catch {
@@ -152,14 +176,14 @@ export async function uploadAvatar({ podUrl, session, file, ownerWebId, discover
   }
 
   const ext = file.type.split('/')[1] || 'jpg';
-  const slug = `avatar-${Date.now()}.${ext}`;
+  const slug = `${prefix}-${Date.now()}.${ext}`;
   const saved = await saveFileInContainer(container, file, {
     slug,
     contentType: file.type,
     fetch: session.fetch,
   });
   const avatarUrl = saved?.internal_resourceInfo?.sourceIri;
-  if (!avatarUrl) throw new Error('Avatar upload failed');
+  if (!avatarUrl) throw new Error(`${prefix === 'cover' ? 'Cover' : 'Avatar'} upload failed`);
 
   const audience = profileAudience(discoverability);
   if (audience === 'contacts') {
