@@ -32,6 +32,13 @@ import {
   SIGNUP_KEY,
 } from './lib/invite.js';
 import { samePerson } from './lib/webId.js';
+import {
+  connectPair,
+  consumeInviteConnect,
+  planInviteAccept,
+  planInviteReturn,
+  rememberInviteConnect,
+} from './lib/inviteConnect.js';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { displayHandle } from './lib/handles.js';
 import { retryTransient } from './lib/timeoutFetch.js';
@@ -109,6 +116,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const followedPending = useRef(false);
+  const inviteReturned = useRef(new Set());
   const [inviteNotice, setInviteNotice] = useState(null);
   const [undoingInvite, setUndoingInvite] = useState(false);
   const theme = useTheme();
@@ -500,11 +508,13 @@ export default function App() {
 
   useEffect(() => {
     if (!session?.info?.isLoggedIn || !podUrl || !libraryReady || followedPending.current) return;
+    const invitedStored = consumeInviteConnect(window.sessionStorage);
     const stored = consumeFollow(window.sessionStorage);
     const fromInvite = location.pathname === '/invite' ? webIdFromInvite(location.search) : '';
-    const pending = stored || fromInvite;
+    const pending = invitedStored || stored || fromInvite;
+    const isInvite = Boolean(invitedStored || fromInvite);
     if (!pending || samePerson(pending, session.info.webId)) return;
-    if (!stored && friends.some((friend) => samePerson(friend.webId, pending))) return;
+    if (!stored && !invitedStored && friends.some((friend) => samePerson(friend.webId, pending))) return;
     followedPending.current = true;
     const level = profile.discoverability;
     (async () => {
@@ -524,7 +534,42 @@ export default function App() {
             : [...prev, { webId: result.webId, name: result.name, avatarUrl: '', podUrl: '' }],
         );
         if (result.requestSent) setSentRequests((prev) => [...prev, result.webId]);
-        setInviteNotice(result);
+        let contactAdded = false;
+        if (isInvite) {
+          try {
+            const connected = await connectPair({
+              podUrl,
+              session,
+              webId: result.webId,
+              discoverability: level,
+              follow: false,
+              contact: true,
+              notify: true,
+            });
+            if (connected.contacts) {
+              setContacts(connected.contacts);
+              contactAdded = connected.contacts.some((id) => samePerson(id, result.webId));
+            }
+            if (connected.notice && !connected.notice.delivered) {
+              showToast(
+                connected.notice.error || 'Their inbox did not take the connection notice yet.',
+                'info',
+              );
+            }
+          } catch (err) {
+            showToast(
+              err?.message || 'Followed them, but the return connection did not finish.',
+              'info',
+            );
+          }
+        }
+        setInviteNotice({
+          ...result,
+          contactAdded,
+          message: contactAdded
+            ? `${result.message} You approved them as a contact. They follow you back when their app checks.`
+            : result.message,
+        });
         markSocial(session.info.webId);
         navigate('/');
       } catch (err) {
@@ -550,8 +595,21 @@ export default function App() {
         await withdrawContactRequest({ podUrl, session, targetWebId: notice.webId });
         setSentRequests((prev) => prev.filter((id) => !samePerson(id, notice.webId)));
       }
+      if (notice.contactAdded) {
+        const current = await loadContactMembers({ podUrl, session });
+        const saved = await saveContactMembers({
+          podUrl,
+          session,
+          webIds: current.filter((id) => !samePerson(id, notice.webId)),
+        });
+        setContacts(saved);
+      }
       setInviteNotice(null);
-      showToast(inviteUndoCopy(notice));
+      showToast(
+        notice.contactAdded
+          ? `${inviteUndoCopy(notice)} Removed them from your contacts.`
+          : inviteUndoCopy(notice),
+      );
     } catch (err) {
       showToast(`Could not undo that: ${err.message}`, 'error');
     } finally {
@@ -667,6 +725,102 @@ export default function App() {
     friends,
     posts,
   });
+
+  useEffect(() => {
+    if (!session?.info?.isLoggedIn || !podUrl || !libraryReady) return undefined;
+    const accepts = (notifications.items || []).filter((item) => item.kind === 'invite-accept');
+    let cancelled = false;
+    for (const item of accepts) {
+      if (!item.actorWebId || inviteReturned.current.has(item.actorWebId)) continue;
+      const plan = planInviteReturn({
+        me: session.info.webId,
+        invitee: item.actorWebId,
+        following: friends.some((friend) => samePerson(friend.webId, item.actorWebId)),
+        contact: contacts.some((id) => samePerson(id, item.actorWebId)),
+      });
+      if (!plan.webId || (!plan.follow && !plan.contact)) {
+        inviteReturned.current.add(item.actorWebId);
+        continue;
+      }
+      inviteReturned.current.add(item.actorWebId);
+      connectPair({
+        podUrl,
+        session,
+        webId: plan.webId,
+        discoverability: profile.discoverability,
+        follow: plan.follow,
+        contact: plan.contact,
+        notify: false,
+      })
+        .then((result) => {
+          if (cancelled) return;
+          if (result.followed) {
+            setFriends((prev) => {
+              if (prev.some((friend) => samePerson(friend.webId, result.webId))) return prev;
+              return [...prev, result.followed];
+            });
+          }
+          if (result.contacts) setContacts(result.contacts);
+          if (session.info.webId) markSocial(session.info.webId);
+          showToast(`${item.actorName || 'Someone'} joined from your invite. You're connected.`);
+        })
+        .catch((err) => {
+          inviteReturned.current.delete(item.actorWebId);
+          if (!cancelled) {
+            showToast(err?.message || 'Could not connect with the person who used your invite', 'error');
+          }
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [session, podUrl, libraryReady, notifications.items, friends, contacts, profile.discoverability, showToast]);
+
+  const handleConnectInvite = useCallback(
+    async (webId) => {
+      if (!podUrl || !session || followedPending.current) return;
+      setAddingWebId(webId);
+      try {
+        const plan = planInviteAccept({
+          me: session.info.webId,
+          inviter: webId,
+          following: friends.some((friend) => samePerson(friend.webId, webId)),
+          contact: contacts.some((id) => samePerson(id, webId)),
+        });
+        if (!plan.webId) return;
+        const result = await connectPair({
+          podUrl,
+          session,
+          webId: plan.webId,
+          discoverability: profile.discoverability,
+          follow: plan.follow,
+          contact: plan.contact,
+          notify: plan.notify,
+        });
+        if (result.followed) {
+          setFriends((prev) => {
+            if (prev.some((friend) => samePerson(friend.webId, result.webId))) return prev;
+            return [...prev, result.followed];
+          });
+        }
+        if (result.contacts) setContacts(result.contacts);
+        if (session.info.webId) markSocial(session.info.webId);
+        const name = result.followed?.name || displayHandle(plan.webId).handle || 'them';
+        showToast(
+          result.notice?.delivered
+            ? `Connected with ${name}. They follow you back when their app checks.`
+            : `You're set with ${name}. ${result.notice?.error || 'Their inbox did not take the notice yet.'}`,
+          result.notice?.delivered ? undefined : 'info',
+        );
+      } catch (err) {
+        showToast(err?.message || "We couldn't connect with that person.", 'error');
+      } finally {
+        setAddingWebId(null);
+      }
+    },
+    [podUrl, session, friends, contacts, profile.discoverability, showToast],
+  );
+
   const deviceNotices = useDeviceNotices({
     enabled: Boolean(session?.info?.isLoggedIn && podUrl && !onboardingOpen && !welcomeWebId),
     webId: session?.info?.webId || '',
@@ -777,10 +931,12 @@ export default function App() {
                     friends={[]}
                     signedIn={false}
                     addingWebId={null}
+                    actionLabel="Sign in to connect"
                     onAddFriend={async (webId) => {
                       try {
                         window.sessionStorage.removeItem(SIGNUP_KEY);
                         rememberFollow(window.sessionStorage, webId);
+                        rememberInviteConnect(window.sessionStorage, webId);
                         await login(
                           RECOMMENDED_PROVIDER.issuer,
                           inviteUrl(currentAppRoot(), webId),
@@ -1021,8 +1177,9 @@ export default function App() {
               <PersonPage
                 session={session}
                 friends={friends}
-                onAddFriend={handleAddFriend}
+                onAddFriend={handleConnectInvite}
                 addingWebId={addingWebId}
+                actionLabel="Connect"
                 onAskContact={handleAskContact}
                 askWebId={askWebId}
                 requestedWebIds={[...notifications.outgoingTargets, ...sentRequests]}
