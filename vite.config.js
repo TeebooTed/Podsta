@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { copySpaFallback } from './scripts/pagesFallback.js';
+import { placeThemeInitAfterStylesheet } from './scripts/themeInitOrder.js';
 import { cspPolicy } from './src/lib/cspPolicy.js';
 
 // Vite config for Podsta.
@@ -24,6 +25,18 @@ function pagesSpaFallback(basePath) {
   };
 }
 
+function themeInitAfterAssets() {
+  return {
+    name: 'theme-init-after-assets',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        return placeThemeInitAfterStylesheet(html);
+      },
+    },
+  };
+}
+
 function contentSecurityPolicy() {
   return {
     name: 'podsta-csp',
@@ -41,6 +54,7 @@ export default defineConfig({
     react(),
     pagesSpaFallback(base),
     contentSecurityPolicy(),
+    themeInitAfterAssets(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,

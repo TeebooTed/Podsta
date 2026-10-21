@@ -42,6 +42,12 @@ if (client.redirect_uris[0] !== home) fail('Solid redirect URI is not the Pages 
 if (!sw.includes('createHandlerBoundToURL("index.html")')) {
   fail('service worker is missing the app-shell navigation route');
 }
+const themeAt = html.indexOf('theme-init.js');
+const styleAt = html.indexOf('rel="stylesheet"');
+const moduleAt = html.indexOf('type="module"');
+if (themeAt < 0 || styleAt < 0 || moduleAt < 0 || themeAt < styleAt || themeAt < moduleAt) {
+  fail('theme-init.js is blocking discovery of the stylesheet or module');
+}
 
 if (process.exitCode) process.exit(process.exitCode);
 console.log('Pages build matches /Podsta/');
