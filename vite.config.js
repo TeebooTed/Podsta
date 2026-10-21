@@ -1,14 +1,28 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { copySpaFallback } from './scripts/pagesFallback.js';
 
 // Vite config for Podsta.
 // - React plugin for JSX/Fast Refresh.
 // - `define: { global: 'window' }` is required because some Inrupt deps
 //   reference `global` (a Node-ism) at module load time.
-// - Polyfill alias for `buffer` is included for the same reason; if you
-//   hit a "Buffer is not defined" error on auth, uncomment the resolve line.
+// - PAGES_BASE is set only by the GitHub Pages workflow (`/Podsta/`).
+//   Localhost and CI stay at `/` so existing OIDC registrations keep working.
+const base = process.env.PAGES_BASE || '/';
+
+function pagesSpaFallback(basePath) {
+  return {
+    name: 'pages-spa-fallback',
+    apply: 'build',
+    closeBundle() {
+      copySpaFallback('dist', basePath);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  base,
+  plugins: [react(), pagesSpaFallback(base)],
   define: {
     global: 'window',
   },

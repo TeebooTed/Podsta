@@ -4,6 +4,8 @@
 
 Podsta is a photo-and-text app that stores everything in your [Solid Pod](https://solidproject.org). There is no Podsta server and no central directory. The signed-in browser talks to your Pod, and to the Pods of people you follow, with Web Access Control.
 
+The public app is [https://teebooted.github.io/Podsta/](https://teebooted.github.io/Podsta/).
+
 A new profile is Hidden. You choose Contacts or Public later. A post cannot be more open than the profile.
 
 ## Features
@@ -69,6 +71,8 @@ npm run preview   # serve the production build
 `npm run dev` opens a browser tab. Solid sign-in on localhost has to stay on `localhost`, not `127.0.0.1`, because the OIDC client is registered for that origin.
 
 `dist/` is a static site. `vercel.json` rewrites every route to `index.html` and sets a Content-Security-Policy, `X-Frame-Options: DENY`, and a referrer policy. Production needs HTTPS. Localhost is the exception Solid allows for development.
+
+GitHub Pages builds with `PAGES_BASE=/Podsta/`. That workflow copies `index.html` to `404.html`, so `/invite` and `/post` still open. The Solid client id for that origin is `public/solid-client-id.json`. Localhost and CI stay at `/`, and localhost keeps dynamic registration.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the Pod layout, access rules, and notification polling. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change, and [CHANGELOG.md](CHANGELOG.md) for the 9–10 October work. [docs/IMPROVEMENT_PLAN.md](docs/IMPROVEMENT_PLAN.md) records what shipped and what is still open.
 

@@ -9,6 +9,7 @@ import { ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from '../lib/vocab.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { displayHandle } from '../lib/handles.js';
+import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
 import InviteQr from '../components/InviteQr.jsx';
 
@@ -132,7 +133,7 @@ export default function ProfilePage({
   };
   const ownHandle = displayHandle(ownWebId);
   const ownInvite =
-    ownWebId && typeof window !== 'undefined' ? inviteUrl(window.location.origin, ownWebId) : '';
+    ownWebId && typeof window !== 'undefined' ? inviteUrl(currentAppRoot(), ownWebId) : '';
 
   const copyWebId = async () => {
     const ok = await copyToClipboard(ownWebId);

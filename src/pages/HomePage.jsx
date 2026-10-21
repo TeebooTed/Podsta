@@ -9,6 +9,7 @@ import Avatar from '../components/Avatar.jsx';
 import { loadFriendFeed } from '../lib/feed.js';
 import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
+import { currentAppRoot } from '../lib/appUrl.js';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 import { useLikes } from '../hooks/useLikes.js';
 import { samePerson } from '../lib/webId.js';
@@ -277,7 +278,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
                 ownerName={post._entry.ownerName}
                 ownerAvatar={post._entry.ownerAvatar}
                 ownerHref={`/people?webid=${encodeURIComponent(post._entry.ownerWebId)}`}
-                linkUrl={appPostUrl(window.location.origin, post.url)}
+                linkUrl={appPostUrl(currentAppRoot(), post.url)}
                 onShowComments={(p) =>
                   setCommentsPost({
                     ...p,

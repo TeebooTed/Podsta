@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react';
 import { ONBOARDING_STEPS } from '../lib/onboarding.js';
 import { DEFAULT_LEVEL, LEVEL_OPTIONS } from '../lib/discoverability.js';
 import { displayHandle } from '../lib/handles.js';
+import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
 import { copyToClipboard } from '../lib/utils.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
@@ -137,7 +138,7 @@ export default function Onboarding({
             <button
               type="button"
               onClick={async () => {
-                const ok = await copyToClipboard(inviteUrl(window.location.origin, webId));
+                const ok = await copyToClipboard(inviteUrl(currentAppRoot(), webId));
                 showToast?.(ok ? 'Invite link copied' : 'Copy failed', ok ? 'success' : 'error');
               }}
               className="btn-primary"

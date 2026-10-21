@@ -1,0 +1,12 @@
+{
+  "@context": "https://www.w3.org/ns/solid/oidc-context.jsonld",
+  "client_id": "https://teebooted.github.io/Podsta/solid-client-id.json",
+  "client_name": "Podsta",
+  "client_uri": "https://teebooted.github.io/Podsta/",
+  "redirect_uris": ["https://teebooted.github.io/Podsta/"],
+  "post_logout_redirect_uris": ["https://teebooted.github.io/Podsta/"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "none",
+  "scope": "openid offline_access webid"
+}

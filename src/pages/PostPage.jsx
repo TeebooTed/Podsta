@@ -13,7 +13,7 @@ import { samePerson } from '../lib/webId.js';
 /**
  * A Podsta address for one post. The raw Pod URL stays available as "Open original".
  */
-export default function PostPage({ session, posts, podUrl, showToast }) {
+export default function PostPage({ session, posts = [], podUrl, showToast }) {
   const [params] = useSearchParams();
   const url = params.get('url') || '';
   const own = posts.find((p) => p.url === url) || null;
