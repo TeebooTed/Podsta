@@ -4,9 +4,9 @@ const COUNT = 10;
 /**
  * Confetti for a like: small brand-coloured dots that fly out of the heart and fade.
  * Decorative only. Hidden for reduced motion, where the filled heart says enough.
- * Re-key it to play again.
+ * Re-key it to play again, or pass `loop` to replay it on the landing hero's heartbeat.
  */
-export default function LikeBurst({ radius = 26, className = '' }) {
+export default function LikeBurst({ radius = 26, loop = false, className = '' }) {
   return (
     <span
       className={`pointer-events-none absolute inset-0 grid place-items-center motion-reduce:hidden ${className}`}
@@ -19,13 +19,13 @@ export default function LikeBurst({ radius = 26, className = '' }) {
         return (
           <span
             key={i}
-            className={`absolute rounded-full animate-like-particle ${COLORS[i % COLORS.length]}`}
+            className={`absolute rounded-full ${loop ? 'animate-hero-confetti' : 'animate-like-particle'} ${COLORS[i % COLORS.length]}`}
             style={{
               width: size,
               height: size,
               '--dx': `${Math.round(Math.cos(angle) * reach)}px`,
               '--dy': `${Math.round(Math.sin(angle) * reach)}px`,
-              animationDelay: `${(i % 4) * 18}ms`,
+              animationDelay: loop ? undefined : `${(i % 4) * 18}ms`,
             }}
           />
         );

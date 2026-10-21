@@ -1,4 +1,5 @@
 import { ChatIcon, HeartIcon, LinkIcon, LockIcon, PeopleIcon } from './icons.jsx';
+import LikeBurst from './LikeBurst.jsx';
 import mark from '../assets/podsta-mark.svg';
 import strawberries320 from '../assets/hero/strawberries-320.webp';
 import strawberries560 from '../assets/hero/strawberries-560.webp';
@@ -130,7 +131,10 @@ function Phone() {
             />
             <div className="flex items-center gap-3 px-3 pt-2 text-ink-100">
               <span className="relative inline-flex items-center gap-1 text-accent">
-                <HeartIcon filled className="w-5 h-5 motion-safe:animate-hero-like" />
+                <span className="relative grid place-items-center">
+                  <HeartIcon filled className="w-5 h-5 motion-safe:animate-hero-like" />
+                  <LikeBurst loop radius={18} />
+                </span>
                 <span className="text-xs font-extrabold text-ink-100">12</span>
               </span>
               <ChatIcon className="w-5 h-5" />

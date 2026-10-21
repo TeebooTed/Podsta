@@ -11,6 +11,19 @@ import { safeHttpUrl } from '../lib/urls.js';
 import { photoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { SkeletonGrid, SkeletonProfileHeader } from './Skeletons.jsx';
 import { PATHS as ROUTES } from '../lib/navigation.js';
+import PullIndicator from './PullIndicator.jsx';
+import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
+
+function loadPerson(webId, session) {
+  return loadStranger({ webId, fetchFn: session?.fetch }).catch(() => ({
+    webId,
+    name: '',
+    bio: '',
+    avatarUrl: '',
+    posts: [],
+    profileShared: false,
+  }));
+}
 
 /**
  * Someone reached by an invite link or from Discover.
@@ -33,6 +46,19 @@ export default function PublicPerson({
   const [photoIndex, setPhotoIndex] = useState(null);
   const names = displayHandle(webId);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const pullState = usePullToRefresh(
+    async () => {
+      setRefreshing(true);
+      try {
+        setPerson(await loadPerson(webId, session));
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    { enabled: Boolean(webId) && !loading && !refreshing, refreshing },
+  );
+
   useEffect(() => {
     if (!webId) {
       setLoading(false);
@@ -41,21 +67,9 @@ export default function PublicPerson({
     }
     let cancelled = false;
     setLoading(true);
-    loadStranger({ webId, fetchFn: session?.fetch })
+    loadPerson(webId, session)
       .then((loaded) => {
         if (!cancelled) setPerson(loaded);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPerson({
-            webId,
-            name: '',
-            bio: '',
-            avatarUrl: '',
-            posts: [],
-            profileShared: false,
-          });
-        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -100,6 +114,7 @@ export default function PublicPerson({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <PullIndicator {...pullState} />
       <div role="status" className="sr-only">
         {loading ? 'Loading profile' : ''}
       </div>
