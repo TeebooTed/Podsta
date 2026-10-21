@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cropRect, isIdentityAdjust, normalizeRotation, rotatedSize } from '../src/lib/photoAdjust.js';
+import { cropRect, isIdentityAdjust, normalizeRotation, readImageOrientation, rotatedSize, uprightSize } from '../src/lib/photoAdjust.js';
 import { overallRatio, progressBody, putPhotoFile, uploadRatio } from '../src/lib/uploadProgress.js';
 import { audienceResourceUrls, isAlbumPost, photoUrls, primaryPhotoUrl } from '../src/lib/album.js';
 import { publicIndexEntryFromPost } from '../src/lib/indexEntry.js';
@@ -22,6 +22,32 @@ test('crop keeps the whole frame until you zoom, and rotation swaps the sides', 
   assert.ok(zoomed.sx > 0);
   assert.equal(isIdentityAdjust({ rotation: 360, zoom: 1, panX: 0, panY: 0 }), true);
   assert.equal(isIdentityAdjust({ rotation: 90, zoom: 1, panX: 0, panY: 0 }), false);
+});
+
+function jpegWithOrientation(orientation) {
+  const bytes = [
+    0xff, 0xd8,
+    0xff, 0xe1, 0x00, 0x3a,
+    0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
+    0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
+    0x02, 0x00,
+    0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, orientation, 0x00, 0x00, 0x00,
+    0x25, 0x88, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x26, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x4e, 0x00, 0x00, 0x00,
+    0xff, 0xda, 0x00, 0x02, 0x00, 0xff, 0xd9,
+  ];
+  return new Uint8Array(bytes);
+}
+
+test('a sideways JPEG reports orientation 6 even when a GPS tag is present', () => {
+  const sideways = jpegWithOrientation(6);
+  assert.equal(readImageOrientation(sideways), 6);
+  assert.deepEqual(uprightSize(4000, 3000, 6), { width: 3000, height: 4000 });
+  assert.equal(readImageOrientation(jpegWithOrientation(1)), 1);
+  assert.deepEqual(uprightSize(4000, 3000, 1), { width: 4000, height: 3000 });
+  assert.equal(readImageOrientation(new Uint8Array([0xff, 0xd8, 0xff, 0xd9])), 1);
+  assert.equal(sideways.includes(0x88), true);
 });
 
 test('upload progress stays short of 100 percent until the Pod responds', async () => {

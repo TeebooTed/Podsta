@@ -2,7 +2,7 @@
 Date: 21 Oct 2026, 10:15 AM (America/Phoenix). Evidence files are in `/workspace/podsta/seo/raw/`.
 
 ## What the source does now
-The Pages workflow builds with `PAGES_BASE=/Podsta/`. That sets the Vite base, and the app uses it for the router, asset URLs, and the service worker. `public/manifest.json` uses `start_url` and `scope` `./`. `public/solid-client-id.json` lists one redirect: `https://teebooted.github.io/Podsta/`. The build copies `index.html` to `404.html` and writes `start/index.html` with that guide's own canonical URL. `index.html` has the canonical link, Open Graph and Twitter tags, a SoftwareApplication JSON-LD block, and a no-JS fallback. `public/robots.txt`, `sitemap.xml`, `llms.txt`, and `og-image.png` (the 1200×630 brand card) ship with the site.
+The Pages workflow builds with `PAGES_BASE=/Podsta/`. That sets the Vite base, and the app uses it for the router, asset URLs, and the service worker. `public/manifest.json` uses `start_url` and `scope` `./`. `public/solid-client-id.json` lists one redirect: `https://teebooted.github.io/Podsta/`. The build copies `index.html` to `404.html` and writes `start/index.html` with that guide's own canonical URL. `index.html` has the canonical link, Open Graph and Twitter tags, a SoftwareApplication JSON-LD block, and a no-JS fallback. `public/robots.txt`, `sitemap.xml`, `llms.txt`, and `podsta-share-1200x630.png` ship with the site. The manifest theme is Plum `#2B1B3D` and the background is Cream `#FFF7EE`.
 
 GitHub Pages is still off for this repository. Creating the site returns 403 for this token. A repo admin has to open Settings → Pages → Build and deployment and set Source to GitHub Actions, then re-run Deploy GitHub Pages. The same token cannot set the description, homepage, or topics.
 

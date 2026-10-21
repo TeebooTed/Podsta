@@ -151,7 +151,7 @@ These limits are part of the design, not temporary bugs.
 - The production build sends a Content-Security-Policy. Scripts come from this origin. `vercel.json` also sets `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a strict referrer policy. GitHub Pages cannot set those headers, so the policy is a meta tag there. Fonts are files in the build, not a request to another site.
 - The Solid client refreshes the session when the provider issued a refresh token (`offline_access`). When that fails, the app says the sign-in expired and keeps the posts it already saved on this device.
 - ACL Turtle escapes IRIs. A `>` in a WebID must not close the IRI.
-- JPEG, PNG, and WebP uploads are redrawn in the browser before they are stored, which drops EXIF. An animated GIF that already fits is stored as a GIF. The feed uses a JPEG thumbnail when one was uploaded.
+- JPEG, PNG, and WebP uploads are redrawn in the browser before they are stored. The camera orientation is baked into the pixels. EXIF and GPS are not uploaded. An animated GIF that already fits is stored as a GIF. The feed uses a JPEG thumbnail when one was uploaded.
 - There is no central directory and no handle registry. `@ada` means `@ada` on solidcommunity.net. The invite link carries the full WebID, which is the identifier.
 
 ## Pod providers

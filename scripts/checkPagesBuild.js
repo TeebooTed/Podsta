@@ -19,7 +19,7 @@ function fail(message) {
 
 if (!html.includes('/Podsta/')) fail('index.html is missing the /Podsta/ base');
 if (!html.includes(`rel="canonical" href="${home}"`)) fail('home canonical is missing');
-if (!html.includes('property="og:image" content="https://teebooted.github.io/Podsta/og-image.png"')) {
+if (!html.includes('property="og:image" content="https://teebooted.github.io/Podsta/podsta-share-1200x630.png"')) {
   fail('og:image is missing');
 }
 if (!html.includes('name="twitter:card" content="summary_large_image"')) fail('twitter card is missing');
@@ -30,10 +30,14 @@ if (!start.includes('rel="canonical" href="https://teebooted.github.io/Podsta/st
   fail('start canonical is missing');
 }
 if (manifest.start_url !== './' || manifest.scope !== './') fail('manifest scope is not ./');
+if (manifest.theme_color !== '#2B1B3D' || manifest.background_color !== '#FFF7EE') {
+  fail('manifest colors are not Plum and Cream');
+}
 if (!robots.includes(`Sitemap: ${home}sitemap.xml`)) fail('robots.txt has no sitemap');
 if (!sitemap.includes(`${home}</loc>`) || !sitemap.includes(`${home}start/`)) fail('sitemap locs are wrong');
 if (llms.includes('@')) fail('llms.txt contains an email address');
-if (!existsSync(join(dist, 'og-image.png'))) fail('og-image.png was not copied');
+if (!existsSync(join(dist, 'podsta-share-1200x630.png'))) fail('share image was not copied');
+if (!existsSync(join(dist, 'favicon.ico'))) fail('favicon.ico was not copied');
 if (client.redirect_uris[0] !== home) fail('Solid redirect URI is not the Pages home');
 if (!sw.includes('createHandlerBoundToURL("index.html")')) {
   fail('service worker is missing the app-shell navigation route');

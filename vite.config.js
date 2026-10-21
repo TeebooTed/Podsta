@@ -43,7 +43,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: null,
       manifest: false,
-      includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png', 'icons/*.png'],
+      includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon-180.png', 'icons/*.png'],
       workbox: {
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2,txt,json}'],

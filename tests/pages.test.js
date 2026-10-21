@@ -72,13 +72,16 @@ test('the public site names itself for crawlers, without an email address', () =
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /rel="canonical" href="https:\/\/teebooted\.github\.io\/Podsta\/"/);
   assert.match(html, /property="og:url" content="https:\/\/teebooted\.github\.io\/Podsta\/"/);
-  assert.match(html, /property="og:image" content="https:\/\/teebooted\.github\.io\/Podsta\/og-image\.png"/);
+  assert.match(html, /property="og:image" content="https:\/\/teebooted\.github\.io\/Podsta\/podsta-share-1200x630\.png"/);
   assert.match(html, /name="twitter:card" content="summary_large_image"/);
   assert.match(html, /"@type": "SoftwareApplication"/);
   assert.match(html, /<noscript>/);
   const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
   assert.equal(manifest.start_url, './');
   assert.equal(manifest.scope, './');
+  assert.equal(manifest.theme_color, '#2B1B3D');
+  assert.equal(manifest.background_color, '#FFF7EE');
+  assert.equal(manifest.icons[0].src, 'icons/icon-192.png');
   const robots = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8');
   assert.match(robots, /Sitemap: https:\/\/teebooted\.github\.io\/Podsta\/sitemap\.xml/);
   const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
@@ -86,5 +89,6 @@ test('the public site names itself for crawlers, without an email address', () =
   assert.match(sitemap, /https:\/\/teebooted\.github\.io\/Podsta\/start\//);
   const llms = readFileSync(new URL('../public/llms.txt', import.meta.url), 'utf8');
   assert.equal(llms.includes('@'), false);
-  assert.equal(readFileSync(new URL('../public/og-image.png', import.meta.url)).length > 1000, true);
+  assert.equal(readFileSync(new URL('../public/podsta-share-1200x630.png', import.meta.url)).length > 1000, true);
+  assert.equal(readFileSync(new URL('../public/favicon.ico', import.meta.url)).length > 100, true);
 });
