@@ -13,7 +13,9 @@ export function normalizeWebId(input) {
   }
   try {
     const url = new URL(s);
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    if (url.username || url.password) return null;
+    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) return null;
     return url.href;
   } catch {
     return null;

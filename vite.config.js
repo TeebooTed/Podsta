@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import { copySpaFallback } from './scripts/pagesFallback.js';
+import { CSP_POLICY } from './src/lib/cspPolicy.js';
 
 // Vite config for Podsta.
 // - React plugin for JSX/Fast Refresh.
@@ -20,9 +22,46 @@ function pagesSpaFallback(basePath) {
   };
 }
 
+function contentSecurityPolicy() {
+  return {
+    name: 'podsta-csp',
+    apply: 'build',
+    transformIndexHtml(html) {
+      const tag = `    <meta http-equiv="Content-Security-Policy" content="${CSP_POLICY}" />`;
+      return html.replace('</head>', `${tag}\n  </head>`);
+    },
+  };
+}
+
 export default defineConfig({
   base,
-  plugins: [react(), pagesSpaFallback(base)],
+  plugins: [
+    react(),
+    pagesSpaFallback(base),
+    contentSecurityPolicy(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: null,
+      manifest: false,
+      includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon-180.png', 'icons/*.png'],
+      workbox: {
+        navigateFallback: 'index.html',
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2,txt,json}'],
+        globIgnores: ['**/*.map', '**/solid-client-id.json'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.+\.(?:png|jpe?g|gif|webp|avif)(?:\?.*)?$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'podsta-images',
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 14 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
+  ],
   define: {
     global: 'window',
   },
@@ -31,7 +70,7 @@ export default defineConfig({
     open: true,
   },
   build: {
-    target: 'es2020',
+    target: 'es2022',
     sourcemap: true,
     rollupOptions: {
       output: {

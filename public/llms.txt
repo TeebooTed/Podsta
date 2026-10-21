@@ -1,0 +1,14 @@
+# Podsta
+
+> Your posts. Your Pod. Your rules. Podsta is a photo-and-text app that stores everything in your Solid Pod. There is no Podsta server and no central directory; the signed-in browser talks to Pods directly with Web Access Control.
+
+- New profiles start Hidden; you choose Contacts or Public later. A post cannot be more open than the profile.
+- Comments and likes live in the commenter's or liker's own Pod.
+- Works with Pods that use Web Access Control (Solid Community recommended; solidweb.org also works). Inrupt PodSpaces is not supported.
+- Open source, MIT license.
+
+## Links
+- [App](https://teebooted.github.io/Podsta/)
+- [Create a Pod guide](https://teebooted.github.io/Podsta/start/)
+- [Source and README](https://github.com/TeebooTed/Podsta)
+- [Architecture](https://github.com/TeebooTed/Podsta/blob/main/docs/ARCHITECTURE.md)

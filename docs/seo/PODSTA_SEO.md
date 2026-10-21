@@ -1,6 +1,11 @@
 # Podsta discoverability audit (read-only)
 Date: 21 Oct 2026, 10:15 AM (America/Phoenix). Evidence files are in `/workspace/podsta/seo/raw/`.
 
+## What the source does now
+The Pages workflow builds with `PAGES_BASE=/Podsta/`. That sets the Vite base, and the app uses it for the router, asset URLs, and the service worker. `public/manifest.json` uses `start_url` and `scope` `./`. `public/solid-client-id.json` lists one redirect: `https://teebooted.github.io/Podsta/`. The build copies `index.html` to `404.html` and writes `start/index.html` with that guide's own canonical URL. `index.html` has the canonical link, Open Graph and Twitter tags, a SoftwareApplication JSON-LD block, and a no-JS fallback. `public/robots.txt`, `sitemap.xml`, `llms.txt`, and `podsta-share-1200x630.png` ship with the site. The manifest theme is Plum `#2B1B3D` and the background is Cream `#FFF7EE`.
+
+GitHub Pages is still off for this repository. Creating the site returns 403 for this token. A repo admin has to open Settings → Pages → Build and deployment and set Source to GitHub Actions, then re-run Deploy GitHub Pages. The same token cannot set the description, homepage, or topics.
+
 ## Summary
 1. **The live site does not exist yet.** https://teebooted.github.io/Podsta/ (and `/podsta/` and the bare host) return GitHub's "There isn't a GitHub Pages site here" 404. The API call `GET /repos/TeebooTed/Podsta/pages` also returns 404, and `has_pages` is false. Nothing on the live site can be crawled, so I couldn't run PageSpeed/Lighthouse.
 2. **The repo is built for Vercel at a root path, not GitHub Pages at `/Podsta/`.** `vercel.json` has the SPA rewrite and security headers. In `vite.config.js` `base` isn't set, `index.html` and `manifest.json` use root-absolute paths (`/favicon.svg`, `/manifest.json`, `start_url: "/"`), `BrowserRouter` has no `basename`, and the Solid login redirect is `${origin}/`. On a project Pages site, every one of those points at `teebooted.github.io/` and breaks.
