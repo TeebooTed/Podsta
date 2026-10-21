@@ -70,6 +70,8 @@ export default {
         'spin-slow': 'spin 1.1s linear infinite',
         'like-particle': 'likeParticle 0.75s ease-out both',
         'pull-bounce': 'pullBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'fan-in': 'fanIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'hero-like': 'heroLike 4s ease-in-out 1.2s infinite',
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -132,6 +134,16 @@ export default {
           '0%': { transform: 'scale(1)' },
           '40%': { transform: 'scale(1.18)' },
           '100%': { transform: 'scale(1)' },
+        },
+        fanIn: {
+          from: { translate: 'var(--fan-x) var(--fan-y)', scale: '0.8' },
+          to: { translate: '0 0', scale: '1' },
+        },
+        heroLike: {
+          '0%, 70%, 100%': { transform: 'scale(1)' },
+          '76%': { transform: 'scale(1.35)' },
+          '84%': { transform: 'scale(0.9)' },
+          '90%': { transform: 'scale(1.05)' },
         },
         slideFromLeft: {
           from: { transform: 'translateX(-12%)', opacity: 0 },

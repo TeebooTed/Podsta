@@ -4,10 +4,10 @@ import { OTHER_PROVIDERS, RECOMMENDED_PROVIDER } from '../lib/provider.js';
 import { PATHS } from '../lib/navigation.js';
 import Logo from '../components/Logo.jsx';
 import Illustration from '../components/Illustration.jsx';
-import { HeartIcon, LockIcon, PeopleIcon } from '../components/icons.jsx';
+import HeroCollage from '../components/HeroCollage.jsx';
+import { LockIcon, PeopleIcon } from '../components/icons.jsx';
 import mark from '../assets/podsta-mark.svg';
 import homeDesktop from '../../docs/screenshots/home-desktop.webp';
-import homePhone from '../../docs/screenshots/home-phone.webp';
 import profilePhone from '../../docs/screenshots/profile-phone.webp';
 
 const SHOTS = [
@@ -114,40 +114,6 @@ const FAQ = [
     a: 'Podsta checks for news about once a minute while the tab is open, and lights the bell when something new turns up: posts from people you follow, comments on your posts, and contact requests.',
   },
 ];
-
-function PhoneMock() {
-  return (
-    <div className="relative mx-auto w-56 sm:w-64 lg:w-72" aria-hidden="true">
-      <div className="absolute -inset-10 rounded-full bg-gradient-to-br from-sunshine/60 via-accent/40 to-berry/30 blur-3xl" />
-      <div className="relative rotate-3 rounded-[2.4rem] bg-plum p-2 shadow-lift">
-        <img
-          src={homePhone}
-          alt=""
-          width="480"
-          height="1038"
-          loading="eager"
-          decoding="async"
-          className="block w-full h-auto rounded-[2rem] bg-cream"
-        />
-      </div>
-      <span className="absolute -left-8 top-16 inline-flex items-center gap-1.5 rounded-full bg-cream text-plum shadow-lift px-3 py-1.5 text-sm font-extrabold motion-safe:animate-float">
-        <HeartIcon filled className="w-4 h-4 text-accent" /> Liked
-      </span>
-      <span
-        className="absolute -right-6 top-1/2 inline-flex items-center gap-1.5 rounded-full bg-mint text-plum shadow-lift px-3 py-1.5 text-sm font-extrabold motion-safe:animate-float"
-        style={{ animationDelay: '-2s' }}
-      >
-        <LockIcon className="w-4 h-4" /> Only me
-      </span>
-      <span
-        className="absolute -left-4 bottom-12 inline-flex items-center gap-1.5 rounded-full bg-sunshine text-plum shadow-lift px-3 py-1.5 text-sm font-extrabold motion-safe:animate-float"
-        style={{ animationDelay: '-4s' }}
-      >
-        <img src={mark} alt="" className="w-5 h-5" /> In your pod
-      </span>
-    </div>
-  );
-}
 
 function KeyPicker() {
   const [choice, setChoice] = useState('contacts');
@@ -296,7 +262,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
               <li className="chip bg-ink-800 border border-ink-600/70">Open source (MIT)</li>
             </ul>
           </div>
-          <PhoneMock />
+          <HeroCollage />
         </div>
       </section>
 
