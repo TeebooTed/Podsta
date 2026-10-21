@@ -90,9 +90,13 @@ export async function loadFriends({ podUrl, session }) {
 
 export async function addFriend({ podUrl, session, webId, discoverability }) {
   const normalized = normalizeWebId(webId);
-  if (!normalized) throw new Error('Invalid WebID');
+  if (!normalized)
+    throw Object.assign(
+      new Error("That doesn't look like an address. Addresses start with https://"),
+      { code: 'not-an-address' },
+    );
   if (normalized === session.info.webId) {
-    throw new Error("That's your own WebID");
+    throw Object.assign(new Error("That's your own address"), { code: 'self' });
   }
 
   // Resolve their profile so we can cache name/avatar/pod.

@@ -39,9 +39,13 @@ export default function NotificationsPage({
           </button>
         </div>
       </div>
-      <p className="text-sm text-ink-200 mt-3 leading-relaxed">{pollStatusCopy({ channelConnected, failing })}</p>
+      <p className="text-sm text-ink-200 mt-3 leading-relaxed">
+        {pollStatusCopy({ channelConnected, failing })}
+      </p>
       <p className="sr-only" aria-live="polite">
-        {checking ? 'Checking for notifications' : error || (unseen.size ? `${unseen.size} new` : '')}
+        {checking
+          ? 'Checking for notifications'
+          : error || (unseen.size ? `${unseen.size} new` : '')}
       </p>
       {error && (
         <p className="mt-4 text-sm text-accent-ink" role="alert">
@@ -54,7 +58,8 @@ export default function NotificationsPage({
           <Illustration name="welcome" className="w-40 mx-auto mb-1" />
           <h2 className="display-serif text-2xl text-ink-50">Nothing new</h2>
           <p className="text-sm text-ink-200 mt-2 leading-relaxed">
-            New posts from people you follow, comments on your posts, and contact requests show up here.
+            New posts from people you follow, comments on your posts and contact requests will show
+            up here.
           </p>
         </div>
       )}
@@ -62,7 +67,9 @@ export default function NotificationsPage({
       <ul className="mt-6 space-y-3" aria-label="Notifications">
         {items.map((item) => {
           const isNew = unseen.has(item.id);
-          const approved = item.kind === 'contact-request' && contacts.some((id) => samePerson(id, item.actorWebId));
+          const approved =
+            item.kind === 'contact-request' &&
+            contacts.some((id) => samePerson(id, item.actorWebId));
           return (
             <li key={item.id} className="card p-4">
               <div className="flex gap-3 min-w-0">
@@ -72,15 +79,22 @@ export default function NotificationsPage({
                 />
                 <div className="min-w-0 flex-1">
                   {item.href ? (
-                    <Link to={item.href} className="font-medium text-ink-50 break-words hover:underline">
+                    <Link
+                      to={item.href}
+                      className="font-medium text-ink-50 break-words hover:underline"
+                    >
                       {isNew && <span className="sr-only">New. </span>}
                       {item.title}
                     </Link>
                   ) : (
                     <p className="font-medium text-ink-50 break-words">{item.title}</p>
                   )}
-                  {item.detail && <p className="text-sm text-ink-200 mt-1 break-words">{item.detail}</p>}
-                  {item.created && <p className="text-xs text-ink-200 mt-2">{relativeTime(item.created)}</p>}
+                  {item.detail && (
+                    <p className="text-sm text-ink-200 mt-1 break-words">{item.detail}</p>
+                  )}
+                  {item.created && (
+                    <p className="text-xs text-ink-200 mt-2">{relativeTime(item.created)}</p>
+                  )}
                   {item.kind === 'contact-request' && (
                     <div className="mt-3">
                       {approved ? (

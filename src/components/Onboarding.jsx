@@ -71,7 +71,10 @@ export default function Onboarding({
 
   const copy = async () => {
     const ok = await copyToClipboard(webId || '');
-    showToast?.(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
+    showToast?.(
+      ok ? 'Address copied' : "Couldn't copy that. Try selecting it instead.",
+      ok ? 'success' : 'error',
+    );
   };
 
   return (
@@ -103,7 +106,12 @@ export default function Onboarding({
           <h2 id={titleId} className="display-serif text-3xl mb-3 text-balance">
             {current.title}
           </h2>
-          <p className="text-sm text-ink-200 leading-relaxed mb-5">{current.body}</p>
+          <p className="text-sm text-ink-200 leading-relaxed mb-5">
+            {current.body.replace(
+              '@yourname',
+              displayHandle(webId).qualified || 'your short @name',
+            )}
+          </p>
         </div>
 
         {current.id === 'name' && (
@@ -159,14 +167,17 @@ export default function Onboarding({
                 {webId}
               </code>
               <button type="button" onClick={copy} className="btn-secondary shrink-0">
-                Copy WebID
+                Copy my address
               </button>
             </div>
             <button
               type="button"
               onClick={async () => {
                 const ok = await copyToClipboard(inviteUrl(currentAppRoot(), webId));
-                showToast?.(ok ? 'Invite link copied' : 'Copy failed', ok ? 'success' : 'error');
+                showToast?.(
+                  ok ? 'Invite link copied' : "Couldn't copy that. Try selecting it instead.",
+                  ok ? 'success' : 'error',
+                );
               }}
               className="btn-primary"
             >
@@ -198,7 +209,7 @@ export default function Onboarding({
                   }}
                   className="btn-primary"
                 >
-                  Write a post
+                  Make a post
                 </button>
               </>
             ) : (

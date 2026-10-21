@@ -6,28 +6,29 @@
 export const ONBOARDING_STEPS = [
   {
     id: 'pod',
-    title: 'Your posts live in your Pod',
-    body: 'A Pod is a personal store on the web. Podsta does not keep a copy. If you leave, the posts stay where they are.',
+    title: 'Your posts live in your pod',
+    body: "Your pod is your own storage space on the web. Podsta doesn't keep a copy. If you ever leave, your posts stay right where they are.",
   },
   {
     id: 'name',
     title: 'What should people call you?',
-    body: 'This name is saved in your Pod and shown next to posts you share. You can change it later on your profile.',
+    body: "We'll save this name in your pod and show it next to your posts. You can change it on your profile.",
   },
   {
     id: 'webid',
-    title: 'Your WebID is how people follow you',
-    body: 'Share the invite link or the QR code. People see a short @name. The link itself still contains your WebID, which is the real address. A bare @name is not a global registry.',
+    title: 'This is how friends follow you',
+    // `@yourname` is replaced with the person's own short name.
+    body: 'Send your invite link or show your QR code. People will see you as @yourname. The link carries your full address, so it always points to you.',
   },
   {
     id: 'visibility',
     title: 'Who can find you?',
-    body: 'Hidden is the default. Contacts only means people you approve, not everyone you follow. Public lists you through published follow lists, and public posts are readable by anyone. If a change fails, Podsta says so instead of pretending it worked.',
+    body: 'You start hidden. Change this whenever you like.',
   },
   {
     id: 'compose',
-    title: 'Write the first one when you are ready',
-    body: 'A photo or a short note is enough. You can skip this and come back from New post.',
+    title: 'Ready for your first post?',
+    body: 'One photo or a short note is plenty. Add up to ten photos, crop or rotate them, and pick who sees it. New posts start as Only me.',
   },
 ];
 

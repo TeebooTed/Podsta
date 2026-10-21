@@ -76,7 +76,13 @@ describe('public index entries', () => {
 
   it('stores a short text excerpt, not the whole body', () => {
     const entry = publicIndexEntryFromPost(
-      { url: RESOURCE, type: 'text', body: 'x'.repeat(500), title: 'Note', dateCreated: '2026-01-01T00:00:00.000Z' },
+      {
+        url: RESOURCE,
+        type: 'text',
+        body: 'x'.repeat(500),
+        title: 'Note',
+        dateCreated: '2026-01-01T00:00:00.000Z',
+      },
       { title: 'Note', body: 'y'.repeat(500) },
     );
     assert.equal(entry.caption.length, 200);
@@ -92,13 +98,19 @@ describe('share toasts', () => {
       shareMessage: 'ACL rejected',
     });
     assert.equal(toast.type, 'error');
-    assert.match(toast.message, /sharing failed: ACL rejected/);
-    assert.equal(toast.message.includes('Posted publicly'), false);
+    assert.match(toast.message, /sharing didn't finish/);
+    assert.equal(toast.message.includes('Shared with everyone'), false);
   });
 
   it('distinguishes a private post from a public one', () => {
-    assert.equal(postedToast({ makePublic: false, shareFailed: false }).message, 'Posted privately');
-    assert.equal(postedToast({ makePublic: true, shareFailed: false }).message, 'Posted publicly');
+    assert.equal(
+      postedToast({ makePublic: false, shareFailed: false }).message,
+      'Posted to your pod.',
+    );
+    assert.equal(
+      postedToast({ makePublic: true, shareFailed: false }).message,
+      'Shared with everyone.',
+    );
   });
 });
 
@@ -139,11 +151,15 @@ describe('timeouts', () => {
     assert.equal(value, 'ok');
     assert.equal(calls, 2);
     await assert.rejects(
-      () => retryTransient(async () => {
-        const err = new Error('no');
-        err.statusCode = 403;
-        throw err;
-      }, { wait: async () => {} }),
+      () =>
+        retryTransient(
+          async () => {
+            const err = new Error('no');
+            err.statusCode = 403;
+            throw err;
+          },
+          { wait: async () => {} },
+        ),
       /no/,
     );
   });

@@ -100,7 +100,11 @@ export default function CommentsDrawer({
   useEffect(() => {
     if (!open) return undefined;
     let cancelled = false;
-    const ids = [...new Set(comments.map((comment) => comment.author).filter((id) => id && !samePerson(id, me)))];
+    const ids = [
+      ...new Set(
+        comments.map((comment) => comment.author).filter((id) => id && !samePerson(id, me)),
+      ),
+    ];
     (async () => {
       const next = {};
       for (const id of ids) {
@@ -261,8 +265,8 @@ export default function CommentsDrawer({
         session,
         comment: { ...comment, postUrl: post.url },
       });
-      setStatus('Saved a private report in your Pod. Podsta has nowhere to send it.');
-      showToast?.('Saved a private report in your Pod. Podsta has nowhere to send it.');
+      setStatus('Saved a private report in your pod. Podsta has nowhere to send it.');
+      showToast?.('Saved a private report in your pod. Podsta has nowhere to send it.');
     } catch (err) {
       const message = err.message || 'Could not save that report';
       setStatus(message);
@@ -290,7 +294,8 @@ export default function CommentsDrawer({
               Comments
             </h2>
             <p className="text-xs text-ink-200">
-              Each comment stays in the commenter's Pod. This list uses the same audience as the post.
+              Each comment stays in the commenter's pod. This list uses the same audience as the
+              post.
             </p>
           </div>
           <button
@@ -305,7 +310,10 @@ export default function CommentsDrawer({
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {status && (
-            <p className="text-sm text-ink-100 bg-ink-800 border border-ink-600 rounded-lg px-3 py-2" role="status">
+            <p
+              className="text-sm text-ink-100 bg-ink-800 border border-ink-600 rounded-lg px-3 py-2"
+              role="status"
+            >
               {status}
             </p>
           )}
@@ -320,7 +328,9 @@ export default function CommentsDrawer({
               Could not load comments. The Pod did not respond, or refused the request.
             </p>
           ) : comments.length === 0 ? (
-            <p className="text-ink-200 text-sm text-center py-8">No comments yet.</p>
+            <p className="text-ink-200 text-sm text-center py-8">
+              No comments yet. Say something nice.
+            </p>
           ) : (
             comments.map((comment) => {
               const known = names[comment.author] || {};
@@ -333,7 +343,10 @@ export default function CommentsDrawer({
               const mine = samePerson(comment.author, me);
               const busy = pendingId === comment.id;
               return (
-                <article key={comment.id || `${comment.author}-${comment.date}`} className="flex gap-3">
+                <article
+                  key={comment.id || `${comment.author}-${comment.date}`}
+                  className="flex gap-3"
+                >
                   <Avatar name={label.primary} size="sm" />
                   <div className="flex-1 bg-ink-800 rounded-xl px-4 py-2.5 min-w-0">
                     <div className="flex items-baseline justify-between gap-2 mb-0.5">
@@ -343,7 +356,9 @@ export default function CommentsDrawer({
                           <span className="text-ink-200 font-normal"> {label.handle}</span>
                         ) : null}
                       </p>
-                      <p className="text-xs text-ink-200 shrink-0">{relativeTime(comment.modified || comment.date)}</p>
+                      <p className="text-xs text-ink-200 shrink-0">
+                        {relativeTime(comment.modified || comment.date)}
+                      </p>
                     </div>
                     {editingId === comment.id ? (
                       <form
@@ -358,28 +373,43 @@ export default function CommentsDrawer({
                         <textarea
                           id={`edit-${comment.id}`}
                           value={editText}
-                          onChange={(event) => setEditText(event.target.value.slice(0, MAX_COMMENT_LENGTH))}
+                          onChange={(event) =>
+                            setEditText(event.target.value.slice(0, MAX_COMMENT_LENGTH))
+                          }
                           rows={3}
                           className="input-field resize-none mb-2"
                         />
                         <div className="flex flex-wrap gap-2">
-                          <button type="submit" className="btn-primary py-1.5 px-3 text-xs" disabled={busy || !editText.trim()}>
+                          <button
+                            type="submit"
+                            className="btn-primary py-1.5 px-3 text-xs"
+                            disabled={busy || !editText.trim()}
+                          >
                             {busy ? 'Saving…' : 'Save edit'}
                           </button>
-                          <button type="button" className="btn-secondary py-1.5 px-3 text-xs" onClick={() => setEditingId('')}>
+                          <button
+                            type="button"
+                            className="btn-secondary py-1.5 px-3 text-xs"
+                            onClick={() => setEditingId('')}
+                          >
                             Cancel
                           </button>
                         </div>
                       </form>
                     ) : (
-                      <p className="text-sm text-ink-100 leading-relaxed whitespace-pre-wrap">{comment.text}</p>
+                      <p className="text-sm text-ink-100 leading-relaxed whitespace-pre-wrap">
+                        {comment.text}
+                      </p>
                     )}
                     {comment.status === 'hidden' && (
-                      <p className="text-xs text-ink-200 mt-1">The author hid this comment. Other people cannot see it on the post.</p>
+                      <p className="text-xs text-ink-200 mt-1">
+                        The author hid this comment. Other people cannot see it on the post.
+                      </p>
                     )}
                     {comment.status === 'unpublished' && (
                       <p className="text-xs text-ink-200 mt-1">
-                        This comment is not on the published list. Other people cannot see it there yet.
+                        This comment is not on the published list. Other people cannot see it there
+                        yet.
                       </p>
                     )}
                     {signedIn && (
@@ -416,22 +446,33 @@ export default function CommentsDrawer({
                             >
                               {busy ? 'Deleting…' : 'Confirm delete'}
                             </button>
-                            <button type="button" className="btn-secondary py-1 px-3 text-xs" onClick={() => setPendingId('')}>
+                            <button
+                              type="button"
+                              className="btn-secondary py-1 px-3 text-xs"
+                              onClick={() => setPendingId('')}
+                            >
                               Cancel
                             </button>
                           </>
                         )}
-                        {isAuthor && comment.status === 'published' && pendingId !== `hide:${comment.id}` && (
+                        {isAuthor &&
+                          comment.status === 'published' &&
+                          pendingId !== `hide:${comment.id}` && (
+                            <button
+                              type="button"
+                              className="min-h-8 px-2 text-xs text-ink-100 underline"
+                              onClick={() => setPendingId(`hide:${comment.id}`)}
+                            >
+                              Hide
+                            </button>
+                          )}
+                        {isAuthor && pendingId === `hide:${comment.id}` && (
                           <button
                             type="button"
-                            className="min-h-8 px-2 text-xs text-ink-100 underline"
-                            onClick={() => setPendingId(`hide:${comment.id}`)}
+                            className="btn-primary py-1 px-3 text-xs"
+                            disabled={busy}
+                            onClick={() => handleHide(comment)}
                           >
-                            Hide
-                          </button>
-                        )}
-                        {isAuthor && pendingId === `hide:${comment.id}` && (
-                          <button type="button" className="btn-primary py-1 px-3 text-xs" disabled={busy} onClick={() => handleHide(comment)}>
                             {busy ? 'Hiding…' : 'Confirm hide'}
                           </button>
                         )}
@@ -499,13 +540,19 @@ export default function CommentsDrawer({
               <span className="text-xs text-ink-200">
                 {text.length}/{MAX_COMMENT_LENGTH}
               </span>
-              <button type="submit" disabled={submitting || !text.trim()} className="btn-primary py-1.5 px-4 text-xs">
+              <button
+                type="submit"
+                disabled={submitting || !text.trim()}
+                className="btn-primary py-1.5 px-4 text-xs"
+              >
                 {submitting ? 'Posting…' : 'Post comment'}
               </button>
             </div>
           </form>
         ) : (
-          <p className="p-4 border-t border-ink-700 text-center text-sm text-ink-100">Sign in to comment.</p>
+          <p className="p-4 border-t border-ink-700 text-center text-sm text-ink-100">
+            Sign in to comment.
+          </p>
         )}
       </aside>
     </div>

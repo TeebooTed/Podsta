@@ -55,7 +55,10 @@ test('a bare @name means the recommended provider, and @name@host stays explicit
   assert.equal(parsePersonInput('ada'), ADA);
   assert.equal(parsePersonInput('@ada@solidweb.org'), 'https://ada.solidweb.org/profile/card#me');
   assert.equal(parsePersonInput(ADA), ADA);
-  assert.equal(parsePersonInput('https://ada.example/profile/card'), 'https://ada.example/profile/card#me');
+  assert.equal(
+    parsePersonInput('https://ada.example/profile/card'),
+    'https://ada.example/profile/card#me',
+  );
   assert.equal(parsePersonInput('@ada@localhost'), null);
   assert.equal(parsePersonInput('not a person'), null);
   assert.equal(parsePersonInput(''), null);
@@ -96,7 +99,10 @@ test('signup and follow intents survive one redirect and are then forgotten', ()
 test('a private invite explains that the link does not open the profile', () => {
   assert.match(strangerNotice({ profileShared: false, posts: [] }), /Hidden and Contacts/);
   assert.match(strangerNotice({ profileShared: false, posts: [] }), /does not open/);
-  assert.match(strangerNotice({ profileShared: false, posts: [{ url: 'https://ada.example/a.jpg' }] }), /not public/);
+  assert.match(
+    strangerNotice({ profileShared: false, posts: [{ url: 'https://ada.example/a.jpg' }] }),
+    /not public/,
+  );
   assert.equal(strangerNotice({ profileShared: true, posts: [] }), '');
 });
 
@@ -125,18 +131,21 @@ test('new people are sent to Solid Community, and a short name is not described 
   assert.match(RECOMMENDED_PROVIDER.registerUrl, /solidcommunity\.net/);
   assert.equal(SIGNUP_STEPS.length, 4);
   const copy = SIGNUP_STEPS.map((step) => `${step.title} ${step.body}`).join(' ');
-  assert.match(copy, /solidcommunity\.net/);
-  assert.match(copy, /never sees the password/);
+  assert.match(copy, /Solid Community/);
+  assert.match(copy, /never sees your password/);
   assert.equal(/registry/i.test(copy), false);
   assert.equal(
     OTHER_PROVIDERS.some((provider) => provider.url === 'https://login.inrupt.com'),
     true,
   );
-  assert.equal(OTHER_PROVIDERS.some((provider) => provider.url === RECOMMENDED_PROVIDER.issuer), false);
+  assert.equal(
+    OTHER_PROVIDERS.some((provider) => provider.url === RECOMMENDED_PROVIDER.issuer),
+    false,
+  );
 
   const webid = ONBOARDING_STEPS.find((step) => step.id === 'webid');
   assert.match(webid.body, /invite link/);
-  assert.match(webid.body, /not a global registry/);
+  assert.match(webid.body, /full address/);
   assert.equal(sectionFromPath('/start'), 'start');
   assert.equal(sectionFromPath('/invite'), 'invite');
   assert.equal(sectionFromPath('/'), 'home');

@@ -53,8 +53,8 @@ export function emptyFeedCopy() {
   return {
     title: 'Your feed starts with one person',
     message:
-      'Copy your WebID and send it to someone you want to hear from, or follow a WebID you already know.',
-    copyLabel: 'Copy my WebID',
+      "Send your invite link to someone you'd like to hear from, or follow someone whose address you already have.",
+    copyLabel: 'Copy my invite link',
     followLabel: 'Follow someone',
     followPath: PATHS.discover,
     composeLabel: 'Write a post instead',
@@ -67,8 +67,8 @@ export function feedErrorCopy(unreachable = 0) {
     title: 'The feed did not load',
     message:
       count > 0
-        ? `${count} ${count === 1 ? 'Pod' : 'Pods'} did not respond in time. You can try again.`
-        : 'Something went wrong while reading public posts. You can try again.',
+        ? `${count} ${count === 1 ? 'pod' : 'pods'} didn't answer in time, so a few posts may be missing. Everything else is here.`
+        : 'Something went wrong on our end. Your posts are safe in your pod. Try again, and if it keeps happening, reload the page.',
     retryLabel: 'Try again',
   };
 }

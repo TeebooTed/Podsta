@@ -130,7 +130,7 @@ export default function App() {
 
           if (!pod) {
             setAuthError(
-              'Could not find a Pod for your WebID. Please ensure your profile lists at least one pim:storage.',
+              "We couldn't find a pod at your address. Your profile needs to list where your pod's storage is (pim:storage).",
             );
           } else {
             // Load profile, posts, friends in parallel.
@@ -148,7 +148,9 @@ export default function App() {
                 wait: (attempt) => new Promise((resolve) => setTimeout(resolve, 4000 * attempt)),
               }).catch(async (err) => {
                 console.error('Posts load failed:', err);
-                const cached = await readSnapshot(snapshotKey('posts', s.info.webId)).catch(() => null);
+                const cached = await readSnapshot(snapshotKey('posts', s.info.webId)).catch(
+                  () => null,
+                );
                 if (cached?.posts?.length) {
                   setLibraryWarning(describePodFailure(err));
                   return cached.posts;
@@ -212,7 +214,18 @@ export default function App() {
 
   // ── Compose handler ───────────────────────────────────────
   const handleCompose = useCallback(
-    async ({ type, file, files, caption, title, body, audience = 'private', onProgress, alreadyUploaded, thumbnails }) => {
+    async ({
+      type,
+      file,
+      files,
+      caption,
+      title,
+      body,
+      audience = 'private',
+      onProgress,
+      alreadyUploaded,
+      thumbnails,
+    }) => {
       if (!podUrl || !session) throw new Error('Not signed in');
 
       let postUrl;
@@ -299,7 +312,13 @@ export default function App() {
               : 'Now only you';
         showToast(message);
       } catch (err) {
-        showToast(`Could not change visibility: ${err.message}`, 'error');
+        showToast(
+          err?.code === 'above-ceiling'
+            ? err.message
+            : "We saved your post, but couldn't change who can see it. Try sharing again in a moment.",
+          'error',
+        );
+        console.error('Visibility change failed:', err);
       } finally {
         await reloadPosts();
         setTogglingUrls((s) => {
@@ -389,7 +408,12 @@ export default function App() {
         });
         showToast(`Now following ${added.name || 'user'}`);
       } catch (err) {
-        showToast(`Could not follow: ${err.message}`, 'error');
+        showToast(
+          err?.code === 'not-an-address' || err?.code === 'self'
+            ? err.message
+            : "We couldn't follow that person. Check their address and try again.",
+          'error',
+        );
       } finally {
         setAddingWebId(null);
       }
@@ -582,7 +606,7 @@ export default function App() {
           showToast('Contact request sent');
         } else {
           showToast(
-            `Request saved on your Pod. ${result.inboxError || 'They will see it if they follow you.'}`,
+            `Request saved on your pod. ${result.inboxError || 'They will see it if they follow you.'}`,
             'info',
           );
         }
@@ -607,7 +631,7 @@ export default function App() {
         if (notice.delivered) showToast('Approved. They have been notified.');
         else {
           showToast(
-            `Approved on your Pod. ${notice.error || 'Their inbox did not accept the notice.'}`,
+            `Approved on your pod. ${notice.error || 'Their inbox did not accept the notice.'}`,
             'info',
           );
         }
@@ -636,7 +660,11 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        role="status"
+        aria-live="polite"
+      >
         <div className="text-center">
           <Logo size="lg" showWord={false} className="animate-float mb-4" />
           <p className="text-ink-300 text-sm font-bold">Opening your pod…</p>
@@ -649,7 +677,10 @@ export default function App() {
     return (
       <>
         <Routes>
-          <Route path="/start" element={<SignupPage onBegin={startSignup} error={authError || ''} />} />
+          <Route
+            path="/start"
+            element={<SignupPage onBegin={startSignup} error={authError || ''} />}
+          />
           <Route
             path="/invite"
             element={
@@ -738,17 +769,32 @@ export default function App() {
         theme={theme}
       />
 
-      <main id="main" className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8">
+      <main
+        id="main"
+        className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8"
+      >
         {sessionExpired && (
-          <div className="mb-6 px-4 py-3 bg-ink-800 border border-accent/40 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between" role="alert">
-            <p>Your sign-in expired. Sign in again to continue. Posts saved on this device stay here.</p>
-            <button type="button" className="btn-secondary" onClick={() => login(RECOMMENDED_PROVIDER.issuer, appUrl('/'))}>
+          <div
+            className="mb-6 px-4 py-3 bg-ink-800 border border-accent/40 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between"
+            role="alert"
+          >
+            <p>
+              Your sign-in expired. Sign in again to continue. Posts saved on this device stay here.
+            </p>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => login(RECOMMENDED_PROVIDER.issuer, appUrl('/'))}
+            >
               Sign in
             </button>
           </div>
         )}
         {libraryWarning && (
-          <div className="mb-6 px-4 py-3 bg-ink-800 border border-ink-600 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between" role="alert">
+          <div
+            className="mb-6 px-4 py-3 bg-ink-800 border border-ink-600 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between"
+            role="alert"
+          >
             <p>{libraryWarning}</p>
             <button type="button" className="btn-secondary" onClick={() => reloadPosts()}>
               Try again
@@ -756,7 +802,10 @@ export default function App() {
           </div>
         )}
         {authError && (
-          <div className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent-ink" role="alert">
+          <div
+            className="mb-6 px-4 py-3 bg-accent/10 border border-accent/30 rounded-lg text-sm text-accent-ink"
+            role="alert"
+          >
             {authError}
           </div>
         )}
@@ -831,7 +880,9 @@ export default function App() {
           />
           <Route
             path="/post"
-            element={<PostPage session={session} posts={posts} podUrl={podUrl} showToast={showToast} />}
+            element={
+              <PostPage session={session} posts={posts} podUrl={podUrl} showToast={showToast} />
+            }
           />
           <Route
             path="/notifications"
@@ -886,14 +937,18 @@ export default function App() {
           setWelcomeWebId('');
           if (id && !hasFinishedOnboarding(window.localStorage, id)) setOnboardingOpen(true);
         }}
-        title="We found your WebID"
+        title="We found you"
       >
         <div className="px-6 py-5 space-y-3">
           <p className="text-sm text-ink-100 leading-relaxed">
-            Solid Community sent you back signed in. This is the address Podsta will use.
+            Solid Community sent you back signed in. This is the address Podsta will use for you.
           </p>
-          <p className="display-serif text-3xl">{displayHandle(welcomeWebId).qualified || welcomeWebId}</p>
-          <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all block">{welcomeWebId}</code>
+          <p className="display-serif text-3xl">
+            {displayHandle(welcomeWebId).qualified || welcomeWebId}
+          </p>
+          <code className="text-xs font-mono bg-ink-900 px-2 py-1 rounded break-all block">
+            {welcomeWebId}
+          </code>
           <button
             type="button"
             className="btn-primary"

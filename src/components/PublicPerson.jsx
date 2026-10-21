@@ -67,8 +67,9 @@ export default function PublicPerson({
   if (!webId) {
     return (
       <EmptyState
-        title="This invite is missing a person"
-        message="Ask them for the link again, or paste a WebID on Discover."
+        art="no-followers"
+        title="This invite is missing someone"
+        message="The link didn't say who it's for. Ask them to send it again, or paste their address on Discover."
         action={
           signedIn ? (
             <Link to={ROUTES.discover} className="btn-primary">
@@ -155,8 +156,8 @@ export default function PublicPerson({
       {!loading && person?.profileShared && posts.length === 0 && (
         <EmptyState
           art="welcome"
-          title="No public posts"
-          message="When they share a post publicly, it will appear in this grid."
+          title="No public posts yet"
+          message="When they share a post with everyone, it'll appear here."
         />
       )}
 

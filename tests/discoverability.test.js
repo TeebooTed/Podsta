@@ -47,7 +47,10 @@ test('discoverability defaults to hidden and caps post audiences', () => {
     [true, false, false],
   );
   assert.match(ceilingNote('hidden'), /Hidden/);
-  assert.equal(composerChoices('public').every((choice) => choice.enabled), true);
+  assert.equal(
+    composerChoices('public').every((choice) => choice.enabled),
+    true,
+  );
 });
 
 test('raising discoverability does not rewrite private posts', () => {
@@ -105,10 +108,10 @@ test('a contacts share failure is not described as public', () => {
     shareMessage: 'Pod denied the group',
   });
   assert.equal(failed.type, 'error');
-  assert.match(failed.message, /sharing failed: Pod denied the group/);
-  assert.equal(failed.message.includes('Posted publicly'), false);
+  assert.match(failed.message, /sharing didn't finish/);
+  assert.equal(failed.message.includes('Shared with everyone'), false);
   assert.equal(
     postedToast({ audience: 'contacts', shareFailed: false }).message,
-    'Posted for your contacts',
+    'Shared with your contacts.',
   );
 });

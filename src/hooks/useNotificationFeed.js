@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { collectNotifications, mergeNotificationPoll } from '../lib/notifications.js';
 import { nextPollDelay } from '../lib/pollSchedule.js';
-import { acknowledge as acknowledgeSeen, nextSeenAfterPoll, readSeen, unseenItems, writeSeen } from '../lib/seenState.js';
+import {
+  acknowledge as acknowledgeSeen,
+  nextSeenAfterPoll,
+  readSeen,
+  unseenItems,
+  writeSeen,
+} from '../lib/seenState.js';
 import { openSolidChannel } from '../lib/solidChannel.js';
 import { serverInboxUrl } from '../lib/contactRequest.js';
 import { PATHS } from '../lib/vocab.js';
@@ -39,7 +45,9 @@ export function useNotificationFeed({ enabled, session, podUrl, webId, friends, 
   const itemsRef = useRef([]);
   const refreshRef = useRef(async () => {});
 
-  const friendKey = (friends || []).map((friend) => `${friend.webId}|${friend.podUrl || ''}`).join('\n');
+  const friendKey = (friends || [])
+    .map((friend) => `${friend.webId}|${friend.podUrl || ''}`)
+    .join('\n');
   const postKey = (posts || []).map((post) => post.url).join('\n');
 
   const acknowledge = useCallback(
@@ -126,7 +134,7 @@ export function useNotificationFeed({ enabled, session, podUrl, webId, friends, 
         setOutgoingTargets(result.outgoingTargets || []);
         failed = Boolean(result.failedAll);
         setFailing(failed);
-        setError(failed ? 'Podsta could not reach the Pods it checks.' : '');
+        setError(failed ? 'Podsta could not reach the pods it checks.' : '');
         waitMs = nextPollDelay({
           failed,
           previousDelay: waitMs,

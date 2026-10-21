@@ -55,7 +55,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
     e?.preventDefault?.();
     const webId = parsePersonInput(manualInput);
     if (!webId) {
-      showToast('Enter a WebID, or a handle like @ada or @ada@solidweb.org', 'error');
+      showToast('Enter an address, or a short name like @ada or @ada@solidweb.org', 'error');
       return;
     }
     setManualBusy(true);
@@ -69,7 +69,10 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
 
   const copyWebId = async () => {
     const ok = await copyToClipboard(ownWebId || '');
-    showToast(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
+    showToast(
+      ok ? 'Address copied' : "Couldn't copy that. Try selecting it instead.",
+      ok ? 'success' : 'error',
+    );
   };
 
   const ProfileCard = ({ p, badge }) => (
@@ -82,10 +85,15 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
             <span className="text-xs bg-ink-700 text-ink-200 px-2 py-0.5 rounded">{badge}</span>
           )}
         </div>
-        <p className="text-xs text-ink-200 truncate mt-0.5">{displayHandle(p.webId).qualified || p.webId}</p>
+        <p className="text-xs text-ink-200 truncate mt-0.5">
+          {displayHandle(p.webId).qualified || p.webId}
+        </p>
         {p.viaName && <p className="text-xs text-ink-300 mt-0.5">via {p.viaName}</p>}
         {p.bio && <p className="text-xs text-ink-200 mt-1.5 line-clamp-2">{p.bio}</p>}
-        <Link to={personPath(p.webId)} className="inline-flex items-center min-h-8 text-xs text-ink-100 underline mt-1">
+        <Link
+          to={personPath(p.webId)}
+          className="inline-flex items-center min-h-8 text-xs text-ink-100 underline mt-1"
+        >
           View profile
         </Link>
       </div>
@@ -112,7 +120,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
     <div className="space-y-8">
       <h1 className="display-serif text-4xl">Discover</h1>
       <section className="card p-5">
-        <h2 className="display-serif text-2xl mb-1">Your WebID</h2>
+        <h2 className="display-serif text-2xl mb-1">Your address</h2>
         <p className="text-sm text-ink-300 mb-4">
           This is the address people use to follow you. Send it to them, or paste theirs below.
         </p>
@@ -121,7 +129,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
             {ownWebId}
           </code>
           <button type="button" onClick={copyWebId} className="btn-primary shrink-0">
-            Copy WebID
+            Copy my address
           </button>
         </div>
       </section>
@@ -130,12 +138,13 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
         <h2 className="display-serif text-2xl mb-1">Follow someone</h2>
         <p className="text-sm text-ink-100 mb-4 leading-relaxed">
           Type <span className="font-medium">@ada</span> for someone on Solid Community,{' '}
-          <span className="font-medium">@ada@another.host</span> for a different Pod host, or paste a WebID.
-          A short name is only a guess from the address. Podsta does not keep a handle registry.
+          <span className="font-medium">@ada@solidweb.org</span> for a different pod host, or paste
+          their full address. Your short name comes from your address. It isn't a username anyone
+          else can claim.
         </p>
         <form onSubmit={handleManualAdd} className="flex flex-col sm:flex-row gap-2">
           <label htmlFor="webid-input" className="sr-only">
-            WebID to follow
+            Address or @name to follow
           </label>
           <input
             id="webid-input"
@@ -162,7 +171,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
             <p className="text-xs text-ink-300">From published follow lists</p>
           </div>
           {loadingFoaf ? (
-            <p className="text-sm text-ink-300 py-4">Looking through follow lists…</p>
+            <p className="text-sm text-ink-300 py-4">Looking through your friends' lists…</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {foaf.map((p) => (
@@ -186,8 +195,8 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
         ) : (
           <EmptyState
             art="no-followers"
-            title="No public directory yet"
-            message="People appear here when you can reach them through a published follow list and they have opted in. Podsta has no central phone book. Paste a WebID you already know."
+            title="No one to suggest yet"
+            message="Podsta has no big phone book. Suggestions come from people your friends follow, once they've made their lists public. Got someone's address or @name? Paste it above."
           />
         )}
       </section>

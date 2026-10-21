@@ -32,14 +32,17 @@ export default function SignupPage({ onBegin, busy = false, error = '' }) {
           </Link>
         </p>
         <div className="card p-6 sm:p-8">
-          <h1 className="display-serif text-4xl mb-2 text-balance">I don't have a Pod</h1>
+          <h1 className="display-serif text-4xl mb-2 text-balance">Let's get you a pod</h1>
           <p className="text-sm text-ink-100 leading-relaxed mb-6">
-            A Pod is your own place on the web for posts. Podsta recommends {RECOMMENDED_PROVIDER.label}{' '}
-            ({RECOMMENDED_PROVIDER.host}) because that server uses Web Access Control, which is how Podsta shares posts.
+            A pod is your own place on the web for posts. We recommend {RECOMMENDED_PROVIDER.label}.
+            It's quick and it works well with Podsta.
           </p>
 
           {(error || localError) && (
-            <p className="mb-4 text-sm text-ink-50 bg-accent/20 border border-accent/40 rounded-lg px-3 py-2" role="alert">
+            <p
+              className="mb-4 text-sm text-ink-50 bg-accent/20 border border-accent/40 rounded-lg px-3 py-2"
+              role="alert"
+            >
               {error || localError}
             </p>
           )}
@@ -52,7 +55,9 @@ export default function SignupPage({ onBegin, busy = false, error = '' }) {
                 </span>
                 <div className="min-w-0">
                   <h2 className="text-sm font-medium text-ink-50">{step.title}</h2>
-                  <p className="text-sm text-ink-100 leading-relaxed mt-1 break-words">{step.body}</p>
+                  <p className="text-sm text-ink-100 leading-relaxed mt-1 break-words">
+                    {step.body}
+                  </p>
                 </div>
               </li>
             ))}
@@ -64,15 +69,15 @@ export default function SignupPage({ onBegin, busy = false, error = '' }) {
             disabled={busy || starting}
             className="btn-primary w-full"
           >
-            {busy || starting ? 'Opening Solid Community…' : 'Continue on Solid Community'}
+            {busy || starting ? 'Opening Solid Community…' : 'Continue to Solid Community'}
           </button>
-          <p className="text-xs text-ink-200 mt-3 leading-relaxed">
-            On their page, choose Sign up. After the Pod exists, sign in if they ask. Podsta reads the WebID from the return.
-          </p>
 
           <p className="mt-5 text-sm">
-            <Link to={PATHS.home} className="text-ink-100 underline min-h-8 inline-flex items-center">
-              I already have a Pod
+            <Link
+              to={PATHS.home}
+              className="text-ink-100 underline min-h-8 inline-flex items-center"
+            >
+              I already have a pod
             </Link>
           </p>
         </div>

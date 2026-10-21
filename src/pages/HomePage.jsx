@@ -11,6 +11,7 @@ import { loadFriendFeed } from '../lib/feed.js';
 import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { currentAppRoot } from '../lib/appUrl.js';
+import { inviteUrl } from '../lib/invite.js';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 import { readSnapshot, snapshotKey, writeSnapshot } from '../lib/offlineStore.js';
 import { plainText } from '../lib/text.js';
@@ -21,7 +22,15 @@ import { samePerson } from '../lib/webId.js';
 /**
  * Home is the following feed: one column, newest first.
  */
-export default function HomePage({ friends, session, podUrl, ownPostCount = 0, onRemoveFriend, onCompose, showToast }) {
+export default function HomePage({
+  friends,
+  session,
+  podUrl,
+  ownPostCount = 0,
+  onRemoveFriend,
+  onCompose,
+  showToast,
+}) {
   const [feedEntries, setFeedEntries] = useState([]);
   const [unreachable, setUnreachable] = useState(0);
   const [hydrated, setHydrated] = useState({});
@@ -58,8 +67,8 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
       if (!result.liked) showToast('Like removed');
       else if (result.notified) showToast('Liked');
       else if (!post.ownerWebId || samePerson(post.ownerWebId, session?.info?.webId)) {
-        showToast('Liked on your Pod. The count did not update.', 'info');
-      } else showToast('Liked on your Pod. They will see it when their app next checks.', 'info');
+        showToast("Liked on your pod. The count didn't update.", 'info');
+      } else showToast("Liked on your pod. They'll see it next time their app checks.", 'info');
     } catch (err) {
       showToast(err.message || 'Could not save that like', 'error');
     }
@@ -74,7 +83,10 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
     setRefreshing(true);
     reload();
   }, [reload]);
-  const pullState = usePullToRefresh(refresh, { enabled: friends?.length > 0 && !refreshing, refreshing });
+  const pullState = usePullToRefresh(refresh, {
+    enabled: friends?.length > 0 && !refreshing,
+    refreshing,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -175,9 +187,13 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
   const photoPosts = renderablePosts.filter((p) => p.type === 'photo');
   const errorCopy = feedErrorCopy(unreachable);
 
-  const copyWebId = async () => {
-    const ok = await copyToClipboard(session?.info?.webId || '');
-    showToast(ok ? 'WebID copied' : 'Copy failed', ok ? 'success' : 'error');
+  const copyInvite = async () => {
+    const webId = session?.info?.webId || '';
+    const ok = webId ? await copyToClipboard(inviteUrl(currentAppRoot(), webId)) : false;
+    showToast(
+      ok ? 'Invite link copied' : "Couldn't copy that. Try selecting it instead.",
+      ok ? 'success' : 'error',
+    );
   };
 
   return (
@@ -220,7 +236,10 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
               const name = f.name || shortWebId(f.webId);
               const confirming = pendingUnfollow === f.webId;
               return (
-                <div key={f.webId} className="shrink-0 flex flex-col items-center gap-1.5 w-[5.5rem]">
+                <div
+                  key={f.webId}
+                  className="shrink-0 flex flex-col items-center gap-1.5 w-[5.5rem]"
+                >
                   <Avatar src={f.avatarUrl} name={name} size="lg" />
                   <p className="text-xs text-ink-100 max-w-[5.5rem] truncate">{name}</p>
                   {confirming ? (
@@ -266,10 +285,13 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
       </div>
 
       {(fromCache || (failed && renderablePosts.length > 0)) && (
-        <p className="mb-4 text-sm text-ink-100 bg-ink-800 border border-ink-700 rounded-lg px-3 py-2" role="status">
+        <p
+          className="mb-4 text-sm text-ink-100 bg-ink-800 border border-ink-700 rounded-lg px-3 py-2"
+          role="status"
+        >
           {fromCache
             ? 'Showing the feed saved on this device.'
-            : 'Some Pods did not respond. Showing the posts already loaded.'}{' '}
+            : "Some pods didn't answer. Showing the posts that already loaded."}{' '}
           <button type="button" onClick={reload} className="underline text-ink-50">
             Try again
           </button>
@@ -289,7 +311,7 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
           message={copy.message}
           action={
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <button type="button" onClick={copyWebId} className="btn-primary">
+              <button type="button" onClick={copyInvite} className="btn-primary">
                 {copy.copyLabel}
               </button>
               <Link to={copy.followPath} className="btn-secondary">
@@ -317,18 +339,21 @@ export default function HomePage({ friends, session, podUrl, ownPostCount = 0, o
       ) : renderablePosts.length === 0 ? (
         <EmptyState
           art="welcome"
-          title="Nothing public yet"
-          message="The people you follow have not shared a post. When they do, it will show up here."
+          title="All quiet for now"
+          message="The people you follow haven't shared anything with you yet. When they do, it'll show up here."
           action={
             <Link to={copy.followPath} className="btn-secondary">
-              {copy.followLabel}
+              Follow someone else
             </Link>
           }
         />
       ) : (
         <>
           {unreachable > 0 && (
-            <p className="mb-4 text-sm text-ink-200 bg-ink-800 border border-ink-700 rounded-lg px-3 py-2" role="status">
+            <p
+              className="mb-4 text-sm text-ink-200 bg-ink-800 border border-ink-700 rounded-lg px-3 py-2"
+              role="status"
+            >
               {feedErrorCopy(unreachable).message}{' '}
               <button type="button" onClick={reload} className="underline text-ink-50">
                 Try again

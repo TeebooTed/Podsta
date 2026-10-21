@@ -83,7 +83,7 @@ const FAQ = [
   },
   {
     q: 'Who can see my photos?',
-    a: "You choose for each post. Only me means only you. Contacts means people you have approved, and following someone doesn't approve them. Public means anyone with the link. Your profile setting sets the limit: a hidden profile can only make Only me posts. One heads-up: Podsta uploads public photos exactly as you send them, so any location your camera saved stays in the file.",
+    a: "You choose for each post. Only me means only you. Contacts means people you have approved, and following someone doesn't approve them. Public means anyone with the link. Your profile setting sets the limit: a hidden profile can only make Only me posts. One heads-up: Podsta uploads public photos exactly as you send them today, so any location your camera saved stays in the file and anyone who opens a public photo could read it. A coming upload change will strip that location data before a photo leaves your device.",
   },
   {
     q: 'Is Podsta free?',
@@ -98,11 +98,19 @@ const FAQ = [
     a: "Yes, if your pod host uses the same sharing system Solid Community does (it's called Web Access Control). Solid Community and SolidWeb both work. Inrupt PodSpaces uses a different system, so sharing doesn't work there yet.",
   },
   {
+    q: 'Can I move to a different pod host later?',
+    a: "Your posts are plain files, so they can be copied from one pod to another. Podsta doesn't have a move button yet, though. Your address would also change with the new host, so friends would need your new invite link to keep following you.",
+  },
+  {
     q: 'How do people find me?',
     a: "There's no central list of names. Share your invite link or your QR code, or send someone your address. Your short name, like @ada, comes from your address. It isn't a username anyone else can claim.",
   },
   {
-    q: 'How do I know when something new happens?',
+    q: 'Does hiding my profile hide my address?',
+    a: "No. Your address stays visible even when your profile is hidden. It's the public link to your pod, so anyone who already has it can still see that it exists. Hidden keeps your Podsta profile and posts private, and nobody is told you're here.",
+  },
+  {
+    q: 'How do I know when someone comments or likes my post?',
     a: 'Podsta checks for news about once a minute while the tab is open, and lights the bell when something new turns up: posts from people you follow, comments on your posts, and contact requests.',
   },
 ];
@@ -221,7 +229,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
     } catch (err) {
       console.error('Login failed:', err);
       setLocalError(
-        err?.message || 'Could not reach that provider. Check the address and try again.',
+        "We couldn't sign you in. Your pod host didn't answer or said no. Check the address and try again, or pick Solid Community from the list.",
       );
       setPending(false);
     }
@@ -238,7 +246,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
           <div>
             <h1>
               <Logo size="md" />
-              <span className="block mt-8 font-display font-bold text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight text-ink-50 text-balance">
+              <span className="block mt-8 font-display font-semibold text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight text-ink-50 text-balance">
                 <span className="block">Your photos.</span>
                 <span className="block">Your pod.</span>
                 <span className="block bg-gradient-to-r from-accent-ink via-berry-ink to-accent-ink bg-clip-text text-transparent">
@@ -330,7 +338,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
             <Illustration name="whats-a-pod" className="w-56 sm:w-64 -ml-4 mb-2" />
             <h2
               id="pod-heading"
-              className="font-display font-bold text-4xl sm:text-5xl text-ink-50 mb-5 tracking-tight"
+              className="font-display font-semibold text-4xl sm:text-5xl text-ink-50 mb-5 tracking-tight"
             >
               What's a pod?
             </h2>
@@ -361,7 +369,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
         <div className="max-w-6xl mx-auto">
           <h2
             id="how-heading"
-            className="font-display font-bold text-4xl text-ink-50 mb-10 tracking-tight"
+            className="font-display font-semibold text-4xl text-ink-50 mb-10 tracking-tight"
           >
             Up and running in three steps
           </h2>
@@ -371,10 +379,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
                 'Get a pod',
                 "Make one on Solid Community with an email and a password. It's quick. Already have one? Skip ahead.",
               ],
-              [
-                'Sign in to Podsta',
-                'Your pod host asks if Podsta may use your pod. Say yes so Podsta can save your posts there.',
-              ],
+              ['Sign in to Podsta', 'Sign in with your pod. Podsta never sees your password.'],
               [
                 'Post and share',
                 'Add up to ten photos or a short note. It starts as Only me. Share it when you want to.',
@@ -382,7 +387,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
             ].map(([title, body], i) => (
               <li key={title} className="relative pl-16">
                 <span
-                  className="absolute left-0 top-0 grid place-items-center w-12 h-12 rounded-full bg-sunshine text-plum font-display font-bold text-xl shadow-soft"
+                  className="absolute left-0 top-0 grid place-items-center w-12 h-12 rounded-full bg-sunshine text-plum font-display font-semibold text-xl shadow-soft"
                   aria-hidden="true"
                 >
                   {i + 1}
@@ -400,7 +405,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
         <div className="max-w-6xl mx-auto">
           <h2
             id="look-heading"
-            className="font-display font-bold text-4xl text-ink-50 mb-8 tracking-tight"
+            className="font-display font-semibold text-4xl text-ink-50 mb-8 tracking-tight"
           >
             A look inside
           </h2>
@@ -433,7 +438,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
           <div>
             <h2
               id="faq-heading"
-              className="font-display font-bold text-4xl text-ink-50 mb-6 tracking-tight"
+              className="font-display font-semibold text-4xl text-ink-50 mb-6 tracking-tight"
             >
               Questions, answered
             </h2>
@@ -467,7 +472,7 @@ export default function LoginPage({ error, onLogin, busy = false }) {
               <Illustration name="welcome" className="w-36 -mt-3 -ml-3 mb-1" />
               <h2
                 id="signin-heading"
-                className="font-display font-bold text-3xl text-ink-50 mb-2 text-balance"
+                className="font-display font-semibold text-3xl text-ink-50 mb-2 text-balance"
               >
                 Sign in with your pod
               </h2>

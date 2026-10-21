@@ -112,7 +112,8 @@ export default function PostGrid({
 
   const photos = posts.filter((p) => p.type === 'photo');
   const openPost = posts.find((p) => p.url === openUrl) || null;
-  const photoIndex = openPost?.type === 'photo' ? photos.findIndex((p) => p.url === openPost.url) : -1;
+  const photoIndex =
+    openPost?.type === 'photo' ? photos.findIndex((p) => p.url === openPost.url) : -1;
 
   const handleSaveEdit = async (changes) => {
     setSavingEdit(true);
@@ -135,7 +136,11 @@ export default function PostGrid({
           onToggle={() => onToggleLike(post)}
         />
       )}
-      <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Who can see this post">
+      <div
+        className="flex flex-wrap gap-2 justify-center"
+        role="group"
+        aria-label="Who can see this post"
+      >
         {AUDIENCE_OPTIONS.map((option) => {
           const allowed = audienceAllowed(discoverability, option.id);
           const selected = (post.audience || (post.isPublic ? 'public' : 'private')) === option.id;
@@ -167,7 +172,9 @@ export default function PostGrid({
       </button>
       <button
         type="button"
-        onClick={() => setCommentsPost({ ...post, ownerWebId: session?.info?.webId || post.ownerWebId })}
+        onClick={() =>
+          setCommentsPost({ ...post, ownerWebId: session?.info?.webId || post.ownerWebId })
+        }
         className="btn-secondary text-xs"
       >
         Comments
@@ -186,7 +193,11 @@ export default function PostGrid({
           {deletingUrls?.has(post.url) ? 'Deleting…' : 'Confirm delete'}
         </button>
       ) : (
-        <button type="button" onClick={() => setConfirmDelete(true)} className="btn-ghost text-xs text-accent-ink">
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          className="btn-ghost text-xs text-accent-ink"
+        >
           Delete
         </button>
       )}
@@ -208,10 +219,10 @@ export default function PostGrid({
       <EmptyState
         art="first-post"
         title="Nothing here yet"
-        message="Photos and notes you write show up in this grid. New posts stay private until you share them."
+        message="Your photos and notes will fill this grid. New posts stay private until you share them."
         action={
           <button type="button" onClick={onCompose} className="btn-primary">
-            Create your first post
+            Make your first post
           </button>
         }
       />
@@ -230,7 +241,8 @@ export default function PostGrid({
                 : post.caption || 'Photo'
               : post.title || post.body?.slice(0, 80) || 'Note';
           const audience = post.audience || (post.isPublic ? 'public' : 'private');
-          const visibility = audience === 'public' ? 'Public' : audience === 'contacts' ? 'Contacts' : 'Private';
+          const visibility =
+            audience === 'public' ? 'Public' : audience === 'contacts' ? 'Contacts' : 'Private';
           return (
             <li key={post.url}>
               <button
@@ -264,7 +276,9 @@ export default function PostGrid({
                 {audience !== 'public' && (
                   <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-plum/75 backdrop-blur-sm text-cream pl-1.5 pr-2 py-0.5 rounded-full">
                     {audience === 'contacts' ? <PeopleIcon /> : <LockIcon />}
-                    <span className="hidden sm:inline">{audience === 'contacts' ? 'Contacts' : 'Private'}</span>
+                    <span className="hidden sm:inline">
+                      {audience === 'contacts' ? 'Contacts' : 'Private'}
+                    </span>
                   </span>
                 )}
               </button>
@@ -285,7 +299,12 @@ export default function PostGrid({
       )}
 
       {openPost?.type === 'text' && (
-        <Modal open onClose={() => setOpenUrl(null)} title={openPost.title || 'Note'} maxWidth="max-w-lg">
+        <Modal
+          open
+          onClose={() => setOpenUrl(null)}
+          title={openPost.title || 'Note'}
+          maxWidth="max-w-lg"
+        >
           <p className="text-ink-100 leading-relaxed whitespace-pre-wrap">{openPost.body}</p>
           <p className="text-xs text-ink-300 mt-3">{relativeTime(openPost.dateCreated)}</p>
           {actions(openPost)}

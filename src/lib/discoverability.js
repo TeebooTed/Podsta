@@ -27,25 +27,29 @@ export const LEVEL_OPTIONS = [
     id: 'public',
     label: 'Public',
     description:
-      'Listed for people who can reach a public follow list. Anyone with your WebID can read your profile and your public posts. Podsta has no central phone book.',
+      'Anyone with your address can see your profile and your public posts. People who follow your friends may spot you too.',
   },
   {
     id: 'contacts',
     label: 'Contacts only',
     description:
-      'Only people you explicitly approve can discover your shared posts. Following someone does not approve them. While this is on, the approved list is world-readable, because Solid checks that group file to decide who may read.',
+      "People you approve can see the posts you share with them. Following you doesn't count as approval. Heads-up: the list of who you've approved can be seen by others, because that's how your pod checks who's allowed in.",
   },
   {
     id: 'hidden',
     label: 'Hidden',
     description:
-      'Not listed. Reachable only by someone who already has your WebID or a direct link. Your WebID document stays on your identity provider and is usually still readable.',
+      "Nobody's told you're here. Only people who already have your address or a direct link can reach you. Your posts stay Only me. Your address itself stays visible, even when your profile is hidden.",
   },
 ];
 
 export const AUDIENCE_OPTIONS = [
   { id: 'private', label: 'Only me', description: 'Only you can read this post.' },
-  { id: 'contacts', label: 'Contacts', description: 'People you have approved can read this post.' },
+  {
+    id: 'contacts',
+    label: 'Contacts',
+    description: 'People you have approved can read this post.',
+  },
   { id: 'public', label: 'Public', description: 'Anyone can read this post.' },
 ];
 

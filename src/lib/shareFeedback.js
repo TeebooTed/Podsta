@@ -1,18 +1,18 @@
 /**
- * One toast after compose. A failed share must not be overwritten by "Posted publicly".
+ * One toast after compose. A failed share must not be overwritten by "Shared with everyone."
  * The post itself was saved; sharing is a second step.
  * `audience` is "public" | "contacts" | "private". `makePublic` remains for older callers.
  */
-export function postedToast({ makePublic, audience, shareFailed, shareMessage }) {
+export function postedToast({ makePublic, audience, shareFailed }) {
   if (shareFailed) {
-    const detail = shareMessage?.trim() || 'unknown error';
     return {
       type: 'error',
-      message: `Posted, but sharing failed: ${detail}`,
+      message:
+        "Saved in your pod, but sharing didn't finish. It's still Only me for now. Try sharing again from the post.",
     };
   }
   const who = audience || (makePublic ? 'public' : 'private');
-  if (who === 'public') return { type: 'success', message: 'Posted publicly' };
-  if (who === 'contacts') return { type: 'success', message: 'Posted for your contacts' };
-  return { type: 'success', message: 'Posted privately' };
+  if (who === 'public') return { type: 'success', message: 'Shared with everyone.' };
+  if (who === 'contacts') return { type: 'success', message: 'Shared with your contacts.' };
+  return { type: 'success', message: 'Posted to your pod.' };
 }

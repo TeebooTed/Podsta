@@ -49,25 +49,29 @@ test('routes point Home at the feed and keep profile and discover', () => {
   assert.equal(sectionFromPath('/profile'), 'profile');
   assert.equal(sectionFromPath('/people'), 'people');
   assert.equal(sectionFromPath('/post'), 'post');
-  assert.match(personPath('https://ada.example/profile/card#me'), /webid=https%3A%2F%2Fada.example/);
+  assert.match(
+    personPath('https://ada.example/profile/card#me'),
+    /webid=https%3A%2F%2Fada.example/,
+  );
   assert.equal(
     appPostUrl('https://podsta.example/', 'https://ada.example/podsta/photos/a.jpg'),
     'https://podsta.example' + postPath('https://ada.example/podsta/photos/a.jpg'),
   );
 });
 
-test('an empty feed tells a new person to copy a WebID or follow someone', () => {
+test('an empty feed tells a new person to send an invite link or follow someone', () => {
   const copy = emptyFeedCopy();
   assert.match(copy.title, /one person/);
-  assert.match(copy.message, /WebID/);
+  assert.match(copy.message, /invite link/);
+  assert.doesNotMatch(copy.message, /WebID/);
   assert.equal(copy.followPath, '/discover');
-  assert.equal(copy.copyLabel, 'Copy my WebID');
+  assert.equal(copy.copyLabel, 'Copy my invite link');
   assert.equal(copy.followLabel, 'Follow someone');
 });
 
 test('a failed feed names how many Pods did not respond', () => {
   const copy = feedErrorCopy(2);
-  assert.match(copy.message, /2 Pods/);
+  assert.match(copy.message, /2 pods didn't answer/);
   assert.equal(copy.retryLabel, 'Try again');
 });
 
