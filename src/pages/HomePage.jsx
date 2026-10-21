@@ -20,6 +20,13 @@ import { useLikes } from '../hooks/useLikes.js';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import { samePerson } from '../lib/webId.js';
 import { isSaved } from '../lib/saves.js';
+import WeeklyPrompt from '../components/WeeklyPrompt.jsx';
+import {
+  dismissWeeklyPrompt,
+  friendsAreActive,
+  promptDismissed,
+  promptForDate,
+} from '../lib/weeklyPrompt.js';
 
 /**
  * Home is the following feed: one column, newest first.
@@ -52,6 +59,17 @@ export default function HomePage({
   const [commentsPost, setCommentsPost] = useState(null);
   const [blockRevision, setBlockRevision] = useState(0);
   const [pendingUnfollow, setPendingUnfollow] = useState(null);
+  const [promptHidden, setPromptHidden] = useState(false);
+  const weeklyPrompt = promptForDate();
+  const showPrompt =
+    !promptHidden &&
+    !loading &&
+    friendsAreActive(feedEntries) &&
+    !promptDismissed(
+      typeof window === 'undefined' ? null : window.localStorage,
+      session?.info?.webId || '',
+      weeklyPrompt,
+    );
   const hydratedRef = useRef({});
   const copy = emptyFeedCopy();
   const likes = useLikes({
@@ -313,6 +331,17 @@ export default function HomePage({
             Try again
           </button>
         </p>
+      )}
+
+      {showPrompt && (
+        <WeeklyPrompt
+          prompt={weeklyPrompt}
+          onPost={onCompose}
+          onDismiss={() => {
+            dismissWeeklyPrompt(window.localStorage, session?.info?.webId || '', weeklyPrompt);
+            setPromptHidden(true);
+          }}
+        />
       )}
 
       {loading && renderablePosts.length === 0 ? (

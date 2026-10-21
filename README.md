@@ -10,7 +10,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 
 ## Features
 
-- Home is the following feed. Your own posts live on Profile as a grid.
+- Home is the following feed, newest first. Your own posts live on Profile as a grid. A weekly photo prompt appears only when someone you follow has posted in the last week. Dismissing it hides it until next week, on this device.
 - Text posts, and photo posts of up to ten pictures, with a carousel in the feed and in the viewer.
 - One-tap filters (Warm, Fade, Mono, Cool, Punch), plus crop and rotate, before upload. The filter is baked into the photo on this device. Large photos are resized in the browser and a smaller thumbnail is what the feed loads. Camera metadata is not kept on the copy stored in the Pod. Drag-and-drop works on a desktop, and a progress bar stays short of 100% until the Pod responds. A failed upload can be retried without sending photos that already landed.
 - Per-post audience: Only me, Contacts, or Public, capped by the profile.
