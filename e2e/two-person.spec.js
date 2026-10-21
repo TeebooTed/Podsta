@@ -60,6 +60,7 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     });
 
     await alicePage.getByRole('link', { name: 'Home', exact: true }).click();
+    await expect(alicePage.getByRole('region', { name: "This week's photo prompt" })).toHaveCount(0);
     await openProfile(alicePage);
     await expect(alicePage.getByRole('button', { name: /Private post: Only me picnic/ })).toBeVisible();
     await expect(alicePage.getByRole('button', { name: /Contacts post: Contacts picnic/ })).toBeVisible();
@@ -75,6 +76,7 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await bobPage.getByRole('link', { name: 'Home', exact: true }).click();
     const publicCard = bobPage.locator('article').filter({ hasText: 'Public picnic' });
     await expect(publicCard).toBeVisible({ timeout: 30000 });
+    await expect(bobPage.getByRole('region', { name: "This week's photo prompt" })).toBeVisible();
     await expect(bobPage.getByText('Contacts picnic')).toHaveCount(0);
     await expect(bobPage.getByText('Only me picnic')).toHaveCount(0);
 

@@ -10,7 +10,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 
 ## Features
 
-- Home is the following feed. Your own posts live on Profile as a grid.
+- Home is the following feed. Your own posts live on Profile as a grid. A weekly photo prompt appears there only when someone you follow posted in the last seven days. You can skip it until next week. It stays on this device, with no extra notification.
 - Text posts, and photo posts of up to ten pictures, with a carousel in the feed and in the viewer.
 - One-tap looks while you write a post: As shot, Cream, Sunshine, Coral, Berry, Plum, Mint, and Soft, each with a live thumbnail. Square or 4:5, brightness, and warmth sit next to them. The look is drawn into the photo on this device before it is uploaded. Leaving a photo as shot adds no extra taps.
 - Crop and rotate before upload. Large photos are resized in the browser and a smaller thumbnail is what the feed loads. Camera metadata is not kept on the copy stored in the Pod. Drag-and-drop works on a desktop, and a progress bar stays short of 100% until the Pod responds. A failed upload can be retried without sending photos that already landed.

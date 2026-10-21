@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- A weekly photo prompt on Home, such as Something green. It shows only when someone you follow posted in the last seven days. Not this week hides it on this device until next week. There is no extra notification.
 - Sign in with your account. The sign-in card says "Your account" and accepts a name like @ada or @ada@solidweb.org. That name only chooses the host. It is not looked up, and there is no registry. A blank name still opens Solid Community.
 - One-tap photo looks in the new-post window: Cream, Sunshine, Coral, Berry, Plum, Mint, and Soft, each with a live thumbnail. Square or 4:5, brightness, and warmth are drawn into the photo on this device. As shot still posts in the same few taps. Camera location is still removed, and an untouched GIF still stays a GIF.
 - **Create my Pod** is the one-tap default on the signed-out page. It opens Solid Community. Sign-in for an account you already have stays on the page, and other pod hosts stay under Advanced.
