@@ -94,7 +94,9 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await alicePage.getByRole('button', { name: 'Check now' }).click();
     await expect(alicePage.getByText(/asked to be a contact/)).toBeVisible({ timeout: 30000 });
     await alicePage.getByRole('button', { name: 'Approve' }).click();
-    await expect(alicePage.getByText(/^Approved/)).toBeVisible();
+    // The row says "Approved" and the toast says "Approved. They have been notified."
+    // A prefix match hits both while the toast is still up.
+    await expect(alicePage.getByText('Approved', { exact: true })).toBeVisible();
 
     await bobPage.getByRole('link', { name: 'Home', exact: true }).click();
     await expect(bobPage.getByText('Public picnic')).toBeVisible({ timeout: 30000 });
