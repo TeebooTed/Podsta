@@ -6,6 +6,7 @@ import { samePerson } from '../lib/webId.js';
 import { SkeletonRows } from '../components/Skeletons.jsx';
 import PullIndicator from '../components/PullIndicator.jsx';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
+import { openWhatsNew } from '../lib/whatsNew.js';
 import { unseenItems } from '../lib/seenState.js';
 
 export default function NotificationsPage({
@@ -44,6 +45,9 @@ export default function NotificationsPage({
           )}
           <button type="button" className="btn-secondary" onClick={onRefresh} disabled={checking}>
             {checking ? 'Checking…' : 'Check now'}
+          </button>
+          <button type="button" className="btn-ghost" onClick={openWhatsNew}>
+            What’s new
           </button>
         </div>
       </div>

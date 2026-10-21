@@ -72,6 +72,8 @@ export default {
         'pull-bounce': 'pullBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'fan-in': 'fanIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both',
         'hero-like': 'heroLike 4s ease-in-out 1.2s infinite',
+        twinkle: 'twinkle 3.2s ease-in-out infinite both',
+        'sheet-up': 'sheetUp 0.42s cubic-bezier(0.16, 1, 0.3, 1) both',
         'hero-confetti': 'heroConfetti 4s ease-out 1.2s infinite both',
       },
       keyframes: {
@@ -145,6 +147,14 @@ export default {
           '76%': { transform: 'scale(1.35)' },
           '84%': { transform: 'scale(0.9)' },
           '90%': { transform: 'scale(1.05)' },
+        },
+        twinkle: {
+          '0%, 100%': { transform: 'scale(0.55) rotate(0deg)', opacity: 0.35 },
+          '50%': { transform: 'scale(1) rotate(25deg)', opacity: 1 },
+        },
+        sheetUp: {
+          from: { transform: 'translateY(100%)' },
+          to: { transform: 'translateY(0)' },
         },
         heroConfetti: {
           '0%, 74%': { transform: 'translate(0, 0) scale(0.4)', opacity: 0 },

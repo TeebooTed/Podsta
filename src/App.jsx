@@ -42,6 +42,7 @@ import NotificationsPage from './pages/NotificationsPage.jsx';
 import Header from './components/Header.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Onboarding from './components/Onboarding.jsx';
+import WhatsNew from './components/WhatsNew.jsx';
 import Composer from './components/Composer.jsx';
 import Modal from './components/Modal.jsx';
 import Toast from './components/Toast.jsx';
@@ -943,6 +944,8 @@ export default function App() {
           showToast={showToast}
         />
       )}
+
+      {podUrl && !welcomeWebId && <WhatsNew webId={session.info.webId} />}
 
       {toast && (
         <Toast
