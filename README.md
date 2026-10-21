@@ -4,7 +4,7 @@
 
 Podsta is a photo-and-text app that stores everything in your [Solid Pod](https://solidproject.org). There is no Podsta server and no central directory. The signed-in browser talks to your Pod, and to the Pods of people you follow, with Web Access Control.
 
-**Try it:** [https://teebooted.github.io/Podsta/](https://teebooted.github.io/Podsta/) · **New to Solid?** [https://teebooted.github.io/Podsta/start/](https://teebooted.github.io/Podsta/start/)
+**Try it:** [https://teebooted.github.io/Podsta/](https://teebooted.github.io/Podsta/) · **New to Solid?** [https://teebooted.github.io/Podsta/start/](https://teebooted.github.io/Podsta/start/) · **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 A new profile is Hidden. You choose Contacts or Public later. A post cannot be more open than the profile.
 
