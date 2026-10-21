@@ -3,7 +3,7 @@ import { unseenItems } from './seenState.js';
 /**
  * On-device notices from the poll Podsta already runs.
  * There is no push server. A hidden tab still does not poll.
- * Comments, likes, and contact requests are the kinds this announces.
+ * Comments, likes, contact requests, and invite connections are the kinds this announces.
  * A new post in the feed stays in the list and on the bell only.
  */
 
@@ -11,7 +11,7 @@ export const SOCIAL_EVENT = 'podsta:social';
 export const NOTICE_OPEN_EVENT = 'podsta:notice-open';
 export const ANNOUNCED_LIMIT = 200;
 
-const DEVICE_KINDS = new Set(['comment', 'like', 'contact-request']);
+const DEVICE_KINDS = new Set(['comment', 'like', 'contact-request', 'invite-accept']);
 
 function storageKey(name, webId) {
   return `podsta.notices.${name}:${encodeURIComponent(webId || '')}`;

@@ -105,12 +105,14 @@ export function parseNotice(text) {
     /a\s+(?:podsta:ContactApproval|<https:\/\/podsta\.app\/vocab#ContactApproval>)/.test(text);
   const request =
     /a\s+(?:podsta:ContactRequest|<https:\/\/podsta\.app\/vocab#ContactRequest>)/.test(text);
-  if (!approval && !request) return null;
+  const invite =
+    /a\s+(?:podsta:InviteAccept|<https:\/\/podsta\.app\/vocab#InviteAccept>)/.test(text);
+  if (!approval && !request && !invite) return null;
   const authorWebId = iriAfter(text, 'author');
   const recipientWebId = iriAfter(text, 'recipient');
   if (!authorWebId) return null;
   return {
-    kind: approval ? 'contact-approval' : 'contact-request',
+    kind: invite ? 'invite-accept' : approval ? 'contact-approval' : 'contact-request',
     authorWebId,
     recipientWebId,
     aboutUrl: iriAfter(text, 'url'),

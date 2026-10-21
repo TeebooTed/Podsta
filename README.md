@@ -24,7 +24,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 - Captions and notes can include `#tags`. A tag page lists only posts you can already read: yours, including private ones, and posts from people you follow. There is no central tag directory.
 - Share a public or contacts post to another app on your device. A private post is not offered. A contacts post shares the link only, not the caption. Nothing is sent to a Podsta server.
 - Each photo can have a description for someone who cannot see it. The description is stored with the photo, uses the same audience, and is not the caption.
-- Discover by WebID, with copy-my-WebID, invite links, and a QR code. A short name like `@ada` is derived from the WebID. It is not a registered handle.
+- Discover by WebID, with copy-my-WebID, invite links, and a QR code. Opening an invite follows the inviter, approves them as a contact, and posts a notice to their inbox. Their app follows back and approves the new person. A short name like `@ada` is derived from the WebID. It is not a registered handle.
 - A sign-up guide for people without a Pod. Solid Community is the recommended host. An existing Web Access Control Pod can sign in directly.
 - Phone layout with Home, Discover, New post, and Profile. Desktop uses the header. Keyboard: `h` home, `d` discover, `p` profile, `s` saved, `n` new post. Shortcuts are ignored while you are typing or a dialog is open. Saved posts are also in the account menu.
 
@@ -60,7 +60,7 @@ You need a Solid Pod on a server that uses Web Access Control.
 
 **You already have an account.** Choose **I already have an account**, type your name such as `@ada`, and choose **Sign in**. A blank name opens Solid Community. A name from somewhere else looks like `@ada@solidweb.org`. That only picks the host. It does not look the name up, and it is not a registry. Other hosts are under **Advanced**. [solidweb.org](https://solidweb.org) also uses Web Access Control. Inrupt PodSpaces is listed so you can see why it is not supported: it uses access policies this app cannot write.
 
-After sign-in you can skip the short tour. The profile starts Hidden. Copy your WebID from Home or Discover and send it to someone, or follow a WebID you already know. Invite links use `/invite?webid=`. Signing in through one follows that person, sends a contact request, and opens Home. Public posts can show there. A private profile stays private. Undo is on Home.
+After sign-in you can skip the short tour. The profile starts Hidden. Copy your WebID from Home or Discover and send it to someone, or follow a WebID you already know. Invite links use `/invite?webid=`. Signing in through one follows that person, approves them as a contact, sends a contact request, and opens Home. A notice in their inbox asks their app to follow back and approve you. Public posts can show there. A private profile stays private. Undo is on Home.
 
 ## For developers
 

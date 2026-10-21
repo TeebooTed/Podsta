@@ -12,6 +12,7 @@ export default function PersonPage({
   onAskContact,
   askWebId = '',
   requestedWebIds = [],
+  actionLabel = '',
 }) {
   const [params] = useSearchParams();
   const webId = normalizeWebId(params.get('webid') || '') || '';
@@ -22,6 +23,7 @@ export default function PersonPage({
       friends={friends}
       onFollow={onAddFriend}
       followBusy={addingWebId === webId}
+      actionLabel={actionLabel}
       signedIn={signedIn}
       selfWebId={session?.info?.webId || ''}
       onAskContact={onAskContact}
