@@ -34,6 +34,7 @@ jobs:
       - run: npm run build
         env:
           PAGES_BASE: /Podsta/
+      - run: node scripts/checkPagesBuild.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

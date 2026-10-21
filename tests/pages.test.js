@@ -7,7 +7,7 @@ import { appPostUrl } from '../src/lib/navigation.js';
 import { inviteUrl } from '../src/lib/invite.js';
 import { appRoot, routerBasename } from '../src/lib/appUrl.js';
 import { clientIdDocument, oidcLoginRequest, PAGES_ORIGIN } from '../src/lib/clientId.js';
-import { copySpaFallback } from '../scripts/pagesFallback.js';
+import { copySpaFallback, PAGES_HOME, PAGES_START } from '../scripts/pagesFallback.js';
 
 const ADA = 'https://ada.solidcommunity.net/profile/card#me';
 const POST = 'https://ada.example/podsta/posts/1.ttl';
@@ -55,10 +55,36 @@ test('the published client id matches the Pages home and is used only there', ()
   assert.equal(custom.redirectUrl, 'https://teebooted.github.io/Podsta/');
 });
 
-test('a project-site build copies index.html to 404.html', () => {
+test('a project-site build copies index.html to 404.html and a crawlable /start/', () => {
   const dir = mkdtempSync(join(tmpdir(), 'podsta-pages-'));
-  writeFileSync(join(dir, 'index.html'), '<!doctype html><div id="root"></div>');
+  const html = `<!doctype html><link rel="canonical" href="${PAGES_HOME}" /><meta property="og:url" content="${PAGES_HOME}" /><div id="root"></div>`;
+  writeFileSync(join(dir, 'index.html'), html);
   assert.equal(copySpaFallback(dir, '/'), false);
   assert.equal(copySpaFallback(dir, '/Podsta/'), true);
-  assert.equal(readFileSync(join(dir, '404.html'), 'utf8'), readFileSync(join(dir, 'index.html'), 'utf8'));
+  assert.equal(readFileSync(join(dir, '404.html'), 'utf8'), html);
+  const start = readFileSync(join(dir, 'start', 'index.html'), 'utf8');
+  assert.match(start, new RegExp(`canonical" href="${PAGES_START}"`));
+  assert.match(start, new RegExp(`og:url" content="${PAGES_START}"`));
+  assert.equal(start.includes(`canonical" href="${PAGES_HOME}"`), false);
+});
+
+test('the public site names itself for crawlers, without an email address', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /rel="canonical" href="https:\/\/teebooted\.github\.io\/Podsta\/"/);
+  assert.match(html, /property="og:url" content="https:\/\/teebooted\.github\.io\/Podsta\/"/);
+  assert.match(html, /property="og:image" content="https:\/\/teebooted\.github\.io\/Podsta\/og-image\.png"/);
+  assert.match(html, /name="twitter:card" content="summary_large_image"/);
+  assert.match(html, /"@type": "SoftwareApplication"/);
+  assert.match(html, /<noscript>/);
+  const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
+  assert.equal(manifest.start_url, './');
+  assert.equal(manifest.scope, './');
+  const robots = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8');
+  assert.match(robots, /Sitemap: https:\/\/teebooted\.github\.io\/Podsta\/sitemap\.xml/);
+  const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+  assert.match(sitemap, /https:\/\/teebooted\.github\.io\/Podsta\/</);
+  assert.match(sitemap, /https:\/\/teebooted\.github\.io\/Podsta\/start\//);
+  const llms = readFileSync(new URL('../public/llms.txt', import.meta.url), 'utf8');
+  assert.equal(llms.includes('@'), false);
+  assert.equal(readFileSync(new URL('../public/og-image.png', import.meta.url)).length > 1000, true);
 });

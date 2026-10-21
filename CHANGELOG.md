@@ -8,7 +8,7 @@ Dates are the days the work landed on `main`.
 - Photos are resized before upload. A thumbnail is what the feed and the profile grid request. JPEG, PNG, and WebP are re-encoded in the browser so camera metadata is not stored.
 - Captions, comments, names, and bios are plain text. Pod and provider addresses have to be https. The production build sets a Content-Security-Policy.
 - The signed-out page does not download the Solid client until sign-in. Fonts ship with the app.
-- GitHub Pages deploy runs the tests before it publishes.
+- GitHub Pages deploy runs the tests before it publishes. The public URL is `https://teebooted.github.io/Podsta/`, with a canonical link, share image, sitemap, and `/start/` as a real page. Sign-in on that origin returns to the home URL.
 
 ## 10 October 2026
 

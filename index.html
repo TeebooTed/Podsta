@@ -6,25 +6,59 @@
     <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1a1610" />
+    <meta name="color-scheme" content="dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Podsta" />
 
-    <!-- SEO / OG -->
-    <title>Podsta — your posts, your pod, your rules</title>
-    <meta name="description" content="A decentralized social network for text and photo posts. You own your data. No algorithms. No surveillance." />
-    <meta property="og:title" content="Podsta" />
-    <meta property="og:description" content="Decentralized social posts on Solid Pods." />
+    <title>Podsta — your posts, your Pod, your rules</title>
+    <meta name="description" content="Podsta is a photo-and-text app that stores everything in your Solid Pod. No Podsta server, no central directory. Per-post audiences: Only me, Contacts, or Public." />
+    <link rel="canonical" href="https://teebooted.github.io/Podsta/" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Podsta" />
+    <meta property="og:title" content="Podsta — your posts, your Pod, your rules" />
+    <meta property="og:description" content="A photo-and-text app that stores everything in your Solid Pod. No Podsta server." />
+    <meta property="og:url" content="https://teebooted.github.io/Podsta/" />
+    <meta property="og:image" content="https://teebooted.github.io/Podsta/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Podsta home feed with a two-photo post" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Podsta — your posts, your Pod, your rules" />
+    <meta name="twitter:description" content="A photo-and-text app that stores everything in your Solid Pod. No Podsta server." />
+    <meta name="twitter:image" content="https://teebooted.github.io/Podsta/og-image.png" />
+    <meta name="twitter:image:alt" content="Podsta home feed with a two-photo post" />
 
-    <!-- Manifest for PWA install -->
     <link rel="manifest" href="%BASE_URL%manifest.json" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Podsta",
+        "url": "https://teebooted.github.io/Podsta/",
+        "applicationCategory": "SocialNetworkingApplication",
+        "operatingSystem": "Web",
+        "description": "A photo-and-text app that stores everything in your Solid Pod. There is no Podsta server and no central directory.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/TeebooTed/Podsta",
+        "author": { "@type": "Person", "name": "Matthew Nielsen" },
+        "screenshot": "https://teebooted.github.io/Podsta/og-image.png"
+      }
+    </script>
   </head>
   <body class="bg-ink-950 text-ink-100 antialiased">
-    <div id="root"></div>
-    <noscript>
-      <p>Podsta needs JavaScript to talk to your Solid Pod.</p>
-    </noscript>
+    <div id="root">
+      <main style="background:#1a1610;color:#faf8f5;padding:1.5rem;max-width:40rem;margin:0 auto;font-family:Georgia,serif;line-height:1.5">
+        <h1>Podsta — your posts, your Pod, your rules</h1>
+        <p>Podsta is a photo-and-text app that stores everything in your <a href="https://solidproject.org" style="color:#ffb4a2">Solid Pod</a>. There is no Podsta server and no central directory.</p>
+        <p>New to Solid? The guide at <a href="start" style="color:#ffb4a2">/start</a> helps you create a Pod on Solid Community.</p>
+        <p><a href="https://github.com/TeebooTed/Podsta" style="color:#ffb4a2">Source on GitHub</a> (MIT)</p>
+        <noscript>
+          <p>Podsta needs JavaScript to sign in to your Pod.</p>
+        </noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
