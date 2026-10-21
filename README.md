@@ -12,7 +12,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 
 - Home is the following feed. Your own posts live on Profile as a grid.
 - Text posts, and photo posts of up to ten pictures, with a carousel in the feed and in the viewer.
-- Crop and rotate before upload. Large photos are resized in the browser and a smaller thumbnail is what the feed loads. Camera metadata is not kept on the copy stored in the Pod. Drag-and-drop works on a desktop, and a progress bar stays short of 100% until the Pod responds. A failed upload can be retried without sending photos that already landed.
+- One-tap filters (Warm, Fade, Mono, Cool, Punch), plus crop and rotate, before upload. The filter is baked into the photo on this device. Large photos are resized in the browser and a smaller thumbnail is what the feed loads. Camera metadata is not kept on the copy stored in the Pod. Drag-and-drop works on a desktop, and a progress bar stays short of 100% until the Pod responds. A failed upload can be retried without sending photos that already landed.
 - Per-post audience: Only me, Contacts, or Public, capped by the profile.
 - If the pod is unreachable or the device is offline, a new post, like, or comment stays on this device, shows as waiting to send, and goes out when the connection returns. A failed upload does not throw away the caption or the photos.
 - Instagram import on Profile. Choose the JSON zip or the unzipped folder from Instagram's download, preview the posts, and save the ones you pick. Original dates and captions are kept, camera location is removed, and new posts start as Only me unless you choose otherwise. Posts already saved are skipped, and a stopped import can continue.

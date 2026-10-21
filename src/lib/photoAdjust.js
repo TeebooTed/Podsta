@@ -1,7 +1,34 @@
 /**
- * Crop and rotate happen in the browser, before the bytes are uploaded.
- * The controls are buttons and a slider. The canvas result is what the Pod stores.
+ * Crop, rotate, and one-tap filters happen in the browser, before the bytes
+ * are uploaded. The canvas result is what the Pod stores.
  */
+
+export const PHOTO_FILTERS = [
+  { id: 'original', label: 'Original' },
+  { id: 'warm', label: 'Warm' },
+  { id: 'fade', label: 'Fade' },
+  { id: 'mono', label: 'Mono' },
+  { id: 'cool', label: 'Cool' },
+  { id: 'punch', label: 'Punch' },
+];
+
+const FILTER_CSS = {
+  original: 'none',
+  warm: 'sepia(0.35) saturate(1.3) contrast(1.05)',
+  fade: 'contrast(0.92) brightness(1.08) saturate(0.8)',
+  mono: 'grayscale(1) contrast(1.15) brightness(1.02)',
+  cool: 'saturate(0.85) hue-rotate(18deg) contrast(1.05)',
+  punch: 'contrast(1.18) saturate(1.4) brightness(1.02)',
+};
+
+export function filterId(value) {
+  const id = String(value || 'original');
+  return Object.prototype.hasOwnProperty.call(FILTER_CSS, id) ? id : 'original';
+}
+
+export function filterCss(value) {
+  return FILTER_CSS[filterId(value)];
+}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -18,7 +45,8 @@ export function isIdentityAdjust(adjust) {
     normalizeRotation(adjust.rotation) === 0 &&
     (Number(adjust.zoom) || 1) <= 1 &&
     !Number(adjust.panX) &&
-    !Number(adjust.panY)
+    !Number(adjust.panY) &&
+    filterId(adjust.filter) === 'original'
   );
 }
 
@@ -281,7 +309,9 @@ function drawPrepared(source, width, height, adjust, maxEdge) {
   const canvas = document.createElement('canvas');
   canvas.width = fitted.width;
   canvas.height = fitted.height;
-  canvas.getContext('2d').drawImage(
+  const ctx = canvas.getContext('2d');
+  ctx.filter = filterCss(adjust?.filter);
+  ctx.drawImage(
     rotated,
     frame.sx,
     frame.sy,
@@ -292,6 +322,7 @@ function drawPrepared(source, width, height, adjust, maxEdge) {
     fitted.width,
     fitted.height,
   );
+  ctx.filter = 'none';
   return canvas;
 }
 

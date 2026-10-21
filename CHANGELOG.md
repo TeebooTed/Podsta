@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- One-tap photo filters: Original, Warm, Fade, Mono, Cool, and Punch. The choice is drawn into the photo in the browser before it is uploaded. Camera location is still removed.
 - An invite link or QR code follows that person after sign-in and sends a contact request. Home shows their public posts. A private profile stays private. Undo is on Home.
 - After you post, follow, like, or comment, Podsta can ask to show notifications on this device. The badge and the notices cover new comments, likes, and contact requests from the same check the app already runs. There is no push server.
 - CI signs two test accounts into a local Community Solid Server and checks posting for Only me, Contacts, and Public, plus follow, contacts-only visibility, a comment, a like, and notifications between them.

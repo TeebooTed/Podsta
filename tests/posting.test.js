@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cropRect, isIdentityAdjust, normalizeRotation, readImageOrientation, rotatedSize, uprightSize } from '../src/lib/photoAdjust.js';
+import { cropRect, filterCss, filterId, isIdentityAdjust, normalizeRotation, PHOTO_FILTERS, readImageOrientation, rotatedSize, uprightSize } from '../src/lib/photoAdjust.js';
 import { overallRatio, progressBody, putPhotoFile, uploadRatio } from '../src/lib/uploadProgress.js';
 import { audienceResourceUrls, isAlbumPost, photoUrls, primaryPhotoUrl } from '../src/lib/album.js';
 import { publicIndexEntryFromPost } from '../src/lib/indexEntry.js';
@@ -22,6 +22,14 @@ test('crop keeps the whole frame until you zoom, and rotation swaps the sides', 
   assert.ok(zoomed.sx > 0);
   assert.equal(isIdentityAdjust({ rotation: 360, zoom: 1, panX: 0, panY: 0 }), true);
   assert.equal(isIdentityAdjust({ rotation: 90, zoom: 1, panX: 0, panY: 0 }), false);
+  assert.equal(isIdentityAdjust({ rotation: 0, zoom: 1, panX: 0, panY: 0, filter: 'warm' }), false);
+  assert.equal(filterId('nope'), 'original');
+  assert.equal(filterCss('mono'), 'grayscale(1) contrast(1.15) brightness(1.02)');
+  assert.equal(filterCss('original'), 'none');
+  assert.deepEqual(
+    PHOTO_FILTERS.map((filter) => filter.label),
+    ['Original', 'Warm', 'Fade', 'Mono', 'Cool', 'Punch'],
+  );
 });
 
 function jpegWithOrientation(orientation) {
