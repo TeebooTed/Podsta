@@ -43,6 +43,7 @@ test('cover and pins round-trip through the profile thing', () => {
   assert.deepEqual(readExtras(thing), {
     coverUrl: 'https://pod.example/ada/podsta/covers/c.jpg',
     pinned: [C, A],
+    showLikeCounts: false,
   });
 });
 
@@ -50,9 +51,13 @@ test('undefined fields are left alone and empty ones are removed', () => {
   let thing = createThing({ url: 'https://pod.example/ada/podsta/profile.ttl' });
   thing = writeExtras(thing, { coverUrl: 'https://pod.example/c.jpg', pinned: [A] });
   thing = writeExtras(thing, {});
-  assert.deepEqual(readExtras(thing), { coverUrl: 'https://pod.example/c.jpg', pinned: [A] });
+  assert.deepEqual(readExtras(thing), { coverUrl: 'https://pod.example/c.jpg', pinned: [A], showLikeCounts: false });
+  thing = writeExtras(thing, { showLikeCounts: true });
+  assert.equal(readExtras(thing).showLikeCounts, true);
   thing = writeExtras(thing, { coverUrl: '', pinned: [] });
-  assert.deepEqual(readExtras(thing), { coverUrl: '', pinned: [] });
+  assert.equal(readExtras(thing).showLikeCounts, true);
+  thing = writeExtras(thing, { showLikeCounts: false });
+  assert.deepEqual(readExtras(thing), { coverUrl: '', pinned: [], showLikeCounts: false });
 });
 
 test('a non-http cover is refused on write and ignored on read', () => {

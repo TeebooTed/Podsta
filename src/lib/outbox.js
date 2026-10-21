@@ -179,6 +179,7 @@ export async function sendOutboxItem(item, { session, podUrl }) {
       ownerPodUrl: item.ownerPodUrl,
       liked: Boolean(item.liked),
       knownEntries: item.knownEntries,
+      showCounts: Boolean(item.showCounts),
     });
   }
   if (item.kind === 'comment') {

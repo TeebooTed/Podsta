@@ -26,7 +26,15 @@ function readOwnLikes(podUrl, fetchFn) {
 /**
  * Own likes come from this Pod. Counts come from the author's published list.
  */
-export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision = 0 }) {
+export function useLikes({
+  enabled,
+  session,
+  podUrl,
+  webId,
+  posts,
+  blockRevision = 0,
+  showCounts = false,
+}) {
   const [entries, setEntries] = useState([]);
   const [entriesConfirmed, setEntriesConfirmed] = useState(false);
   const [blocked, setBlocked] = useState([]);
@@ -79,6 +87,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
             session,
             posts: mine.slice(0, 12),
             ownEntries: own,
+            showCounts,
           }).catch(() => {});
         }
         const next = {};
@@ -102,7 +111,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
     };
     // postKey stands in for the post list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, session, podUrl, webId, postKey, blockRevision, sentTick]);
+  }, [enabled, session, podUrl, webId, postKey, blockRevision, sentTick, showCounts]);
 
   const view = (post) =>
     presentLikes({
@@ -128,6 +137,7 @@ export function useLikes({ enabled, session, podUrl, webId, posts, blockRevision
           audience: post.audience,
           postType: post.type,
           liked,
+          showCounts,
         },
         { webId, session, podUrl, knownEntries: entriesConfirmed ? entries : undefined },
       );
