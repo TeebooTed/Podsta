@@ -56,6 +56,7 @@ import { useTheme } from './hooks/useTheme.js';
 import Logo from './components/Logo.jsx';
 import { isSaved, loadSaves, setSaved } from './lib/saves.js';
 import SavedPage from './pages/SavedPage.jsx';
+import TagPage from './pages/TagPage.jsx';
 
 /**
  * Top-level component. Holds:
@@ -959,6 +960,20 @@ export default function App() {
                 onAskContact={handleAskContact}
                 askWebId={askWebId}
                 requestedWebIds={[...notifications.outgoingTargets, ...sentRequests]}
+              />
+            }
+          />
+          <Route
+            path="/tag"
+            element={
+              <TagPage
+                session={session}
+                friends={friends}
+                posts={posts}
+                saves={saves}
+                savingUrl={savingUrl}
+                onToggleSave={handleToggleSave}
+                showToast={showToast}
               />
             }
           />

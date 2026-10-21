@@ -6,6 +6,7 @@ import LikeControl from './LikeControl.jsx';
 import { ChatIcon, LinkIcon } from './icons.jsx';
 import { cardPhotoUrls } from '../lib/album.js';
 import SaveButton from './SaveButton.jsx';
+import CaptionText from './CaptionText.jsx';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 
 /**
@@ -122,7 +123,7 @@ export default function PostCard({
               !expanded && isLong ? 'line-clamp-3' : ''
             }`}
           >
-            {post.body || post.caption || ''}
+            <CaptionText text={post.body || post.caption || ''} />
           </div>
           {isLong && (
             <button
@@ -284,7 +285,7 @@ export default function PostCard({
       {post.type === 'photo' && post.caption && (
         <p className="px-4 pb-4 -mt-0.5 text-sm text-ink-100 leading-relaxed text-pretty">
           {ownerName && <span className="font-extrabold text-ink-50 mr-1.5">{ownerName}</span>}
-          {post.caption}
+          <CaptionText text={post.caption} />
         </p>
       )}
     </article>

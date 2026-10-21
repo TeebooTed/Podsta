@@ -180,6 +180,7 @@ export default function HomePage({
       audience: entry.audience || 'public',
       images: entry.images || [],
       thumbnails: entry.thumbnails || [],
+      tags: entry.tags || [],
       mediaUrl: entry.images?.[0] || entry.url,
       mediaBlob: null,
       ownerWebId: entry.ownerWebId,

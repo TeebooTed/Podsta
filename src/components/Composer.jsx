@@ -363,9 +363,12 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                   type="text"
                   value={caption}
                   onChange={(event) => setCaption(event.target.value.slice(0, MAX_CAPTION_LENGTH))}
-                  placeholder="Add a caption (optional)"
+                  placeholder="Add a caption. #tags link to posts you can already read."
                   className="input-field"
                 />
+                <p className="text-xs text-ink-300 mt-1.5">
+                  A #tag is not a public directory. People only see it on posts they are allowed to read.
+                </p>
               </div>
             </div>
           )}
@@ -419,6 +422,9 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
               rows={8}
               className="input-field resize-y leading-relaxed"
             />
+            <p className="text-xs text-ink-300 mt-1.5">
+              #tags in a note work the same way. A private note keeps its tags on your Pod.
+            </p>
           </div>
         </div>
       )}

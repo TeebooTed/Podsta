@@ -58,6 +58,8 @@ Captions are at most 280 characters. Text posts are at most 5,000. Comments are 
 
 An Instagram import stores `podsta:importedFrom` on the post. The value is a stable key for that Instagram post, so the same export is not saved twice. `schema:dateCreated` is the original post time. The photo bytes are redrawn before upload, the same as any other photo, so camera location is not stored.
 
+A hashtag is a `#` plus up to 40 letters, numbers, or underscores, inside a caption or a note. At most eight unique tags are kept. The public or contacts index stores them as `schema:keywords`, taken from the full note, so a tag past the 200-character excerpt still matches. Private posts are not written into either index. `/tag?name=` lists the viewer's own posts with that tag, including private ones, plus index entries from people they follow. It does not search other Pods.
+
 ### Indexes
 
 Most Pod servers will not list a container to the public, so Podsta does not discover posts that way.
