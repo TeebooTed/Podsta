@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Modal from './Modal.jsx';
 import { cardPhotoUrls, primaryPhotoUrl } from '../lib/album.js';
 import { safeHttpUrl } from '../lib/urls.js';
 import { postPath } from '../lib/navigation.js';
-import { MAX_PINNED, isPinnable, normalizePinned, togglePinned } from '../lib/profileExtras.js';
+import {
+  MAX_PINNED,
+  isPinnable,
+  movePinned,
+  normalizePinned,
+  togglePinned,
+} from '../lib/profileExtras.js';
+import { ChevronIcon } from './icons.jsx';
 
 function PinIcon({ className = 'w-3.5 h-3.5' }) {
   return (
@@ -111,14 +118,149 @@ export default function PinnedPosts({ posts, onOpen, onEdit, ownerView = false }
   );
 }
 
+function labelOf(post) {
+  return post.caption || post.title || post.body?.slice(0, 80) || 'Post';
+}
+
+/**
+ * The chosen pins in order. Drag a tile sideways, use the arrow keys on it,
+ * or press the arrows under it to move it.
+ */
+function PinOrder({ posts, onMove }) {
+  const listRef = useRef(null);
+  const drag = useRef(null);
+  const [dragging, setDragging] = useState(null);
+  const [focusUrl, setFocusUrl] = useState('');
+  const [announce, setAnnounce] = useState('');
+
+  useEffect(() => {
+    if (!focusUrl) return;
+    listRef.current?.querySelector(`[data-pin="${CSS.escape(focusUrl)}"]`)?.focus();
+  }, [focusUrl, posts]);
+
+  const move = (from, to, keepFocus = true) => {
+    const target = Math.max(0, Math.min(posts.length - 1, to));
+    if (target === from) return from;
+    onMove(from, target);
+    if (keepFocus) setFocusUrl(posts[from].url);
+    setAnnounce(`${labelOf(posts[from])} moved to ${target + 1} of ${posts.length}`);
+    return target;
+  };
+
+  const moveRef = useRef(move);
+  moveRef.current = move;
+  useEffect(() => () => drag.current?.stop(), []);
+
+  // Window listeners, not pointer capture: reordering moves the tile in the DOM, which drops capture.
+  const onPointerDown = (e, index) => {
+    if (e.button !== 0) return;
+    const first = listRef.current?.children[0];
+    const d = {
+      index,
+      startX: e.clientX,
+      slot: (first?.offsetWidth || 96) + 12,
+      url: posts[index].url,
+    };
+    const onMovePointer = (event) => {
+      const steps = Math.round((event.clientX - d.startX) / d.slot);
+      if (steps) {
+        const next = moveRef.current(d.index, d.index + steps, false);
+        d.startX += (next - d.index) * d.slot;
+        d.index = next;
+      }
+      setDragging({ url: d.url, dx: event.clientX - d.startX });
+    };
+    const stop = () => {
+      window.removeEventListener('pointermove', onMovePointer);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      drag.current = null;
+      setDragging(null);
+    };
+    window.addEventListener('pointermove', onMovePointer);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    drag.current = { stop };
+    setDragging({ url: d.url, dx: 0 });
+  };
+
+  return (
+    <div className="mt-4 rounded-2xl bg-ink-900 p-3">
+      <p className="text-xs font-bold text-ink-200 mb-2">Order on your profile. Drag to reorder.</p>
+      <ol ref={listRef} className="flex gap-3">
+        {posts.map((post, i) => {
+          const active = dragging?.url === post.url;
+          return (
+            <li key={post.url} className="w-24 shrink-0">
+              <button
+                type="button"
+                data-pin={post.url}
+                aria-label={`${i + 1} of ${posts.length}: ${labelOf(post)}. Use the left and right arrow keys to move it.`}
+                onPointerDown={(e) => onPointerDown(e, i)}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft') move(i, i - 1);
+                  else if (e.key === 'ArrowRight') move(i, i + 1);
+                  else return;
+                  e.preventDefault();
+                }}
+                style={
+                  active
+                    ? { transform: `translateX(${dragging.dx}px) scale(1.06)`, transition: 'none' }
+                    : undefined
+                }
+                className={`group/pin relative block w-full aspect-square overflow-hidden rounded-xl bg-ink-800 touch-none select-none cursor-grab ring-2 ring-accent transition-transform duration-200 ${
+                  active ? 'z-10 cursor-grabbing shadow-lift' : ''
+                }`}
+              >
+                <TileFace post={post} compact />
+                <span className="absolute top-1 left-1 grid place-items-center w-6 h-6 rounded-full bg-accent text-plum text-xs font-extrabold">
+                  {i + 1}
+                </span>
+              </button>
+              <span className="mt-1.5 flex justify-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => move(i, i - 1)}
+                  disabled={i === 0}
+                  aria-label={`Move ${labelOf(post)} earlier`}
+                  className="grid place-items-center w-9 h-9 rounded-full text-ink-100 hover:bg-ink-800 disabled:opacity-30"
+                >
+                  <ChevronIcon direction="left" className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(i, i + 1)}
+                  disabled={i === posts.length - 1}
+                  aria-label={`Move ${labelOf(post)} later`}
+                  className="grid place-items-center w-9 h-9 rounded-full text-ink-100 hover:bg-ink-800 disabled:opacity-30"
+                >
+                  <ChevronIcon direction="right" className="w-4 h-4" />
+                </button>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="sr-only" aria-live="polite">
+        {announce}
+      </p>
+    </div>
+  );
+}
+
 /** Choose which public posts to pin. Contacts and Only me posts can't be pinned. */
 export function PinPicker({ open, onClose, posts, pinned, onSave, saving = false }) {
-  const [draft, setDraft] = useState(() => normalizePinned(pinned));
-  useEffect(() => {
-    if (open) setDraft(normalizePinned(pinned));
-  }, [open, pinned]);
   const choices = posts.filter(isPinnable);
+  const usable = (list) =>
+    normalizePinned(list).filter((url) => choices.some((post) => post.url === url));
+  const [draft, setDraft] = useState(() => usable(pinned));
+  useEffect(() => {
+    if (open) setDraft(usable(pinned));
+    // Reset only when the picker opens or the saved pins change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pinned]);
   const full = draft.length >= MAX_PINNED;
+  const ordered = draft.map((url) => choices.find((post) => post.url === url)).filter(Boolean);
 
   return (
     <Modal open={open} onClose={onClose} title="Pin posts" maxWidth="max-w-lg">
@@ -129,6 +271,12 @@ export function PinPicker({ open, onClose, posts, pinned, onSave, saving = false
       <p className="mt-2 text-sm font-bold" aria-live="polite">
         {draft.length} of {MAX_PINNED} pinned
       </p>
+      {ordered.length > 1 && (
+        <PinOrder
+          posts={ordered}
+          onMove={(from, to) => setDraft((list) => movePinned(list, from, to))}
+        />
+      )}
       {choices.length ? (
         <ul className="mt-4 grid grid-cols-3 gap-2">
           {choices.map((post) => {
@@ -141,7 +289,7 @@ export function PinPicker({ open, onClose, posts, pinned, onSave, saving = false
                   aria-pressed={on}
                   disabled={!on && full}
                   onClick={() => setDraft((list) => togglePinned(list, post.url))}
-                  aria-label={post.caption || post.title || post.body?.slice(0, 80) || 'Post'}
+                  aria-label={labelOf(post)}
                   className={`group/pin relative block w-full aspect-square overflow-hidden rounded-xl bg-ink-800 transition ${
                     on ? 'ring-4 ring-accent' : 'disabled:opacity-40'
                   }`}

@@ -5,6 +5,14 @@ import { WHATS_NEW, WHATS_NEW_EVENT, markWhatsNewSeen, whatsNewState } from '../
 import { PATHS } from '../lib/navigation.js';
 import { CloseIcon } from './icons.jsx';
 
+const DISMISS_DISTANCE = 120;
+const DISMISS_SPEED = 0.6;
+const SETTLE_MS = 260;
+
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
 const GLYPHS = {
   profile:
     'M5 4h14a2 2 0 0 1 2 2v9l-4.5-4.5-5 5-2.5-2.5L3 19V6a2 2 0 0 1 2-2zm3.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
@@ -24,6 +32,10 @@ const GLYPHS = {
  */
 export default function WhatsNew({ webId }) {
   const [open, setOpen] = useState(false);
+  const [drag, setDrag] = useState(0);
+  const [settling, setSettling] = useState(false);
+  const swipe = useRef(null);
+  const closeTimer = useRef(null);
   const panelRef = useRef(null);
   const titleId = useId();
   const navigate = useNavigate();
@@ -45,8 +57,47 @@ export default function WhatsNew({ webId }) {
   }, []);
 
   const close = () => {
+    clearTimeout(closeTimer.current);
     markWhatsNewSeen(window.localStorage);
     setOpen(false);
+    setDrag(0);
+    setSettling(false);
+  };
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  /** Phones: pull the sheet down to close it, once its list is scrolled to the top. */
+  const onTouchStart = (e) => {
+    if (settling || e.touches.length !== 1 || window.matchMedia?.('(min-width: 640px)').matches) {
+      return;
+    }
+    if ((panelRef.current?.scrollTop || 0) > 0) return;
+    swipe.current = { y: e.touches[0].clientY, t: performance.now() };
+  };
+  const onTouchMove = (e) => {
+    if (!swipe.current) return;
+    const dy = e.touches[0].clientY - swipe.current.y;
+    if (dy < 0 && !drag) {
+      swipe.current = null;
+      return;
+    }
+    setDrag(Math.max(0, dy));
+  };
+  const onTouchEnd = () => {
+    const start = swipe.current;
+    swipe.current = null;
+    if (!start || !drag) return;
+    const speed = drag / Math.max(1, performance.now() - start.t);
+    if (drag < DISMISS_DISTANCE && speed < DISMISS_SPEED) {
+      setSettling(true);
+      setDrag(0);
+      closeTimer.current = setTimeout(() => setSettling(false), SETTLE_MS);
+      return;
+    }
+    if (prefersReducedMotion()) return close();
+    setSettling(true);
+    setDrag(window.innerHeight);
+    closeTimer.current = setTimeout(close, SETTLE_MS);
   };
 
   useEffect(() => {
@@ -68,77 +119,97 @@ export default function WhatsNew({ webId }) {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:p-4 bg-ink-950/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
       onClick={close}
     >
+      <span
+        className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
+        style={{
+          opacity: drag ? Math.max(0.2, 1 - drag / 500) : 1,
+          transition: swipe.current ? 'none' : `opacity ${SETTLE_MS}ms ease-out`,
+        }}
+        aria-hidden="true"
+      />
       <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
-        className="card relative w-full sm:max-w-md max-h-[88vh] overflow-y-auto rounded-b-none sm:rounded-3xl px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 sm:pt-6 motion-safe:animate-sheet-up sm:motion-safe:animate-slide-up"
+        className="relative w-full sm:max-w-md"
+        style={{
+          transform: drag ? `translateY(${drag}px)` : undefined,
+          transition: settling ? `transform ${SETTLE_MS}ms cubic-bezier(0.16, 1, 0.3, 1)` : 'none',
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
       >
-        <span
-          className="mx-auto mb-4 block h-1.5 w-10 rounded-full bg-ink-600 sm:hidden"
-          aria-hidden="true"
-        />
-        <button
-          type="button"
-          onClick={close}
-          className="absolute right-3 top-3 grid place-items-center w-10 h-10 rounded-full text-ink-200 hover:text-ink-50 hover:bg-ink-900"
-          aria-label="Close"
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          onClick={(e) => e.stopPropagation()}
+          className="card relative w-full max-h-[88vh] overflow-y-auto overscroll-contain rounded-b-none sm:rounded-3xl px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 sm:pt-6 motion-safe:animate-sheet-up sm:motion-safe:animate-slide-up"
         >
-          <CloseIcon />
-        </button>
-        <span className="inline-flex items-center rounded-full bg-sunshine px-2.5 py-0.5 text-xs font-extrabold text-plum">
-          New
-        </span>
-        <h2 id={titleId} className="display-serif text-3xl mt-2">
-          What’s new in Podsta
-        </h2>
-        <ul className="mt-5 space-y-4">
-          {WHATS_NEW.map((item, i) => (
-            <li
-              key={item.id}
-              className="flex gap-3.5 motion-safe:animate-slide-up"
-              style={{ animationDelay: `${120 + i * 60}ms`, animationFillMode: 'both' }}
-            >
-              <span
-                className={`shrink-0 grid place-items-center w-10 h-10 rounded-2xl ${item.tint} ${
-                  item.id === 'location' ? 'text-cream dark:text-plum' : 'text-plum'
-                }`}
-                aria-hidden="true"
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-                  <path d={GLYPHS[item.id]} />
-                </svg>
-              </span>
-              <span className="min-w-0">
-                <span className="block font-display font-semibold text-lg leading-tight">
-                  {item.title}
-                </span>
-                <span className="block text-sm text-ink-100 leading-relaxed mt-0.5">
-                  {item.body}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <span
+            className="mx-auto mb-4 block h-1.5 w-10 rounded-full bg-ink-600 sm:hidden"
+            aria-hidden="true"
+          />
           <button
             type="button"
-            className="btn-secondary"
-            onClick={() => {
-              close();
-              navigate(PATHS.profile);
-            }}
+            onClick={close}
+            className="absolute right-3 top-3 grid place-items-center w-10 h-10 rounded-full text-ink-200 hover:text-ink-50 hover:bg-ink-900"
+            aria-label="Close"
           >
-            Open my profile
+            <CloseIcon />
           </button>
-          <button type="button" className="btn-primary" onClick={close}>
-            Got it
-          </button>
+          <span className="inline-flex items-center rounded-full bg-sunshine px-2.5 py-0.5 text-xs font-extrabold text-plum">
+            New
+          </span>
+          <h2 id={titleId} className="display-serif text-3xl mt-2">
+            What’s new in Podsta
+          </h2>
+          <ul className="mt-5 space-y-4">
+            {WHATS_NEW.map((item, i) => (
+              <li
+                key={item.id}
+                className="flex gap-3.5 motion-safe:animate-slide-up"
+                style={{ animationDelay: `${120 + i * 60}ms`, animationFillMode: 'both' }}
+              >
+                <span
+                  className={`shrink-0 grid place-items-center w-10 h-10 rounded-2xl ${item.tint} ${
+                    item.id === 'location' ? 'text-cream dark:text-plum' : 'text-plum'
+                  }`}
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                    <path d={GLYPHS[item.id]} />
+                  </svg>
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-display font-semibold text-lg leading-tight">
+                    {item.title}
+                  </span>
+                  <span className="block text-sm text-ink-100 leading-relaxed mt-0.5">
+                    {item.body}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6 flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                close();
+                navigate(PATHS.profile);
+              }}
+            >
+              Open my profile
+            </button>
+            <button type="button" className="btn-primary" onClick={close}>
+              Got it
+            </button>
+          </div>
         </div>
       </div>
     </div>

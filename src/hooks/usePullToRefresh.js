@@ -20,6 +20,8 @@ export function usePullToRefresh(onRefresh, { enabled = true, refreshing = false
 
     const onStart = (event) => {
       if (window.scrollY > 0 || event.touches.length !== 1) return;
+      // An open dialog locks page scrolling; a swipe inside it belongs to the dialog.
+      if (document.body.style.overflow === 'hidden') return;
       start.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
     };
     const onMove = (event) => {
