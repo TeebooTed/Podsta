@@ -25,6 +25,7 @@ test('two people can post, follow, and hear about each other', async ({ browser 
 
   const aliceContext = await browser.newContext();
   const bobContext = await browser.newContext();
+  let charlieContext;
   const alicePage = await aliceContext.newPage();
   const bobPage = await bobContext.newPage();
   alicePage.setDefaultTimeout(20000);
@@ -93,7 +94,9 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await alicePage.getByRole('button', { name: 'Check now' }).click();
     await expect(alicePage.getByText(/asked to be a contact/)).toBeVisible({ timeout: 30000 });
     await alicePage.getByRole('button', { name: 'Approve' }).click();
-    await expect(alicePage.getByText(/^Approved/)).toBeVisible();
+    // The row says "Approved" and the toast says "Approved. They have been notified."
+    // A prefix match hits both while the toast is still up.
+    await expect(alicePage.getByText('Approved', { exact: true })).toBeVisible();
 
     await bobPage.getByRole('link', { name: 'Home', exact: true }).click();
     await expect(bobPage.getByText('Public picnic')).toBeVisible({ timeout: 30000 });
@@ -123,14 +126,39 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await openProfile(alicePage);
     await alicePage.getByRole('button', { name: /Public post: Public picnic/ }).click();
     await expect(alicePage.getByRole('dialog').getByText(/1 like/)).toBeVisible({ timeout: 30000 });
+    await alicePage.keyboard.press('Escape');
+    await expect(alicePage.getByRole('dialog')).toBeHidden();
+
+    const charlie = await createPod({
+      email: `charlie${stamp}@example.com`,
+      password: PASSWORD,
+      name: `charlie${stamp}`,
+    });
+    charlieContext = await browser.newContext();
+    const charliePage = await charlieContext.newPage();
+    charliePage.setDefaultTimeout(20000);
+    await signIn(charliePage, charlie, { followWebId: alice.webId });
+    await expect(charliePage.getByText(/You're following/)).toBeVisible({ timeout: 45000 });
+    await expect(charliePage.getByText(/public posts are on Home/)).toBeVisible();
+    await expect(charliePage.getByText('Public picnic')).toBeVisible({ timeout: 30000 });
+    await alicePage.getByRole('link', { name: /^Notifications/ }).click();
+    await alicePage.getByRole('button', { name: 'Check now' }).click();
+    await expect(alicePage.getByText(new RegExp(`@${charlie.name}`))).toBeVisible({ timeout: 30000 });
+    await charliePage.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(charliePage.getByText(/Stopped following them/)).toBeVisible();
+    await expect(charliePage.getByText('Public picnic')).toHaveCount(0);
   } finally {
     await aliceContext.close();
     await bobContext.close();
+    await charlieContext?.close();
   }
 });
 
-async function signIn(page, account) {
+async function signIn(page, account, { followWebId = '' } = {}) {
   await page.goto(`${APP}/`);
+  if (followWebId) {
+    await page.evaluate((id) => sessionStorage.setItem('podsta.follow', id), followWebId);
+  }
   await page.getByRole('button', { name: 'I use a different pod host' }).click();
   await page.locator('#custom-issuer').fill(SOLID_ISSUER);
   await page.getByRole('button', { name: 'Sign in with this host' }).click();

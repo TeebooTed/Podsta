@@ -12,6 +12,9 @@ import {
   rememberFollow,
   consumeFollow,
   strangerNotice,
+  inviteConfirmation,
+  inviteUndoCopy,
+  acceptInvite,
   SIGNUP_KEY,
   FOLLOW_KEY,
 } from '../src/lib/invite.js';
@@ -94,6 +97,46 @@ test('signup and follow intents survive one redirect and are then forgotten', ()
   assert.equal(consumeFollow(storage), ADA);
   assert.equal(storage.getItem(FOLLOW_KEY), null);
   assert.equal(consumeFollow(storage), '');
+});
+
+test('an invite follows them and only promises posts the profile allows', async () => {
+  assert.match(
+    inviteConfirmation({ name: 'Ada', profileShared: true, postsVisible: true, requestSent: true }),
+    /You're following Ada\. Their public posts are on Home\. A contact request was sent\./,
+  );
+  assert.match(
+    inviteConfirmation({ name: 'Ada', profileShared: false, postsVisible: false, requestSent: true }),
+    /profile is private/,
+  );
+  assert.match(
+    inviteConfirmation({ name: ADA, profileShared: true, postsVisible: false, requestSent: false }),
+    /You're following them\. Their profile is public/,
+  );
+  assert.match(inviteUndoCopy({ requestSent: true }), /took back the contact request/);
+  assert.equal(inviteUndoCopy({ requestSent: false }), 'Stopped following them.');
+
+  const calls = [];
+  const result = await acceptInvite({
+    podUrl: 'https://me.example/',
+    session: { info: { webId: 'https://me.example/profile/card#me' }, fetch: async () => {} },
+    webId: ADA,
+    discoverability: 'hidden',
+    addFriend: async (input) => {
+      calls.push(['follow', input.discoverability]);
+      return { webId: ADA, name: 'Ada' };
+    },
+    sendContactRequest: async () => {
+      calls.push(['request']);
+      return { targetWebId: ADA };
+    },
+    loadStranger: async () => ({ profileShared: true, posts: [{ url: 'https://ada.example/post' }] }),
+  });
+  assert.deepEqual(calls, [
+    ['follow', 'hidden'],
+    ['request'],
+  ]);
+  assert.equal(result.requestSent, true);
+  assert.match(result.message, /public posts are on Home/);
 });
 
 test('a private invite explains that the link does not open the profile', () => {

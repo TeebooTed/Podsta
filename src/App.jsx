@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import { restoreSession, logout, findPodUrl, login, onSessionExpired } from './lib/auth.js';
 import { describePodFailure } from './lib/errors.js';
 import { readSnapshot, snapshotKey, writeSnapshot } from './lib/offlineStore.js';
@@ -14,19 +14,24 @@ import {
   deletePost,
 } from './lib/posts.js';
 import { loadFriends, addFriend, removeFriend } from './lib/friends.js';
+import { loadStranger } from './lib/stranger.js';
 import { loadProfile, saveProfile } from './lib/profile.js';
 import { applyDiscoverability } from './lib/applyDiscoverability.js';
 import { loadContactMembers, saveContactMembers } from './lib/contactsGroup.js';
-import { sendApprovalNotice, sendContactRequest } from './lib/contactRequest.js';
+import { sendApprovalNotice, sendContactRequest, withdrawContactRequest } from './lib/contactRequest.js';
 import { hasFinishedOnboarding, markOnboardingDone } from './lib/onboarding.js';
 import {
+  acceptInvite,
   consumeFollow,
   consumeSignup,
+  inviteUndoCopy,
   inviteUrl,
   rememberFollow,
   rememberSignup,
+  webIdFromInvite,
   SIGNUP_KEY,
 } from './lib/invite.js';
+import { samePerson } from './lib/webId.js';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { displayHandle } from './lib/handles.js';
 import { retryTransient } from './lib/timeoutFetch.js';
@@ -102,7 +107,10 @@ export default function App() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [welcomeWebId, setWelcomeWebId] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const followedPending = useRef(false);
+  const [inviteNotice, setInviteNotice] = useState(null);
+  const [undoingInvite, setUndoingInvite] = useState(false);
   const theme = useTheme();
 
   // ── Per-resource in-flight trackers (so cards know to disable buttons) ──
@@ -491,13 +499,65 @@ export default function App() {
   }, [session, navigate]);
 
   useEffect(() => {
-    if (!session?.info?.isLoggedIn || !podUrl || followedPending.current) return;
-    const pending = consumeFollow(window.sessionStorage);
-    if (!pending || pending === session.info.webId) return;
+    if (!session?.info?.isLoggedIn || !podUrl || !libraryReady || followedPending.current) return;
+    const stored = consumeFollow(window.sessionStorage);
+    const fromInvite = location.pathname === '/invite' ? webIdFromInvite(location.search) : '';
+    const pending = stored || fromInvite;
+    if (!pending || samePerson(pending, session.info.webId)) return;
+    if (!stored && friends.some((friend) => samePerson(friend.webId, pending))) return;
     followedPending.current = true;
-    handleAddFriend(pending);
-    navigate(`/people?webid=${encodeURIComponent(pending)}`);
-  }, [session, podUrl, handleAddFriend, navigate]);
+    const level = profile.discoverability;
+    (async () => {
+      try {
+        const result = await acceptInvite({
+          podUrl,
+          session,
+          webId: pending,
+          discoverability: level,
+          addFriend,
+          sendContactRequest,
+          loadStranger,
+        });
+        setFriends((prev) =>
+          prev.some((friend) => samePerson(friend.webId, result.webId))
+            ? prev
+            : [...prev, { webId: result.webId, name: result.name, avatarUrl: '', podUrl: '' }],
+        );
+        if (result.requestSent) setSentRequests((prev) => [...prev, result.webId]);
+        setInviteNotice(result);
+        markSocial(session.info.webId);
+        navigate('/');
+      } catch (err) {
+        followedPending.current = false;
+        showToast(
+          err?.message || "We couldn't follow that person. Check their address and try again.",
+          'error',
+        );
+      }
+    })();
+    // friends and discoverability are read once, when the library is ready.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, podUrl, libraryReady, location.pathname, location.search, navigate, showToast]);
+
+  const handleUndoInvite = useCallback(async () => {
+    if (!inviteNotice || !podUrl || !session) return;
+    const notice = inviteNotice;
+    setUndoingInvite(true);
+    try {
+      await removeFriend({ podUrl, session, webId: notice.webId });
+      setFriends((prev) => prev.filter((friend) => !samePerson(friend.webId, notice.webId)));
+      if (notice.requestSent) {
+        await withdrawContactRequest({ podUrl, session, targetWebId: notice.webId });
+        setSentRequests((prev) => prev.filter((id) => !samePerson(id, notice.webId)));
+      }
+      setInviteNotice(null);
+      showToast(inviteUndoCopy(notice));
+    } catch (err) {
+      showToast(`Could not undo that: ${err.message}`, 'error');
+    } finally {
+      setUndoingInvite(false);
+    }
+  }, [inviteNotice, podUrl, session, showToast]);
 
   const startLogin = useCallback((issuer, redirectUrl) => {
     window.sessionStorage.removeItem(SIGNUP_KEY);
@@ -857,6 +917,9 @@ export default function App() {
                 saves={saves}
                 savingUrl={savingUrl}
                 onToggleSave={handleToggleSave}
+                inviteNotice={inviteNotice}
+                undoingInvite={undoingInvite}
+                onUndoInvite={handleUndoInvite}
               />
             }
           />

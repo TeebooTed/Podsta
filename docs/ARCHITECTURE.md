@@ -74,7 +74,7 @@ Home loads each followed person's public index, and their contacts index when th
 
 `listing.ttl` is a public card (profile URL and name). It is published only at Public, and removed when you leave Public. Raising the level does not publish posts that were Only me. Lowering it rewrites anything more open than the new ceiling.
 
-`friends.ttl` is the list of people you follow. It is world-readable only when the profile is Public. Following someone fills your feed. It does not let them see your posts.
+`friends.ttl` is the list of people you follow. It is world-readable only when the profile is Public. Following someone fills your feed. It does not let them see your posts. An invite link follows that person after sign-in and sends a contact request. Home shows their public posts only. A Hidden or Contacts profile stays private. Undo removes the follow and the request stored on your pod.
 
 `contacts/group.ttl#contacts` is a `vcard:Group`. Approving a contact request adds their WebID there. Community Solid Server checks that file as the requester, so the group document is world-readable whenever an ACL points at it: the profile is Contacts, or any post is shared with Contacts. Membership is not a secret in those cases. A Hidden profile with no Contacts posts keeps the group private.
 

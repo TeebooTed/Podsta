@@ -12,6 +12,7 @@ import { loadPublicPost } from '../lib/posts.js';
 import { shortWebId, copyToClipboard } from '../lib/utils.js';
 import { currentAppRoot } from '../lib/appUrl.js';
 import { inviteUrl } from '../lib/invite.js';
+import InviteBanner from '../components/InviteBanner.jsx';
 import { appPostUrl, emptyFeedCopy, feedErrorCopy } from '../lib/navigation.js';
 import { readSnapshot, snapshotKey, writeSnapshot } from '../lib/offlineStore.js';
 import { plainText } from '../lib/text.js';
@@ -34,6 +35,9 @@ export default function HomePage({
   saves = null,
   savingUrl = '',
   onToggleSave,
+  inviteNotice = null,
+  undoingInvite = false,
+  onUndoInvite,
 }) {
   const [feedEntries, setFeedEntries] = useState([]);
   const [unreachable, setUnreachable] = useState(0);
@@ -209,6 +213,7 @@ export default function HomePage({
   return (
     <div className="max-w-lg mx-auto">
       <PullIndicator {...pullState} />
+      <InviteBanner message={inviteNotice?.message} onUndo={onUndoInvite} undoing={undoingInvite} />
       <div className="flex items-center justify-between gap-3 mb-6">
         <h1 className="display-serif text-4xl">Home</h1>
         {friends?.length > 0 && (
