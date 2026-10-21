@@ -56,7 +56,7 @@ The guide for someone without a Pod is at `/start`.
 
 You need a Solid Pod on a server that uses Web Access Control.
 
-**No Pod yet.** Open Podsta and choose **Create my Pod**. That opens [Solid Community](https://solidcommunity.net). Create the account there with an email and a password. Accounts created after December 2024 sign in with that email. Podsta never sees the password. When the Pod exists, that site sends you back here. Your WebID looks like `https://ada.solidcommunity.net/profile/card#me`, which Podsta shows as `@ada`.
+**No Pod yet.** Open Podsta and choose **Create my Pod**. That opens [Solid Community](https://solidcommunity.net). Tap **Sign up**, register with an email and a password, then tap **Create pod** and pick a short name before **Continue authentication**. Come back to Podsta and tap **Sign in**, choose that address, and tap **Authorize**. Accounts created after December 2024 sign in with that email. Podsta never sees the password. Your address looks like `https://ada.solidcommunity.net/profile/card#me`, which Podsta shows as `@ada`.
 
 **You already have an account.** Choose **I already have an account**, type your name such as `@ada`, and choose **Sign in**. A blank name opens Solid Community. A name from somewhere else looks like `@ada@solidweb.org`. That only picks the host. It does not look the name up, and it is not a registry. Other hosts are under **Advanced**. [solidweb.org](https://solidweb.org) also uses Web Access Control. Inrupt PodSpaces is listed so you can see why it is not supported: it uses access policies this app cannot write.
 
