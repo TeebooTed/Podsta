@@ -396,6 +396,11 @@ export default function HomePage({
                 saved={isSaved(saves, post.url)}
                 saveBusy={savingUrl === post.url}
                 onToggleSave={onToggleSave}
+                onShareResult={(result) => {
+                  if (result.reason === 'dismissed') return;
+                  if (!result.ok) showToast('Could not share that post', 'error');
+                  else showToast(result.method === 'share' ? 'Shared' : 'Link copied');
+                }}
                 onOpenLightbox={() => {
                   if (post.type === 'photo') {
                     const idx = photoPosts.findIndex((p) => p.url === post.url);
