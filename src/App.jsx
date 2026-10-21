@@ -5,11 +5,9 @@ import { describePodFailure } from './lib/errors.js';
 import { readSnapshot, snapshotKey, writeSnapshot } from './lib/offlineStore.js';
 import { lockExistingComments } from './lib/acl.js';
 import { postedToast } from './lib/shareFeedback.js';
+import { deliverPost, OFFLINE_COPY, QUEUED_COPY } from './lib/outbox.js';
 import {
   loadOwnPosts,
-  createPhotoAlbum,
-  createTextPost,
-  sharePost,
   setPostAudience,
   editPhotoCaption,
   editTextPost,
@@ -48,6 +46,8 @@ import Composer from './components/Composer.jsx';
 import Modal from './components/Modal.jsx';
 import Toast from './components/Toast.jsx';
 import { useNotificationFeed } from './hooks/useNotificationFeed.js';
+import { useOutbox } from './hooks/useOutbox.js';
+import OutboxBanner from './components/OutboxBanner.jsx';
 import { useTheme } from './hooks/useTheme.js';
 import Logo from './components/Logo.jsx';
 
@@ -213,74 +213,32 @@ export default function App() {
   }, [podUrl, session]);
 
   // ── Compose handler ───────────────────────────────────────
+  const outbox = useOutbox({
+    enabled: Boolean(session?.info?.isLoggedIn && podUrl),
+    session,
+    podUrl,
+    webId: session?.info?.webId || '',
+    onSent: reloadPosts,
+  });
+
   const handleCompose = useCallback(
-    async ({
-      type,
-      file,
-      files,
-      caption,
-      title,
-      body,
-      audience = 'private',
-      onProgress,
-      alreadyUploaded,
-      thumbnails,
-    }) => {
+    async (draft) => {
       if (!podUrl || !session) throw new Error('Not signed in');
-
-      let postUrl;
-      let images = [];
-      let albumThumbs = [];
-      if (type === 'photo') {
-        const chosen = files?.length ? files : file ? [file] : [];
-        const created = await createPhotoAlbum({
-          podUrl,
-          session,
-          files: chosen,
-          thumbnails,
-          caption,
-          onProgress,
-          alreadyUploaded,
-        });
-        postUrl = created.url;
-        images = created.images;
-        albumThumbs = created.thumbnails || [];
-      } else {
-        postUrl = await createTextPost({ podUrl, session, title, body });
+      const result = await deliverPost({
+        draft,
+        session,
+        podUrl,
+        webId: session.info.webId,
+      });
+      if (result.queued) {
+        showToast(result.offline ? OFFLINE_COPY : QUEUED_COPY, 'info');
+        return;
       }
-
-      let shareFailed = false;
-      let shareMessage = '';
-      if (audience === 'public' || audience === 'contacts') {
-        const justCreated = {
-          url: postUrl,
-          type,
-          images,
-          thumbnails: type === 'photo' ? albumThumbs : [],
-          caption: type === 'photo' ? caption : '',
-          body: type === 'text' ? body : '',
-          title: type === 'text' ? title : '',
-          dateCreated: new Date().toISOString(),
-        };
-        try {
-          await sharePost({
-            post: justCreated,
-            audience,
-            podUrl,
-            ownerWebId: session.info.webId,
-            session,
-          });
-        } catch (err) {
-          shareFailed = true;
-          shareMessage = err.message;
-        }
-      }
-
       const toast = postedToast({
-        audience,
-        makePublic: audience === 'public',
-        shareFailed,
-        shareMessage,
+        audience: draft.audience || 'private',
+        makePublic: draft.audience === 'public',
+        shareFailed: result.shareFailed,
+        shareMessage: result.shareMessage,
       });
       showToast(toast.message, toast.type);
       await reloadPosts();
@@ -773,6 +731,14 @@ export default function App() {
         id="main"
         className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8"
       >
+        {session?.info?.isLoggedIn && (
+          <OutboxBanner
+            items={outbox.items}
+            offline={outbox.offline}
+            flushing={outbox.flushing}
+            onDiscard={outbox.discard}
+          />
+        )}
         {sessionExpired && (
           <div
             className="mb-6 px-4 py-3 bg-ink-800 border border-accent/40 rounded-lg text-sm text-ink-50 flex flex-wrap gap-3 items-center justify-between"

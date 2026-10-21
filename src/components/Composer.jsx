@@ -34,9 +34,11 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
   const [progress, setProgress] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+  const draftIdRef = useRef('');
 
   useEffect(() => {
     if (!open) {
+      draftIdRef.current = '';
       setFiles([]);
       setAdjustments([]);
       setSelected(0);
@@ -137,8 +139,12 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
           thumbs[index] = baked.thumbnail;
         }
       }
+      if (!draftIdRef.current) {
+        draftIdRef.current = `draft${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      }
       await onSubmit({
         type: mode,
+        draftId: draftIdRef.current,
         file: prepared[0] || null,
         files: prepared,
         thumbnails: thumbs,

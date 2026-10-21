@@ -119,6 +119,10 @@ Podsta writes WAC Turtle at `<resource>.acl`. Templates are in `src/lib/aclTurtl
 
 New resources on Community Solid Server inherit the parent ACL. Podsta still writes an explicit `.acl`. A failed ACL write after a private likes file is saved does not pretend the like was lost. The parent rule on this host stays owner-only until the ACL write succeeds.
 
+## Outbox
+
+A post, like, or comment that cannot reach the pod is stored in this browser (IndexedDB, database `podsta-outbox`). The banner says it is waiting to send. Coming back online sends the queue, oldest first. A post keeps a stable id so a retry writes the same pod URLs, and photos that already landed are not sent again. There is still no Podsta server.
+
 ## Notifications
 
 There is no Podsta notification server. While the tab is visible, `useNotificationFeed` polls about every 45 seconds (`POLL_BASE_MS`). A failed check doubles the wait, up to five minutes. A hidden tab pauses. The bell is in the header, not a fifth phone tab.

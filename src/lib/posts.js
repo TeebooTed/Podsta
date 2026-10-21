@@ -142,9 +142,14 @@ export async function uploadPhoto({ podUrl, session, file, caption }) {
   return photoUrl;
 }
 
-function photoSlug(file, index) {
+function safeSeed(seed) {
+  return String(seed || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48);
+}
+
+function photoSlug(file, index, seed) {
   const safe = (file?.name || 'photo').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60);
-  return `${Date.now()}-${index}-${safe}`;
+  const prefix = safeSeed(seed) || String(Date.now());
+  return `${prefix}-${index}-${safe}`;
 }
 
 /**
@@ -160,6 +165,7 @@ export async function createPhotoAlbum({
   onProgress,
   alreadyUploaded = [],
   thumbnails = [],
+  idSeed,
 }) {
   const list = Array.from(files || []).filter(Boolean);
   const captionText = limitedPlain(caption, MAX_CAPTION_LENGTH, 'Captions');
@@ -178,7 +184,7 @@ export async function createPhotoAlbum({
 
   for (let index = uploaded.length; index < list.length; index += 1) {
     const file = list[index];
-    const photoUrl = `${container}${photoSlug(file, index)}`;
+    const photoUrl = `${container}${photoSlug(file, index, idSeed)}`;
     const thumbFile = thumbnails[index] || null;
     const thumbUrl = thumbFile ? thumbUrlFor(photoUrl) : '';
     try {
@@ -221,7 +227,7 @@ export async function createPhotoAlbum({
 
   const postsContainer = `${podUrl}${PATHS.posts}`;
   await ensureContainer(postsContainer, session);
-  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = safeSeed(idSeed) || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const postUrl = `${postsContainer}${id}.ttl`;
   let ds = createSolidDataset();
   let thing = createThing({ url: postUrl });
@@ -326,14 +332,14 @@ export async function loadOwnPhotos({ podUrl, session, exclude }) {
 // TEXT POSTS
 // ─────────────────────────────────────────────────────────────
 
-export async function createTextPost({ podUrl, session, title, body }) {
+export async function createTextPost({ podUrl, session, title, body, idSeed }) {
   const bodyText = limitedPlain(body, MAX_TEXT_LENGTH, 'Text posts');
   const titleText = plainText(title || '').slice(0, 500);
   if (!bodyText) throw new Error('Text posts must have a body');
   const container = `${podUrl}${PATHS.posts}`;
   await ensureContainer(container, session);
 
-  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = safeSeed(idSeed) || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const postUrl = `${container}${id}.ttl`;
 
   let ds = createSolidDataset();

@@ -64,6 +64,10 @@ export default function HomePage({
     try {
       const result = await likes.toggle(post);
       if (!result) return;
+      if (result.queued) {
+        showToast("Saved on this device. It will send when your pod answers.", 'info');
+        return;
+      }
       if (!result.liked) showToast('Like removed');
       else if (result.notified) showToast('Liked');
       else if (!post.ownerWebId || samePerson(post.ownerWebId, session?.info?.webId)) {

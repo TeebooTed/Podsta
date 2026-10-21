@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
-  addComment,
   blockPerson,
   commenterLabel,
   commentResultCopy,
@@ -12,7 +11,8 @@ import {
   refreshOwnedCommentSets,
 } from '../lib/comments.js';
 import { addReport } from '../lib/blocks.js';
-import { relativeTime } from '../lib/utils.js';
+import { hashString, relativeTime } from '../lib/utils.js';
+import { notifyOutboxChanged, OFFLINE_COPY, QUEUED_COPY, queueSocialItem } from '../lib/outbox.js';
 import { MAX_COMMENT_LENGTH } from '../lib/vocab.js';
 import { samePerson } from '../lib/webId.js';
 import Avatar from './Avatar.jsx';
@@ -136,27 +136,50 @@ export default function CommentsDrawer({
     url: post?.url,
   };
 
+  const commentDraftRef = useRef('');
+
   const handleSubmit = async () => {
-    if (!text.trim() || submitting) return;
+    const body = text.trim();
+    if (!body || submitting) return;
     setSubmitting(true);
     setStatus('');
+    if (!commentDraftRef.current) {
+      commentDraftRef.current = `cmt${hashString(`${post?.url || ''}|${body}|${Date.now()}|${Math.random()}`)}`;
+    }
+    const commentId = commentDraftRef.current;
     try {
-      const result = await addComment({
-        podUrl: viewerPodUrl,
-        session,
-        post: postForWrite,
-        ownerPodUrl,
-        text,
-      });
+      const result = await queueSocialItem(
+        {
+          id: commentId,
+          kind: 'comment',
+          commentId,
+          text: body,
+          postUrl: post?.url,
+          ownerWebId: postForWrite.ownerWebId,
+          ownerPodUrl,
+        },
+        { webId: me, session, podUrl: viewerPodUrl },
+      );
+      notifyOutboxChanged();
+      if (result.queued) {
+        commentDraftRef.current = '';
+        setText('');
+        const message = typeof navigator !== 'undefined' && navigator.onLine === false ? OFFLINE_COPY : QUEUED_COPY;
+        setStatus(message);
+        showToast?.(message, 'info');
+        return;
+      }
+      commentDraftRef.current = '';
       setText('');
       const message = commentResultCopy(result, 'add');
       setStatus(message);
       showToast?.(message, result.notified || result.published ? 'success' : 'info');
       await reload();
     } catch (err) {
+      notifyOutboxChanged();
       const message = err.message || 'Could not save that comment';
-      setStatus(message);
-      showToast?.(`Comment failed: ${message}`, 'error');
+      setStatus(`${message} It's saved on this device.`);
+      showToast?.(`Comment failed: ${message}. It's saved on this device.`, 'error');
     } finally {
       setSubmitting(false);
     }

@@ -143,6 +143,10 @@ export default function ProfilePage({
     try {
       const result = await likes.toggle({ ...post, ownerWebId: ownWebId, audience: post.audience });
       if (!result) return;
+      if (result.queued) {
+        showToast("Saved on this device. It will send when your pod answers.", 'info');
+        return;
+      }
       if (!result.liked) showToast('Like removed');
       else if (result.notified) showToast('Liked');
       else showToast("Liked on your pod. The count didn't update.", 'info');
