@@ -149,6 +149,29 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await charliePage.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect(charliePage.getByText(/Stopped following them/)).toBeVisible();
     await expect(charliePage.getByText('Public picnic')).toHaveCount(0);
+
+    await openProfile(alicePage);
+    await alicePage.getByRole('checkbox', { name: new RegExp(bob.name, 'i') }).check();
+    await alicePage.getByRole('button', { name: 'Save pack' }).click();
+    await expect(alicePage.getByText('Starter pack saved')).toBeVisible({ timeout: 30000 });
+    const packLink = (await alicePage.locator('#starter-pack-link').innerText()).trim();
+    const packFile = new URL(packLink).searchParams.get('url');
+    const anon = await fetch(packFile, { headers: { accept: 'text/turtle' } });
+    expect(anon.status).toBe(200);
+    expect(await anon.text()).toContain(bob.webId);
+
+    const packPath = `${new URL(packLink).pathname}${new URL(packLink).search}`;
+    await charliePage.evaluate((next) => {
+      window.history.pushState(window.history.state, '', next);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, packPath);
+    await expect(charliePage.getByRole('heading', { name: 'Starter pack' })).toBeVisible({
+      timeout: 20000,
+    });
+    await charliePage.getByRole('button', { name: 'Follow', exact: true }).click();
+    await expect(charliePage.getByText('Following', { exact: true })).toBeVisible({ timeout: 30000 });
+    await charliePage.getByRole('button', { name: 'Follow all' }).click();
+    await expect(charliePage.getByText(/already following everyone in this pack/)).toBeVisible();
   } finally {
     await aliceContext.close();
     await bobContext.close();

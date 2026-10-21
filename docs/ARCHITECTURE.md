@@ -2,7 +2,7 @@
 
 Podsta is a static React app. After sign-in, the browser talks to Solid Pods with `@inrupt/solid-client` and `@inrupt/solid-client-authn-browser`. There is no Podsta API.
 
-The stack is React 18, React Router 6, Vite 5, and Tailwind 3. Routes live in `src/lib/navigation.js`: `/` (Home), `/discover`, `/profile`, `/people?webid=`, `/post?url=`, `/start`, `/invite`, `/notifications`, `/saved`.
+The stack is React 18, React Router 6, Vite 5, and Tailwind 3. Routes live in `src/lib/navigation.js`: `/` (Home), `/discover`, `/profile`, `/people?webid=`, `/post?url=`, `/start`, `/invite`, `/notifications`, `/saved`, `/tag`, `/pack?url=`.
 
 GitHub Pages serves the production build at `/Podsta/`. Vite's `base` is `/Podsta/` only in that workflow (`PAGES_BASE`). The router basename, the manifest `start_url` and `scope`, and asset URLs follow that base. Unknown paths use a copy of `index.html` named `404.html`. `/start/` is its own file so the guide returns 200. The Solid client id document is `solid-client-id.json` on that origin, and sign-in there always returns to `https://teebooted.github.io/Podsta/`. Local development and CI stay at `/`.
 
@@ -39,6 +39,8 @@ Paths are relative to the Pod root (`src/lib/vocab.js`).
     contacts-index.ttl                # contacts-only posts
     likes.ttl                         # this person's likes, private
     favorites.ttl                     # saved post URLs, private, no copied content
+    packs/
+      starter.ttl                     # public list of addresses, at most 50
     contact-requests.ttl              # requests this person sent, world-readable
 ```
 
@@ -75,6 +77,8 @@ Home loads each followed person's public index, and their contacts index when th
 `listing.ttl` is a public card (profile URL and name). It is published only at Public, and removed when you leave Public. Raising the level does not publish posts that were Only me. Lowering it rewrites anything more open than the new ceiling.
 
 `friends.ttl` is the list of people you follow. It is world-readable only when the profile is Public. Following someone fills your feed. It does not let them see your posts. An invite link follows that person after sign-in and sends a contact request. Home shows their public posts only. A Hidden or Contacts profile stays private. Undo removes the follow and the request stored on your pod.
+
+`podsta/packs/starter.ttl` is one public starter pack. Each row is an address. It does not copy photos, names, or posts. Anyone with the link can open `/pack?url=` and follow those people, one at a time or all of them. Following uses the same rules as any other follow. There is no Podsta directory. Signing in from the pack follows the people you chose and returns to the pack.
 
 `contacts/group.ttl#contacts` is a `vcard:Group`. Approving a contact request adds their WebID there. Community Solid Server checks that file as the requester, so the group document is world-readable whenever an ACL points at it: the profile is Contacts, or any post is shared with Contacts. Membership is not a secret in those cases. A Hidden profile with no Contacts posts keeps the group private.
 
