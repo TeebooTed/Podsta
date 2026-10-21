@@ -46,7 +46,7 @@ The original must-fix and should-fix items, by number:
 | 23 Upload tools | Done for crop, rotate, and progress. Distinct alt text is still the caption. |
 | 24 Shortcut help | Shortcuts work and are documented. There is no in-app cheat sheet. |
 | 25 TypeScript | Open |
-| 26 Unused names | `podsta/inbox/` and `podsta/favorites.ttl` are still unused names in `vocab.js`. The server inbox is `{pod}inbox/`. |
+| 26 Unused names | `podsta/favorites.ttl` is the private saved-post list. `podsta/inbox/` is still an unused name. The server inbox is `{pod}inbox/`. |
 
 ## Remaining
 

@@ -10,11 +10,13 @@ import { PATHS } from '../lib/navigation.js';
 import EmptyState from '../components/EmptyState.jsx';
 import SkeletonCard from '../components/SkeletonCard.jsx';
 import { samePerson } from '../lib/webId.js';
+import SaveButton from '../components/SaveButton.jsx';
+import { isSaved } from '../lib/saves.js';
 
 /**
  * A Podsta address for one post. The raw Pod URL stays available as "Open original".
  */
-export default function PostPage({ session, posts = [], podUrl, showToast }) {
+export default function PostPage({ session, posts = [], podUrl, showToast, saves = null, savingUrl = '', onToggleSave }) {
   const [params] = useSearchParams();
   const url = params.get('url') || '';
   const own = posts.find((p) => p.url === url) || null;
@@ -123,6 +125,15 @@ export default function PostPage({ session, posts = [], podUrl, showToast }) {
             <p className="mt-4 text-ink-100 leading-relaxed whitespace-pre-wrap">{post.body}</p>
           )}
           <p className="text-xs text-ink-300 mt-3">{relativeTime(post.dateCreated)}</p>
+          {onToggleSave && (
+            <div className="mt-4">
+              <SaveButton
+                saved={isSaved(saves, post.url)}
+                busy={savingUrl === post.url}
+                onToggle={() => onToggleSave(post)}
+              />
+            </div>
+          )}
           {original && (
             <a
               href={original}

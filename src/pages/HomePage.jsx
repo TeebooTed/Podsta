@@ -18,6 +18,7 @@ import { plainText } from '../lib/text.js';
 import { useLikes } from '../hooks/useLikes.js';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import { samePerson } from '../lib/webId.js';
+import { isSaved } from '../lib/saves.js';
 
 /**
  * Home is the following feed: one column, newest first.
@@ -30,6 +31,9 @@ export default function HomePage({
   onRemoveFriend,
   onCompose,
   showToast,
+  saves = null,
+  savingUrl = '',
+  onToggleSave,
 }) {
   const [feedEntries, setFeedEntries] = useState([]);
   const [unreachable, setUnreachable] = useState(0);
@@ -388,6 +392,9 @@ export default function HomePage({
                 like={likes.view(post)}
                 likeBusy={likes.busyUrl === post.url}
                 onToggleLike={onToggleLike}
+                saved={isSaved(saves, post.url)}
+                saveBusy={savingUrl === post.url}
+                onToggleSave={onToggleSave}
                 onOpenLightbox={() => {
                   if (post.type === 'photo') {
                     const idx = photoPosts.findIndex((p) => p.url === post.url);

@@ -44,6 +44,7 @@ export const PODSTA = {
   ContactRequest: 'https://podsta.app/vocab#ContactRequest',
   ContactApproval: 'https://podsta.app/vocab#ContactApproval',
   importedFrom: 'https://podsta.app/vocab#importedFrom',
+  Save: 'https://podsta.app/vocab#Save',
 };
 
 // Pod paths — relative to the user's pod URL.
@@ -63,7 +64,7 @@ export const PATHS = {
   publicIndex: 'podsta/public-index.ttl',
   contactsIndex: 'podsta/contacts-index.ttl',
   listing: 'podsta/listing.ttl',
-  favorites: 'podsta/favorites.ttl',
+  favorites: 'podsta/favorites.ttl', // private saved-post list. URLs only.
   profile: 'podsta/profile.ttl',
   inbox: 'podsta/inbox/',
   contactRequests: 'podsta/contact-requests.ttl',

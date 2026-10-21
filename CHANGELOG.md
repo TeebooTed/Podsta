@@ -17,6 +17,10 @@ Dates are the days the work landed on `main`.
 - The install icons, favicon, and share image come from the brand kit. The manifest theme is Plum `#2B1B3D` and the splash background is Cream `#FFF7EE`.
 - New look from the brand kit in `brand/`: Cream and Plum with Coral, Berry, Sunshine and Mint, Fredoka headings and Nunito text, and the pea-pod logo. Light by default. Dark follows the system, and Auto, Light or Dark can be picked from the account menu. The bundled fonts are now Fredoka and Nunito, Latin and Latin Extended only. Text colors meet WCAG AA in both themes.
 
+## 21 October 2026
+
+- Saved posts. The private file `podsta/favorites.ttl` stores the post URL and the time it was saved. It does not copy the photo or the caption. Home, profile, and the post page can save or forget a post. `/saved` shows what this session can still read, and says when a post is no longer available. A failed read does not replace the list.
+
 ## 10 October 2026
 
 - Public site at https://teebooted.github.io/Podsta/. GitHub Pages builds with base `/Podsta/` and a `404.html` fallback so invite and post links work. Sign-in on that origin uses a static Solid client id and returns to the home URL. The signed-out home explains Podsta and shows screenshots before login. Any Web Access Control provider can be entered.

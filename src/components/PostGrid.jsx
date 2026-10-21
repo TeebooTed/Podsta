@@ -14,6 +14,7 @@ import { audienceAllowed, ceilingNote, AUDIENCE_OPTIONS } from '../lib/discovera
 import LikeControl from './LikeControl.jsx';
 import { LockIcon, PeopleIcon, StackIcon } from './icons.jsx';
 import { hashString } from '../lib/utils.js';
+import SaveButton from './SaveButton.jsx';
 
 // Plum text stays above AA on every stop of these gradients.
 const NOTE_TINTS = [
@@ -103,6 +104,9 @@ export default function PostGrid({
   onToggleLike,
   likeBusyUrl = '',
   onBlocksChanged,
+  savedFor,
+  onToggleSave,
+  saveBusyUrl = '',
 }) {
   const [openUrl, setOpenUrl] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
@@ -127,6 +131,13 @@ export default function PostGrid({
 
   const actions = (post) => (
     <div className="mt-4 flex flex-wrap gap-2 justify-center">
+      {onToggleSave && (
+        <SaveButton
+          saved={savedFor?.(post)}
+          busy={saveBusyUrl === post.url}
+          onToggle={() => onToggleSave(post)}
+        />
+      )}
       {onToggleLike && (
         <LikeControl
           liked={likeFor?.(post)?.liked}

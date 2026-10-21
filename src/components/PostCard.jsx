@@ -5,6 +5,7 @@ import PhotoCarousel from './PhotoCarousel.jsx';
 import LikeControl from './LikeControl.jsx';
 import { ChatIcon, LinkIcon } from './icons.jsx';
 import { cardPhotoUrls } from '../lib/album.js';
+import SaveButton from './SaveButton.jsx';
 import { relativeTime, copyToClipboard } from '../lib/utils.js';
 
 /**
@@ -37,6 +38,9 @@ export default function PostCard({
   like,
   likeBusy = false,
   onToggleLike,
+  saved = false,
+  saveBusy = false,
+  onToggleSave,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -138,6 +142,9 @@ export default function PostCard({
           post.type === 'photo' ? '' : 'border-t border-ink-600/50'
         }`}
       >
+        {onToggleSave && (
+          <SaveButton saved={saved} busy={saveBusy} onToggle={() => onToggleSave(post)} />
+        )}
         {onToggleLike && (
           <LikeControl
             liked={like?.liked}
@@ -249,14 +256,16 @@ export default function PostCard({
         ) : (
           // Feed mode: comments + copy-link only.
           <>
-            <button
-              type="button"
-              onClick={() => onShowComments?.(post)}
-              className="grid place-items-center w-11 h-11 rounded-full text-ink-100 hover:text-ink-50 hover:bg-ink-700 transition-colors"
-            >
-              <ChatIcon className="w-6 h-6" />
-              <span className="sr-only">Comments</span>
-            </button>
+            {onShowComments && (
+              <button
+                type="button"
+                onClick={() => onShowComments(post)}
+                className="grid place-items-center w-11 h-11 rounded-full text-ink-100 hover:text-ink-50 hover:bg-ink-700 transition-colors"
+              >
+                <ChatIcon className="w-6 h-6" />
+                <span className="sr-only">Comments</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={async () => {
