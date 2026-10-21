@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Modal from './Modal.jsx';
-import { MAX_TEXT_LENGTH, MAX_CAPTION_LENGTH } from '../lib/vocab.js';
+import { MAX_TEXT_LENGTH, MAX_CAPTION_LENGTH, MAX_ALT_LENGTH } from '../lib/vocab.js';
+import { photoUrls } from '../lib/album.js';
+import { altForPhoto } from '../lib/altText.js';
 
 /**
  * Modal for editing an existing post. Shape varies by post type:
@@ -11,19 +13,24 @@ export default function EditPostModal({ open, post, onClose, onSave, saving }) {
   const [caption, setCaption] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [alts, setAlts] = useState([]);
 
   useEffect(() => {
     if (!post) return;
     setCaption(post.caption || '');
     setTitle(post.title || '');
     setBody(post.body || '');
+    setAlts(photoUrls(post).map((url) => altForPhoto(post, url)));
   }, [post]);
 
   if (!post) return null;
 
   const handleSave = () => {
     if (post.type === 'photo') {
-      onSave({ caption });
+      onSave({
+        caption,
+        alts: photoUrls(post).map((url, index) => ({ url, alt: alts[index] || '' })),
+      });
     } else {
       onSave({ title, body });
     }
@@ -46,6 +53,30 @@ export default function EditPostModal({ open, post, onClose, onSave, saving }) {
             className="input-field"
             autoFocus
           />
+          {photoUrls(post).map((url, index) => (
+            <div key={url} className="mt-3">
+              <label htmlFor={`edit-alt-${index}`} className="block text-xs font-medium text-ink-300 mb-1.5">
+                Description of photo {index + 1}
+                <span className="text-ink-400 ml-2 font-normal">
+                  {(alts[index] || '').length}/{MAX_ALT_LENGTH}
+                </span>
+              </label>
+              <textarea
+                id={`edit-alt-${index}`}
+                value={alts[index] || ''}
+                onChange={(event) => {
+                  const value = event.target.value.slice(0, MAX_ALT_LENGTH);
+                  setAlts((previous) => previous.map((item, itemIndex) => (itemIndex === index ? value : item)));
+                }}
+                rows={2}
+                placeholder="What is in this photo, for someone who cannot see it?"
+                className="input-field resize-y"
+              />
+            </div>
+          ))}
+          <p className="text-xs text-ink-300 mt-2">
+            A description stays with that photo and uses the same audience. It is not the caption.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

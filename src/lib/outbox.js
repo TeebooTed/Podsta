@@ -157,6 +157,7 @@ export function postDraftItem({ draft, webId }) {
     title: draft.title || '',
     body: draft.body || '',
     audience: draft.audience || 'private',
+    alts: Array.isArray(draft.alts) ? draft.alts.map((value) => String(value || '').slice(0, 200)) : [],
     files,
     thumbnails: Array.from(draft.thumbnails || []).filter(Boolean),
     alreadyUploaded: Array.isArray(draft.alreadyUploaded) ? draft.alreadyUploaded : [],
@@ -194,6 +195,7 @@ export async function sendOutboxItem(item, { session, podUrl }) {
   let postUrl = '';
   let images = [];
   let thumbnails = [];
+  let storedAlts = [];
   if (item.postType === 'text') {
     postUrl = await createTextPost({
       podUrl,
@@ -209,6 +211,7 @@ export async function sendOutboxItem(item, { session, podUrl }) {
       files: (item.files || []).map((file, index) => asFile(file, file.name || `photo-${index}.jpg`, file.type)),
       thumbnails: (item.thumbnails || []).map((file, index) => asFile(file, `thumb-${index}.jpg`, 'image/jpeg')),
       caption: item.caption,
+      alts: item.alts || [],
       alreadyUploaded: item.alreadyUploaded || [],
       idSeed: item.id,
       onProgress: item.onProgress,
@@ -216,6 +219,7 @@ export async function sendOutboxItem(item, { session, podUrl }) {
     postUrl = created.url;
     images = created.images;
     thumbnails = created.thumbnails || [];
+    storedAlts = created.alts || [];
   }
   let shareFailed = false;
   let shareMessage = '';
@@ -228,6 +232,7 @@ export async function sendOutboxItem(item, { session, podUrl }) {
           images,
           thumbnails,
           caption: item.postType === 'photo' ? item.caption : '',
+          alts: item.postType === 'photo' ? storedAlts : [],
           body: item.postType === 'text' ? item.body : '',
           title: item.postType === 'text' ? item.title : '',
           dateCreated: item.createdAt,

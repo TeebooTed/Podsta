@@ -15,6 +15,7 @@ import {
   getUrlAll,
 } from '@inrupt/solid-client';
 import { normalizeTag } from './hashtags.js';
+import { packImageAlt, unpackImageAlts } from './altText.js';
 import { PATHS, SCHEMA, PODSTA } from './vocab.js';
 import { plainText } from './text.js';
 import { safeHttpUrl } from './urls.js';
@@ -79,6 +80,7 @@ async function readIndex(podUrl, path, fetchFn) {
         images: getUrlAll(t, SCHEMA.image).map((url) => safeHttpUrl(url)).filter(Boolean),
         thumbnails: getUrlAll(t, SCHEMA.thumbnail).map((url) => safeHttpUrl(url)).filter(Boolean),
         tags: getStringNoLocaleAll(t, SCHEMA.keywords).map(normalizeTag).filter(Boolean),
+        alts: unpackImageAlts(getStringNoLocaleAll(t, PODSTA.imageAlt)),
       }))
       .filter((e) => e.url)
       .sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''));
@@ -140,6 +142,10 @@ async function addToIndex(podUrl, path, entry, session, lock) {
   for (const tag of entry.tags || []) {
     const name = normalizeTag(tag);
     if (name) thing = addStringNoLocale(thing, SCHEMA.keywords, name);
+  }
+  for (const item of entry.alts || []) {
+    const packed = packImageAlt(item.url, item.alt);
+    if (packed) thing = addStringNoLocale(thing, PODSTA.imageAlt, packed);
   }
 
   ds = setThing(ds, thing);

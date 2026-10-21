@@ -181,6 +181,7 @@ export default function HomePage({
       images: entry.images || [],
       thumbnails: entry.thumbnails || [],
       tags: entry.tags || [],
+      alts: entry.alts || [],
       mediaUrl: entry.images?.[0] || entry.url,
       mediaBlob: null,
       ownerWebId: entry.ownerWebId,

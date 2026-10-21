@@ -5,6 +5,7 @@ import { isIdentityAdjust, preparePhoto } from '../lib/photoAdjust.js';
 import {
   MAX_TEXT_LENGTH,
   MAX_CAPTION_LENGTH,
+  MAX_ALT_LENGTH,
   MAX_ALBUM_PHOTOS,
   ALLOWED_IMAGE_TYPES,
 } from '../lib/vocab.js';
@@ -25,6 +26,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
   const [selected, setSelected] = useState(0);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [caption, setCaption] = useState('');
+  const [alts, setAlts] = useState([]);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [audience, setAudience] = useState('private');
@@ -44,6 +46,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
       setSelected(0);
       setPreviewUrl(null);
       setCaption('');
+      setAlts([]);
       setTitle('');
       setBody('');
       setError(null);
@@ -78,6 +81,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
   const addFiles = (incoming) => {
     const next = [...files];
     const nextAdjust = [...adjustments];
+    const nextAlts = [...alts];
     const problems = [];
     for (const file of incoming) {
       if (next.length >= MAX_ALBUM_PHOTOS) {
@@ -91,9 +95,11 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
       }
       next.push(file);
       nextAdjust.push(blankAdjust());
+      nextAlts.push('');
     }
     setFiles(next);
     setAdjustments(nextAdjust);
+    setAlts(nextAlts);
     if (!files.length && next.length) setSelected(0);
     setError(problems.length ? problems[0] : null);
   };
@@ -109,6 +115,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
     const nextAdjust = adjustments.filter((_, index) => index !== selected);
     setFiles(next);
     setAdjustments(nextAdjust);
+    setAlts((previous) => previous.filter((_, index) => index !== selected));
     setSelected(Math.max(0, selected - 1));
     setUploaded([]);
   };
@@ -149,6 +156,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
         files: prepared,
         thumbnails: thumbs,
         caption: caption.trim(),
+        alts,
         title: title.trim(),
         body: body.trim(),
         audience,
@@ -368,6 +376,28 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 />
                 <p className="text-xs text-ink-300 mt-1.5">
                   A #tag is not a public directory. People only see it on posts they are allowed to read.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="composer-alt" className="block text-xs font-medium text-ink-200 mb-1.5">
+                  Description of photo {selected + 1}
+                  <span className="text-ink-200 ml-2 font-normal">
+                    {(alts[selected] || '').length}/{MAX_ALT_LENGTH}
+                  </span>
+                </label>
+                <textarea
+                  id="composer-alt"
+                  value={alts[selected] || ''}
+                  onChange={(event) => {
+                    const value = event.target.value.slice(0, MAX_ALT_LENGTH);
+                    setAlts((previous) => previous.map((item, index) => (index === selected ? value : item)));
+                  }}
+                  rows={2}
+                  placeholder="What is in this photo, for someone who cannot see it?"
+                  className="input-field resize-y"
+                />
+                <p className="text-xs text-ink-300 mt-1.5">
+                  This description uses the same audience as the photo. It is not the caption.
                 </p>
               </div>
             </div>

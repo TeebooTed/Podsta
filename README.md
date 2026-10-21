@@ -22,6 +22,7 @@ A new profile is Hidden. You choose Contacts or Public later. A post cannot be m
 - Saved posts. The list is a private file in your Pod (`podsta/favorites.ttl`). It stores the post address and the time you saved it, not a copy of the photo or the caption. A post you can no longer read shows as unavailable.
 - Captions and notes can include `#tags`. A tag page lists only posts you can already read: yours, including private ones, and posts from people you follow. There is no central tag directory.
 - Share a public or contacts post to another app on your device. A private post is not offered. A contacts post shares the link only, not the caption. Nothing is sent to a Podsta server.
+- Each photo can have a description for someone who cannot see it. The description is stored with the photo, uses the same audience, and is not the caption.
 - Discover by WebID, with copy-my-WebID, invite links, and a QR code. A short name like `@ada` is derived from the WebID. It is not a registered handle.
 - A sign-up guide for people without a Pod. Solid Community is the recommended host. An existing Web Access Control Pod can sign in directly.
 - Phone layout with Home, Discover, New post, and Profile. Desktop uses the header. Keyboard: `h` home, `d` discover, `p` profile, `s` saved, `n` new post. Shortcuts are ignored while you are typing or a dialog is open. Saved posts are also in the account menu.

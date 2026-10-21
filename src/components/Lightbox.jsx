@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getFile } from '@inrupt/solid-client';
 import { photoUrls } from '../lib/album.js';
+import { altForPhoto } from '../lib/altText.js';
 import { relativeTime } from '../lib/utils.js';
 import { withTimeout } from '../lib/timeoutFetch.js';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
@@ -414,7 +415,8 @@ export default function Lightbox({ posts, index, onClose, onNavigate, session, f
     transition: pinchStart.current || panStart.current ? 'none' : `transform 0.25s ${EASE}`,
     cursor: zoom > 1 ? 'zoom-out' : 'zoom-in',
   };
-  const alt = post.caption || 'Photo';
+  const frameUrl = frames[current] || '';
+  const alt = altForPhoto(post, frameUrl, current) || post.caption || 'Photo';
   const enterClass =
     enter === 'right'
       ? 'animate-slide-from-right'
