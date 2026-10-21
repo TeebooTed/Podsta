@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { deflateSync, crc32 } from 'node:zlib';
 
+test.use({ serviceWorkers: 'block', colorScheme: 'light' });
+
 function pngChunk(type, data) {
   const body = Buffer.concat([Buffer.from(type), data]);
   const length = Buffer.alloc(4);
@@ -42,6 +44,7 @@ function wideRedPng() {
 
 async function chooseWidePhoto(page) {
   await page.goto('/preview/composer');
+  await expect(page.getByRole('heading', { name: 'Composer preview' })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
     name: 'wide.png',
     mimeType: 'image/png',
@@ -83,4 +86,17 @@ test('the composer with looks meets WCAG AA', async ({ page }) => {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+});
+
+test.describe('dark theme', () => {
+  test.use({ colorScheme: 'dark' });
+
+  test('the composer with looks meets WCAG AA in dark mode', async ({ page }) => {
+    await chooseWidePhoto(page);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  });
 });

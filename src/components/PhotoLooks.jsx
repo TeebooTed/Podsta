@@ -11,7 +11,7 @@ export default function PhotoLooks({ previewUrl, adjust, onChange, disabled = fa
   return (
     <div className="space-y-3">
       <div>
-        <p id="composer-looks" className="text-xs font-extrabold uppercase tracking-wider text-ink-300 mb-2">
+        <p id="composer-looks" className="text-xs font-extrabold uppercase tracking-wider text-ink-50 mb-2">
           Looks
         </p>
         <div
@@ -80,7 +80,7 @@ export default function PhotoLooks({ previewUrl, adjust, onChange, disabled = fa
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label htmlFor="composer-brightness" className="block text-xs font-extrabold text-ink-200">
+        <label htmlFor="composer-brightness" className="block text-xs font-extrabold text-ink-50">
           Brightness
           <span className="ml-2 font-bold tabular-nums text-ink-100">
             {brightness > 0 ? `+${brightness}` : brightness}
@@ -97,7 +97,7 @@ export default function PhotoLooks({ previewUrl, adjust, onChange, disabled = fa
             className="mt-1 block w-full accent-accent"
           />
         </label>
-        <label htmlFor="composer-warmth" className="block text-xs font-extrabold text-ink-200">
+        <label htmlFor="composer-warmth" className="block text-xs font-extrabold text-ink-50">
           Warmth
           <span className="ml-2 font-bold text-ink-100">{warmthLabel(warmth)}</span>
           <input

@@ -210,7 +210,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
           type="button"
           onClick={() => setMode('photo')}
           className={`flex-1 py-2 rounded-md text-sm font-medium transition ${
-            mode === 'photo' ? 'bg-ink-700 text-ink-50 shadow-sm' : 'text-ink-200'
+            mode === 'photo' ? 'bg-ink-700 text-ink-50 shadow-sm' : 'text-ink-50'
           }`}
         >
           Photo
@@ -219,7 +219,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
           type="button"
           onClick={() => setMode('text')}
           className={`flex-1 py-2 rounded-md text-sm font-medium transition ${
-            mode === 'text' ? 'bg-ink-700 text-ink-50 shadow-sm' : 'text-ink-200'
+            mode === 'text' ? 'bg-ink-700 text-ink-50 shadow-sm' : 'text-ink-50'
           }`}
         >
           Text
