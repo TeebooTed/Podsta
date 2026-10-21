@@ -26,6 +26,7 @@ import { ensureContactsGroup } from './contactsGroup.js';
 import { makePublic } from './acl.js';
 import { readExtras, writeExtras } from './profileExtras.js';
 import { preparePhoto } from './photoAdjust.js';
+import { countsArePrivate } from './calmMetrics.js';
 
 /**
  * Podsta-specific profile data lives at /podsta/profile.ttl. Visibility follows
@@ -64,35 +65,46 @@ export async function loadProfile({ podUrl, session }) {
     const ds = await getSolidDataset(profileUrl(podUrl), { fetch: session.fetch });
     const thing = getThing(ds, profileUrl(podUrl));
     if (thing) {
-      return withLevel(podUrl, session, {
+      const loaded = await withLevel(podUrl, session, {
         name: plainText(getStringNoLocale(thing, FOAF.name) || ''),
         bio: plainText(getStringNoLocale(thing, SCHEMA.description) || ''),
         avatarUrl: getStringNoLocale(thing, SCHEMA.image) || '',
         ...readExtras(thing),
       }, getStringNoLocale(thing, PODSTA.discoverability) || '');
+      return {
+        ...loaded,
+        hideLikeCounts: countsArePrivate({
+          stored: getStringNoLocale(thing, PODSTA.hideLikeCounts) || '',
+          profileFound: true,
+        }),
+      };
     }
   } catch {
     // Fall through to WebID-based lookup
   }
 
-  // Fall back to WebID profile.
+  // No Podsta profile yet. A new profile hides like counts.
   if (session?.info?.webId) {
     const fromWebId = await resolveProfile(session.info.webId, session.fetch);
-    return withLevel(podUrl, session, {
+    const loaded = await withLevel(podUrl, session, {
       name: fromWebId.name === fromWebId.webId ? '' : fromWebId.name,
       bio: '',
       avatarUrl: fromWebId.avatarUrl,
     }, '');
+    return { ...loaded, hideLikeCounts: true };
   }
-  return withLevel(podUrl, session, { name: '', bio: '', avatarUrl: '' }, '');
+  const empty = await withLevel(podUrl, session, { name: '', bio: '', avatarUrl: '' }, '');
+  return { ...empty, hideLikeCounts: true };
 }
 
 export async function saveProfile({ podUrl, session, profile, ownerWebId, discoverability }) {
   let ds;
+  let fresh = false;
   try {
     ds = await getSolidDataset(profileUrl(podUrl), { fetch: session.fetch });
   } catch {
     ds = createSolidDataset();
+    fresh = true;
   }
 
   const avatarUrl = profile.avatarUrl ? safeHttpUrl(profile.avatarUrl) : '';
@@ -100,8 +112,15 @@ export async function saveProfile({ podUrl, session, profile, ownerWebId, discov
     throw new Error('Avatar URL must be an https URL');
   }
 
-  let thing = getThing(ds, profileUrl(podUrl)) ?? createThing({ url: profileUrl(podUrl) });
+  let thing = getThing(ds, profileUrl(podUrl));
+  if (!thing) {
+    thing = createThing({ url: profileUrl(podUrl) });
+    fresh = true;
+  }
   const previousLevel = getStringNoLocale(thing, PODSTA.discoverability) || '';
+  if (fresh && !getStringNoLocale(thing, PODSTA.hideLikeCounts)) {
+    thing = setStringNoLocale(thing, PODSTA.hideLikeCounts, 'yes');
+  }
   thing = setStringNoLocale(thing, FOAF.name, plainText(profile.name || ''));
   thing = setStringNoLocale(thing, SCHEMA.description, plainText(profile.bio || ''));
   thing = setStringNoLocale(thing, SCHEMA.image, avatarUrl || '');
@@ -141,6 +160,8 @@ export async function saveProfile({ podUrl, session, profile, ownerWebId, discov
     if (previousLevel) {
       restored = setStringNoLocale(restored, PODSTA.discoverability, previousLevel);
     }
+    const hideStored = getStringNoLocale(thing, PODSTA.hideLikeCounts);
+    if (hideStored) restored = setStringNoLocale(restored, PODSTA.hideLikeCounts, hideStored);
     await saveSolidDatasetAt(profileUrl(podUrl), setThing(rebuilt, restored), { fetch: session.fetch });
     throw err;
   }

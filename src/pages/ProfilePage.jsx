@@ -8,6 +8,9 @@ import ProfileCover from '../components/ProfileCover.jsx';
 import PinnedPosts, { PinPicker } from '../components/PinnedPosts.jsx';
 import ProfileShareCard from '../components/ProfileShareCard.jsx';
 import DiscoverabilitySettings from '../components/DiscoverabilitySettings.jsx';
+import CalmCountsSetting from '../components/CalmCountsSetting.jsx';
+import { saveHideLikeCounts } from '../lib/calmMetrics.js';
+import { syncLikeCountPrivacy } from '../lib/likes.js';
 import { DEFAULT_LEVEL } from '../lib/discoverability.js';
 import { useLikes } from '../hooks/useLikes.js';
 import { ALLOWED_IMAGE_TYPES, MAX_PHOTO_BYTES } from '../lib/vocab.js';
@@ -72,6 +75,8 @@ export default function ProfilePage({
   );
   const [dirty, setDirty] = useState(false);
   const [level, setLevel] = useState(profile?.discoverability || DEFAULT_LEVEL);
+  const [hideCounts, setHideCounts] = useState(profile?.hideLikeCounts !== false);
+  const [savingCounts, setSavingCounts] = useState(false);
   const [savingLevel, setSavingLevel] = useState(false);
   const fileRef = useRef(null);
   const [coverUrl, setCoverUrl] = useState(profile?.coverUrl || '');
@@ -91,6 +96,7 @@ export default function ProfilePage({
     setBio(profile?.bio || '');
     setAvatarUrl(profile?.avatarUrl || '');
     setLevel(profile?.discoverability || DEFAULT_LEVEL);
+    setHideCounts(profile?.hideLikeCounts !== false);
     setDirty(false);
   }, [profile]);
 
@@ -254,6 +260,28 @@ export default function ProfilePage({
   const publicCount = posts.filter((p) => p.audience === 'public' || p.isPublic).length;
   const contactsCount = posts.filter((p) => p.audience === 'contacts').length;
 
+  const handleHideCounts = async (next) => {
+    const previous = hideCounts;
+    setHideCounts(next);
+    setSavingCounts(true);
+    try {
+      await saveHideLikeCounts({ podUrl, session, hide: next });
+      onProfileUpdated?.({ ...profile, hideLikeCounts: next });
+      try {
+        await syncLikeCountPrivacy({ podUrl, session, posts, countsPrivate: next });
+      } catch (err) {
+        showToast(err.message || "Some counts couldn't be updated yet", 'error');
+        return;
+      }
+      showToast(next ? 'Like counts are just for you' : 'Like counts show on your posts');
+    } catch (err) {
+      setHideCounts(previous);
+      showToast(err.message || 'Could not save that setting', 'error');
+    } finally {
+      setSavingCounts(false);
+    }
+  };
+
   const handleSaveLevel = async () => {
     setSavingLevel(true);
     try {
@@ -281,6 +309,8 @@ export default function ProfilePage({
         onAddFollowing={onAddFollowing}
         contactBusy={contactBusy}
       />
+
+      <CalmCountsSetting hide={hideCounts} saving={savingCounts} onChange={handleHideCounts} />
 
       <section className="card overflow-hidden p-6 pt-0 sm:p-8 sm:pt-0">
         <ProfileCover

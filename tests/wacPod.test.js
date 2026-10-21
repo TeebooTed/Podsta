@@ -7,6 +7,7 @@ import { lockExistingComments, shareResources } from '../src/lib/acl.js';
 import { aclGrantsPublicRead } from '../src/lib/aclTurtle.js';
 import { applyDiscoverability } from '../src/lib/applyDiscoverability.js';
 import { saveProfile } from '../src/lib/profile.js';
+import { saveHideLikeCounts } from '../src/lib/calmMetrics.js';
 import { saveContactMembers } from '../src/lib/contactsGroup.js';
 
 const OWNER = 'https://owner.example/profile/card#me';
@@ -457,6 +458,54 @@ test('unshare treats a missing caption file as already private', async () => {
     });
     const anon = await fetch(postUrl);
     assert.equal(anon.status, 403);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('a new profile hides like counts, and turning it off writes no', async () => {
+  const pod = await startPod();
+  try {
+    await saveProfile({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      ownerWebId: OWNER,
+      profile: { name: 'Ada', bio: '', avatarUrl: '' },
+    });
+    let body = pod.files.get('/podsta/profile.ttl').body.toString();
+    assert.match(body, /hideLikeCounts/);
+    assert.match(body, /"yes"/);
+
+    await saveHideLikeCounts({ podUrl: pod.podUrl, session: pod.session, hide: false });
+    body = pod.files.get('/podsta/profile.ttl').body.toString();
+    assert.match(body, /"no"/);
+    assert.match(body, /Ada/);
+    assert.equal((await fetch(`${pod.podUrl}podsta/profile.ttl`)).status, 403);
+  } finally {
+    pod.server.close();
+  }
+});
+
+test('saving a name on an older profile does not start hiding like counts', async () => {
+  const pod = await startPod();
+  try {
+    const url = `${pod.podUrl}podsta/profile.ttl`;
+    const created = await pod.session.fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/turtle' },
+      body: `<${url}> <http://xmlns.com/foaf/0.1/name> "Ada" .`,
+    });
+    assert.equal(created.status, 201);
+
+    await saveProfile({
+      podUrl: pod.podUrl,
+      session: pod.session,
+      ownerWebId: OWNER,
+      profile: { name: 'Ada Lov', bio: 'Hello', avatarUrl: '' },
+    });
+    const body = pod.files.get('/podsta/profile.ttl').body.toString();
+    assert.equal(body.includes('hideLikeCounts'), false);
+    assert.match(body, /Ada Lov/);
   } finally {
     pod.server.close();
   }

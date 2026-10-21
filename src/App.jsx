@@ -90,6 +90,7 @@ export default function App() {
     avatarUrl: '',
     discoverability: 'hidden',
     discoverabilityInferred: true,
+    hideLikeCounts: true,
   });
   const [posts, setPosts] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -160,6 +161,7 @@ export default function App() {
                 avatarUrl: '',
                 discoverability: 'hidden',
                 discoverabilityInferred: true,
+                hideLikeCounts: true,
               })),
               retryTransient(() => loadOwnPosts({ podUrl: pod, session: s }), {
                 attempts: 4,
@@ -468,6 +470,7 @@ export default function App() {
       avatarUrl: '',
       discoverability: 'hidden',
       discoverabilityInferred: true,
+      hideLikeCounts: true,
     });
     setPosts([]);
     setFriends([]);

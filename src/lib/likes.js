@@ -8,6 +8,7 @@ import { groupFragment } from './discoverability.js';
 import { resolveProfile } from './friends.js';
 import { filterBlocked, loadBlocks } from './blocks.js';
 import { retryTransient } from './timeoutFetch.js';
+import { loadCountsPrivate } from './calmMetrics.js';
 
 /**
  * A like is stored in the liker's Pod. The public cannot write the owner's Pod.
@@ -42,6 +43,12 @@ export function likeSetAudience(post) {
     return post.audience;
   }
   return post?.isPublic ? 'public' : 'private';
+}
+
+/** Hidden counts stay on a file only the author can read. */
+export function publishedLikeAudience(post, countsPrivate) {
+  if (countsPrivate) return 'private';
+  return likeSetAudience(post);
 }
 
 export function serializeLikes(entries) {
@@ -280,7 +287,7 @@ export async function createLikesFile({ podUrl, session, entries }) {
   return url;
 }
 
-export async function publishLikeSet({ ownerPodUrl, session, post, webIds }) {
+export async function publishLikeSet({ ownerPodUrl, session, post, webIds, countsPrivate }) {
   if (!samePerson(session?.info?.webId, post?.ownerWebId) && post?.ownerWebId) {
     throw new Error('Only the author can publish who liked a post');
   }
@@ -292,12 +299,46 @@ export async function publishLikeSet({ ownerPodUrl, session, post, webIds }) {
   }
   const url = likeSetUrl(ownerPodUrl, post.url);
   await writeTurtle(url, serializeSet({ postUrl: post.url, webIds }), session);
-  await applyAudience([url], likeSetAudience(post), {
+  const hide =
+    typeof countsPrivate === 'boolean'
+      ? countsPrivate
+      : await loadCountsPrivate(ownerPodUrl, session.fetch);
+  await applyAudience([url], publishedLikeAudience(post, hide), {
     ownerWebId: session.info.webId,
     groupUrl: groupFragment(ownerPodUrl),
     session,
   });
   return { url, webIds };
+}
+
+/** Rewrite who can read counts already published, after the profile switch changes. */
+export async function syncLikeCountPrivacy({ podUrl, session, posts, countsPrivate }) {
+  let failed = 0;
+  for (const post of posts || []) {
+    if (!post?.url) continue;
+    const current = await loadLikeSet({
+      ownerPodUrl: podUrl,
+      postUrl: post.url,
+      fetchFn: session.fetch,
+    });
+    if (!current.readable) continue;
+    try {
+      await applyAudience(
+        [likeSetUrl(podUrl, post.url)],
+        publishedLikeAudience(post, countsPrivate),
+        {
+          ownerWebId: session.info.webId,
+          groupUrl: groupFragment(podUrl),
+          session,
+        },
+      );
+    } catch {
+      failed += 1;
+    }
+  }
+  if (failed) {
+    throw new Error("The setting was saved, but some counts couldn't be updated yet.");
+  }
 }
 
 export async function postLikeNotice({ session, ownerPodUrl, postUrl, removed = false }) {
@@ -453,6 +494,7 @@ export async function readInboxLikes(inboxUrl, fetchFn, limit = 40) {
 
 export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries, blockedWebIds }) {
   const me = session.info.webId;
+  const countsPrivate = await loadCountsPrivate(podUrl, session.fetch);
   const notices = await readInboxLikes(`${podUrl}inbox/`, session.fetch);
   let blocked = blockedWebIds;
   if (!blocked) {
@@ -488,6 +530,7 @@ export async function refreshOwnedLikeSets({ podUrl, session, posts, ownEntries,
       session,
       post: { ...post, ownerWebId: me },
       webIds,
+      countsPrivate,
     });
     published.push({ url: post.url, webIds });
   }

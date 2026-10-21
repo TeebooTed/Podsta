@@ -36,6 +36,7 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await signIn(bobPage, bob);
 
     await openProfile(alicePage);
+    await expect(alicePage.getByRole('checkbox', { name: /Hide like counts/ })).toBeChecked();
     await alicePage.locator('#profile-name').fill('Alice');
     await alicePage.getByRole('button', { name: 'Save profile' }).click();
     await expect(alicePage.getByText('Profile saved')).toBeVisible();
@@ -126,6 +127,13 @@ test('two people can post, follow, and hear about each other', async ({ browser 
     await openProfile(alicePage);
     await alicePage.getByRole('button', { name: /Public post: Public picnic/ }).click();
     await expect(alicePage.getByRole('dialog').getByText(/1 like/)).toBeVisible({ timeout: 30000 });
+
+    await bobPage.getByRole('link', { name: 'Home', exact: true }).click();
+    const hiddenCount = bobPage.locator('article').filter({ hasText: 'Public picnic' });
+    await expect(hiddenCount).toBeVisible({ timeout: 30000 });
+    await expect(hiddenCount.getByText('1 like')).toHaveCount(0);
+    await expect(hiddenCount.getByRole('button', { name: 'Like' })).toHaveAttribute('aria-pressed', 'true');
+
     await alicePage.keyboard.press('Escape');
     await expect(alicePage.getByRole('dialog')).toBeHidden();
 

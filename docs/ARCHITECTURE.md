@@ -28,7 +28,7 @@ Paths are relative to the Pod root (`src/lib/vocab.js`).
     blocks.ttl                        # WebIDs the author blocked, private
     reports.ttl                       # private notes about a comment
     like-sets/
-      <hash>.ttl                      # who liked one post, same audience as the post
+      <hash>.ttl                      # who liked one post; private when counts are hidden, otherwise the post's audience
     contacts/
       friends.ttl                     # people you follow
       group.ttl                       # vcard:Group of approved contacts
@@ -82,7 +82,7 @@ Home loads each followed person's public index, and their contacts index when th
 
 `podsta/likes.ttl` is the liker's private list. A missing file is created with `If-None-Match: *` so a CORS failure is not treated as an empty list and then overwritten. A 401 or 403 is a failed read.
 
-The author publishes `podsta/like-sets/<hash>.ttl` with the same audience as the post. The count and the names come only from that file. Until it is readable, the button can show that you liked it without inventing a total.
+The author publishes `podsta/like-sets/<hash>.ttl`. When hide like counts is on, that file is private and only the author sees the count and the names. A new profile turns this on. A profile saved before the setting keeps the post's audience until the person changes it. The count and the names come only from that file. Until it is readable, the button can show that you liked it without inventing a total.
 
 Someone who is not the author POSTs a `podsta:Like` notice to `{ownerPod}inbox/`. The author's app merges those notices the next time it loads their posts. A later `remove` drops that person. The hash is the same djb2 of the post URL used for comments, written in base 36.
 
@@ -157,7 +157,7 @@ These limits are part of the design, not temporary bugs.
 - While Contacts is in use, `podsta/contacts/group.ttl` is world-readable. The Pod server reads it as the requester. The posts themselves stay limited to members.
 - `contact-requests.ttl` is world-readable. The fact of a request is not treated as secret.
 - The comments container stays owner-only. Other people never get write access to the author's Pod. A published comment list is readable only at the post's audience. Blocks, reports, hides, and the commenter's own file are private.
-- Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
+- Likes in `podsta/likes.ttl` are private. The published count is a separate file. It uses the post's audience, unless hide like counts is on, in which case only the author can read it.
 - Saved posts in `podsta/favorites.ttl` are private. Saving does not copy the post and does not write the author's Pod.
 - Share uses the device share sheet or the clipboard. A private post is not shared. A contacts post shares the Podsta link and not the caption. A public post may include a short excerpt that is already world-readable.
 - Notification seen-state is per browser. It is not in the Pod.

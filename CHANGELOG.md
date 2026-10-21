@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- Hide like counts. A new profile keeps the number and the names private, so only you see them. Other people can still like the post. Turn it off on your profile if you want the count to show. Likes stay in each person's own pod.
 - One-tap photo filters: Original, Warm, Fade, Mono, Cool, and Punch. The choice is drawn into the photo in the browser before it is uploaded. Camera location is still removed.
 - **Create my Pod** is the one-tap default on the signed-out page. It opens Solid Community. Sign-in for an account you already have stays on the page, and other pod hosts stay under Advanced.
 - An invite link or QR code follows that person after sign-in and sends a contact request. Home shows their public posts. A private profile stays private. Undo is on Home.

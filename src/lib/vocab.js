@@ -47,6 +47,7 @@ export const PODSTA = {
   importedFrom: 'https://podsta.app/vocab#importedFrom',
   Save: 'https://podsta.app/vocab#Save',
   imageAlt: 'https://podsta.app/vocab#imageAlt',
+  hideLikeCounts: 'https://podsta.app/vocab#hideLikeCounts', // "yes" | "no"
 };
 
 // Pod paths — relative to the user's pod URL.
