@@ -139,7 +139,7 @@ export default function DiscoverPage({ session, friends, onAddFriend, addingWebI
         <h2 className="display-serif text-2xl mb-1">Follow someone</h2>
         <p className="text-sm text-ink-100 mb-4 leading-relaxed">
           Type <span className="font-medium">@ada</span> for someone on Solid Community,{' '}
-          <span className="font-medium">@ada@solidweb.org</span> for a different pod host, or paste
+          <span className="font-medium">@ada@solidweb.org</span> for a different account, or paste
           their full address. Your short name comes from your address. It isn't a username anyone
           else can claim.
         </p>

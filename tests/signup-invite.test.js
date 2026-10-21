@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { displayHandle, parsePersonInput } from '../src/lib/handles.js';
+import { displayHandle, issuerForSignIn, parsePersonInput } from '../src/lib/handles.js';
 import {
   invitePath,
   inviteUrl,
@@ -66,6 +66,22 @@ test('a bare @name means the recommended provider, and @name@host stays explicit
   assert.equal(parsePersonInput('not a person'), null);
   assert.equal(parsePersonInput(''), null);
   assert.equal(RECOMMENDED_PROVIDER.host, 'solidcommunity.net');
+});
+
+test('sign-in by name opens that account host and does not look the name up', () => {
+  assert.equal(issuerForSignIn(''), 'https://solidcommunity.net');
+  assert.equal(issuerForSignIn('   '), 'https://solidcommunity.net');
+  assert.equal(issuerForSignIn('@Ada'), 'https://solidcommunity.net');
+  assert.equal(issuerForSignIn('@ada@solidweb.org'), 'https://solidweb.org');
+  assert.equal(issuerForSignIn('https://login.inrupt.com'), 'https://login.inrupt.com');
+  assert.equal(
+    issuerForSignIn('https://ada.solidcommunity.net/profile/card#me'),
+    'https://solidcommunity.net',
+  );
+  assert.equal(issuerForSignIn('http://localhost:3000'), 'http://localhost:3000');
+  assert.equal(issuerForSignIn('@ada@localhost'), '');
+  assert.equal(issuerForSignIn('not a person'), '');
+  assert.equal(issuerForSignIn('javascript:alert(1)'), '');
 });
 
 test('an invite link round-trips the WebID and cannot redirect off this app', () => {
@@ -194,6 +210,8 @@ test('new people are sent to Solid Community, and a short name is not described 
   assert.match(hero, /Create my Pod/);
   assert.equal(hero.includes('OTHER_PROVIDERS'), false);
   assert.match(hero, /Advanced/);
+  assert.match(landing, /Your account/);
+  assert.match(landing, /issuerForSignIn/);
   const hosts = landing.slice(landing.indexOf('advanced &&'));
   assert.match(hosts, /OTHER_PROVIDERS/);
 

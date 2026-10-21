@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { OTHER_PROVIDERS, RECOMMENDED_PROVIDER } from '../lib/provider.js';
+import { issuerForSignIn } from '../lib/handles.js';
 import Logo from '../components/Logo.jsx';
 import Illustration from '../components/Illustration.jsx';
 import HeroCollage from '../components/HeroCollage.jsx';
@@ -88,12 +89,12 @@ const FAQ = [
     a: "Podsta has no accounts, no subscriptions and no paid features. It's also open source under the MIT license. Your pod comes from a pod host, and each host sets its own terms, so check theirs when you sign up.",
   },
   {
-    q: 'How do I get a pod?',
-    a: 'Tap "Create my Pod." That opens Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password. Other pod hosts are under Advanced.',
+    q: 'How do I get an account?',
+    a: 'Tap "Create my Pod." That opens Solid Community, where you make an account with an email and a password and pick a short name. Then Solid Community sends you back, signed in. Podsta never sees your password. Other hosts are under Advanced.',
   },
   {
-    q: 'Can I use a pod I already have?',
-    a: "Yes, if your pod host uses the same sharing system Solid Community does (it's called Web Access Control). Solid Community and SolidWeb both work. Inrupt PodSpaces uses a different system, so sharing doesn't work there yet.",
+    q: 'Can I use an account I already have?',
+    a: 'Yes. On the sign-in card, type your name, like @ada, or @ada@solidweb.org if the account lives somewhere else. That only chooses where to sign in. It does not look the name up. Sharing works when that host uses the same system as Solid Community. Inrupt PodSpaces uses a different system, so sharing does not work there yet.',
   },
   {
     q: 'Can I move to a different pod host later?',
@@ -181,6 +182,7 @@ function KeyPicker() {
  */
 export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
   const [advanced, setAdvanced] = useState(false);
+  const [accountName, setAccountName] = useState('');
   const [customIssuer, setCustomIssuer] = useState('');
   const [localError, setLocalError] = useState(null);
   const [pending, setPending] = useState(false);
@@ -193,7 +195,7 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
     } catch (err) {
       console.error('Login failed:', err);
       setLocalError(
-        "We couldn't sign you in. Your pod host didn't answer or said no. Check the address and try again, or pick Solid Community from the list.",
+        "We couldn't sign you in. That account didn't answer or said no. Check the name and try again, or pick Solid Community under Advanced.",
       );
       setPending(false);
     }
@@ -212,6 +214,17 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
       );
       setPending(false);
     }
+  };
+
+  const signInAccount = async () => {
+    const issuer = issuerForSignIn(accountName);
+    if (!issuer) {
+      setLocalError(
+        "That doesn't look like an account. Try @yourname, @yourname@example.com, or a web address.",
+      );
+      return;
+    }
+    await doLogin(issuer);
   };
 
   const working = busy || pending;
@@ -319,12 +332,12 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
               id="pod-heading"
               className="font-display font-semibold text-4xl sm:text-5xl text-ink-50 mb-5 tracking-tight"
             >
-              What's a pod?
+              Your account
             </h2>
             <div className="space-y-4 text-ink-100 leading-relaxed max-w-xl text-pretty">
               <p>
-                A pod is your own little storage space on the web, a bit like a personal locker. You
-                get one from a pod host, the same way you get an email account from an email
+                Your account is a pod: your own little storage space on the web, a bit like a
+                personal locker. You get one the same way you get an email account from an email
                 provider.
               </p>
               <p>
@@ -471,15 +484,35 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
                 <span className="block text-xs mt-0.5">{RECOMMENDED_PROVIDER.host}</span>
               </button>
 
+              <label htmlFor="account-name" className="block text-sm font-bold text-ink-50 mt-4 mb-1">
+                Your account
+              </label>
+              <input
+                id="account-name"
+                value={accountName}
+                onChange={(event) => setAccountName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') signInAccount();
+                }}
+                placeholder="@yourname"
+                autoComplete="username"
+                spellCheck="false"
+                className="input-field text-sm"
+              />
+              <p className="text-xs text-ink-200 mt-1">
+                Leave this blank for {RECOMMENDED_PROVIDER.label}. Somewhere else looks like
+                @yourname@example.com. The name is not looked up.
+              </p>
+
               <button
                 type="button"
-                onClick={() => doLogin(RECOMMENDED_PROVIDER.issuer)}
+                onClick={signInAccount}
                 disabled={working}
                 className="mt-2 w-full text-left px-5 py-3.5 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded-2xl transition disabled:opacity-50"
               >
                 <span className="block font-extrabold text-ink-50">Sign in</span>
                 <span className="block text-xs text-ink-200 mt-0.5">
-                  I already have an account on {RECOMMENDED_PROVIDER.host}
+                  {accountName.trim() ? accountName.trim() : 'I already have an account'}
                 </span>
               </button>
 
@@ -496,8 +529,7 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
                 {advanced && (
                   <div id="other-providers" className="mt-2 space-y-2 animate-slide-down">
                     <p className="text-sm text-ink-100 leading-relaxed">
-                      Podsta works with pod hosts that share posts the same way Solid Community
-                      does.
+                      Podsta works with accounts that share posts the same way Solid Community does.
                     </p>
                     {OTHER_PROVIDERS.map((provider) => (
                       <button
@@ -512,7 +544,7 @@ export default function LoginPage({ error, onLogin, onCreate, busy = false }) {
                       </button>
                     ))}
                     <label htmlFor="custom-issuer" className="block text-xs text-ink-200 pt-2">
-                      Your pod host's web address. Sharing works only if this host uses Web Access
+                      Another account's web address. Sharing works only if this host uses Web Access
                       Control.
                     </label>
                     <input
