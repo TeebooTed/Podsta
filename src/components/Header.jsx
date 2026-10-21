@@ -99,6 +99,16 @@ export default function Header({ session, profile, podUrl, onLogout, onCompose, 
                 >
                   Edit profile
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate(PATHS.saved);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-ink-800 transition"
+                >
+                  Saved posts
+                </button>
                 {safePod && (
                   <a
                     href={safePod}

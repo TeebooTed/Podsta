@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Avatar from '../components/Avatar.jsx';
 import PostGrid from '../components/PostGrid.jsx';
 import { saveProfile, uploadAvatar, uploadCover } from '../lib/profile.js';
@@ -19,6 +20,8 @@ import InviteQr from '../components/InviteQr.jsx';
 import PullIndicator from '../components/PullIndicator.jsx';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
 import InstagramImport from '../components/InstagramImport.jsx';
+import { PATHS } from '../lib/navigation.js';
+import { isSaved } from '../lib/saves.js';
 
 /**
  * Your profile: name, bio, avatar, then your own posts as a grid.
@@ -46,6 +49,9 @@ export default function ProfilePage({
   deletingUrls,
   onRefresh,
   onLibraryChanged,
+  saves = null,
+  savingUrl = '',
+  onToggleSave,
 }) {
   const [name, setName] = useState(profile?.name || '');
   const [bio, setBio] = useState(profile?.bio || '');
@@ -318,6 +324,11 @@ export default function ProfilePage({
               {posts.length} posts · {publicCount} public · {contactsCount} contacts ·{' '}
               {friends.length} following
             </p>
+            <p>
+              <Link to={PATHS.saved} className="text-sm text-ink-100 underline min-h-8 inline-flex items-center">
+                Saved posts{Array.isArray(saves) ? ` (${saves.length})` : ''}
+              </Link>
+            </p>
             <div>
               <label
                 htmlFor="profile-name"
@@ -444,6 +455,9 @@ export default function ProfilePage({
           likeFor={(post) => likes.view(post)}
           onToggleLike={onToggleLike}
           likeBusyUrl={likes.busyUrl}
+          savedFor={(post) => isSaved(saves, post.url)}
+          onToggleSave={onToggleSave}
+          saveBusyUrl={savingUrl}
         />
       </section>
 

@@ -2,7 +2,7 @@
 
 Podsta is a static React app. After sign-in, the browser talks to Solid Pods with `@inrupt/solid-client` and `@inrupt/solid-client-authn-browser`. There is no Podsta API.
 
-The stack is React 18, React Router 6, Vite 5, and Tailwind 3. Routes live in `src/lib/navigation.js`: `/` (Home), `/discover`, `/profile`, `/people?webid=`, `/post?url=`, `/start`, `/invite`, `/notifications`.
+The stack is React 18, React Router 6, Vite 5, and Tailwind 3. Routes live in `src/lib/navigation.js`: `/` (Home), `/discover`, `/profile`, `/people?webid=`, `/post?url=`, `/start`, `/invite`, `/notifications`, `/saved`.
 
 GitHub Pages serves the production build at `/Podsta/`. Vite's `base` is `/Podsta/` only in that workflow (`PAGES_BASE`). The router basename, the manifest `start_url` and `scope`, and asset URLs follow that base. Unknown paths use a copy of `index.html` named `404.html`. `/start/` is its own file so the guide returns 200. The Solid client id document is `solid-client-id.json` on that origin, and sign-in there always returns to `https://teebooted.github.io/Podsta/`. Local development and CI stay at `/`.
 
@@ -38,10 +38,13 @@ Paths are relative to the Pod root (`src/lib/vocab.js`).
     public-index.ttl                  # public posts, world-readable
     contacts-index.ttl                # contacts-only posts
     likes.ttl                         # this person's likes, private
+    favorites.ttl                     # saved post URLs, private, no copied content
     contact-requests.ttl              # requests this person sent, world-readable
 ```
 
-`podsta/inbox/` and `podsta/favorites.ttl` are names in `vocab.js`. The app does not write them. Notices go to the Pod server's inbox, `{pod}inbox/`.
+`podsta/inbox/` is a name in `vocab.js`. The app does not write it. Notices go to the Pod server's inbox, `{pod}inbox/`.
+
+`podsta/favorites.ttl` is the signed-in person's private saved-post list. Each row is a post URL and a `schema:dateCreated` for when it was saved. The file does not copy captions or image bytes. The ACL is owner-only. Opening Saved reads each URL with the current session. A 401, 403, or missing post is shown as unavailable, without the text or the photo. A failed read of the list is not treated as an empty list, so a later save cannot wipe bookmarks that were not loaded.
 
 ### Posts
 
@@ -153,6 +156,7 @@ These limits are part of the design, not temporary bugs.
 - `contact-requests.ttl` is world-readable. The fact of a request is not treated as secret.
 - The comments container stays owner-only. Other people never get write access to the author's Pod. A published comment list is readable only at the post's audience. Blocks, reports, hides, and the commenter's own file are private.
 - Likes in `podsta/likes.ttl` are private. Publishing a count is a separate file with the post's audience.
+- Saved posts in `podsta/favorites.ttl` are private. Saving does not copy the post and does not write the author's Pod.
 - Notification seen-state is per browser. It is not in the Pod.
 - The session from `@inrupt/solid-client-authn-browser` is in `localStorage`. An XSS would be a Pod takeover. Captions, comments, names, and bios are stored and shown as plain text. Tags are removed before they are written. There is no `dangerouslySetInnerHTML`.
 - Pod URLs and identity-provider issuers have to be https. `http://localhost` and `http://127.0.0.1` are the only exceptions. `javascript:` and URLs with a username or password are rejected. Image addresses in an index are dropped unless they pass the same check.

@@ -54,6 +54,8 @@ import OutboxBanner from './components/OutboxBanner.jsx';
 import DeviceNoticePrompt from './components/DeviceNoticePrompt.jsx';
 import { useTheme } from './hooks/useTheme.js';
 import Logo from './components/Logo.jsx';
+import { isSaved, loadSaves, setSaved } from './lib/saves.js';
+import SavedPage from './pages/SavedPage.jsx';
 
 /**
  * Top-level component. Holds:
@@ -85,6 +87,9 @@ export default function App() {
   });
   const [posts, setPosts] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [saves, setSaves] = useState(null);
+  const [savesError, setSavesError] = useState(false);
+  const [savingUrl, setSavingUrl] = useState('');
   const [contacts, setContacts] = useState([]);
   const [contactBusy, setContactBusy] = useState(false);
   const [askWebId, setAskWebId] = useState('');
@@ -139,7 +144,7 @@ export default function App() {
           } else {
             // Load profile, posts, friends in parallel.
             setLoadingPosts(true);
-            const [prof, postsList, friendsList, contactList] = await Promise.all([
+            const [prof, postsList, friendsList, contactList, savedList] = await Promise.all([
               loadProfile({ podUrl: pod, session: s }).catch(() => ({
                 name: '',
                 bio: '',
@@ -164,6 +169,10 @@ export default function App() {
               }),
               loadFriends({ podUrl: pod, session: s }).catch(() => []),
               loadContactMembers({ podUrl: pod, session: s }).catch(() => []),
+              loadSaves(pod, s.fetch).catch((err) => {
+                console.error('Saved posts load failed:', err);
+                return null;
+              }),
               lockExistingComments({
                 podUrl: pod,
                 ownerWebId: s.info.webId,
@@ -178,6 +187,8 @@ export default function App() {
             writeSnapshot(snapshotKey('posts', s.info.webId), { posts: postsList }).catch(() => {});
             setFriends(friendsList);
             setContacts(contactList);
+            setSaves(savedList);
+            setSavesError(savedList === null);
             setLibraryReady(true);
             setLoadingPosts(false);
             if (consumeSignup(window.sessionStorage)) {
@@ -353,6 +364,39 @@ export default function App() {
     [podUrl, session, reloadPosts, showToast],
   );
 
+  const handleToggleSave = useCallback(
+    async (post) => {
+      if (!podUrl || !session) return;
+      if (!Array.isArray(saves)) {
+        showToast('Saved posts did not load, so nothing was changed', 'error');
+        return;
+      }
+      const postUrl = post?.url;
+      if (!postUrl) return;
+      const already = isSaved(saves, postUrl);
+      const previous = saves;
+      setSavingUrl(postUrl);
+      setSaves(already ? saves.filter((entry) => entry.postUrl !== postUrl) : [...saves, { postUrl, savedAt: new Date().toISOString() }]);
+      try {
+        const next = await setSaved({
+          podUrl,
+          session,
+          postUrl,
+          saved: !already,
+          knownEntries: previous,
+        });
+        setSaves(next);
+        showToast(already ? 'Removed from saved' : 'Saved on your Pod');
+      } catch (err) {
+        setSaves(previous);
+        showToast(err.message || 'Could not update saved posts', 'error');
+      } finally {
+        setSavingUrl('');
+      }
+    },
+    [podUrl, session, saves, showToast],
+  );
+
   // ── Friends ───────────────────────────────────────────────
   const handleAddFriend = useCallback(
     async (webId) => {
@@ -418,6 +462,8 @@ export default function App() {
     setPosts([]);
     setFriends([]);
     setContacts([]);
+    setSaves(null);
+    setSavesError(false);
     setLibraryReady(false);
     setOnboardingOpen(false);
     navigate('/');
@@ -435,6 +481,7 @@ export default function App() {
       if (e.key === 'h' || e.key === 'f') navigate('/');
       else if (e.key === 'd') navigate('/discover');
       else if (e.key === 'p') navigate('/profile');
+      else if (e.key === 's') navigate('/saved');
       else if (e.key === 'n') setComposerOpen(true);
     };
     window.addEventListener('keydown', onKey);
@@ -805,6 +852,9 @@ export default function App() {
                 onRemoveFriend={handleRemoveFriend}
                 onCompose={() => setComposerOpen(true)}
                 showToast={showToast}
+                saves={saves}
+                savingUrl={savingUrl}
+                onToggleSave={handleToggleSave}
               />
             }
           />
@@ -846,6 +896,9 @@ export default function App() {
                 onRefresh={reloadPosts}
                 showToast={showToast}
                 onLibraryChanged={reloadPosts}
+                saves={saves}
+                savingUrl={savingUrl}
+                onToggleSave={handleToggleSave}
               />
             }
           />
@@ -866,7 +919,15 @@ export default function App() {
           <Route
             path="/post"
             element={
-              <PostPage session={session} posts={posts} podUrl={podUrl} showToast={showToast} />
+              <PostPage
+                session={session}
+                posts={posts}
+                podUrl={podUrl}
+                showToast={showToast}
+                saves={saves}
+                savingUrl={savingUrl}
+                onToggleSave={handleToggleSave}
+              />
             }
           />
           <Route
@@ -898,6 +959,19 @@ export default function App() {
                 onAskContact={handleAskContact}
                 askWebId={askWebId}
                 requestedWebIds={[...notifications.outgoingTargets, ...sentRequests]}
+              />
+            }
+          />
+          <Route
+            path="/saved"
+            element={
+              <SavedPage
+                session={session}
+                posts={posts}
+                saves={saves}
+                error={savesError}
+                savingUrl={savingUrl}
+                onToggleSave={handleToggleSave}
               />
             }
           />
