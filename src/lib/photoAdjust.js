@@ -1,34 +1,9 @@
 /**
- * Crop, rotate, and one-tap filters happen in the browser, before the bytes
- * are uploaded. The canvas result is what the Pod stores.
+ * Crop, rotate, and looks happen in the browser, before the bytes are uploaded.
+ * The canvas result is what the Pod stores. Redrawing also drops camera location.
  */
 
-export const PHOTO_FILTERS = [
-  { id: 'original', label: 'Original' },
-  { id: 'warm', label: 'Warm' },
-  { id: 'fade', label: 'Fade' },
-  { id: 'mono', label: 'Mono' },
-  { id: 'cool', label: 'Cool' },
-  { id: 'punch', label: 'Punch' },
-];
-
-const FILTER_CSS = {
-  original: 'none',
-  warm: 'sepia(0.35) saturate(1.3) contrast(1.05)',
-  fade: 'contrast(0.92) brightness(1.08) saturate(0.8)',
-  mono: 'grayscale(1) contrast(1.15) brightness(1.02)',
-  cool: 'saturate(0.85) hue-rotate(18deg) contrast(1.05)',
-  punch: 'contrast(1.18) saturate(1.4) brightness(1.02)',
-};
-
-export function filterId(value) {
-  const id = String(value || 'original');
-  return Object.prototype.hasOwnProperty.call(FILTER_CSS, id) ? id : 'original';
-}
-
-export function filterCss(value) {
-  return FILTER_CSS[filterId(value)];
-}
+import { cssFilterFor, isNeutralLook, shapeRatio } from './photoFilters.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -39,15 +14,19 @@ export function normalizeRotation(rotation) {
   return ((turns % 360) + 360) % 360;
 }
 
-export function isIdentityAdjust(adjust) {
+export function isIdentityFraming(adjust) {
   if (!adjust) return true;
   return (
     normalizeRotation(adjust.rotation) === 0 &&
     (Number(adjust.zoom) || 1) <= 1 &&
     !Number(adjust.panX) &&
     !Number(adjust.panY) &&
-    filterId(adjust.filter) === 'original'
+    shapeRatio(adjust.shape) == null
   );
+}
+
+export function isIdentityAdjust(adjust) {
+  return isIdentityFraming(adjust) && isNeutralLook(adjust);
 }
 
 export function rotatedSize(width, height, rotation) {
@@ -58,13 +37,27 @@ export function rotatedSize(width, height, rotation) {
 
 /**
  * Crop rectangle in the rotated image, in pixels.
- * Zoom 1 is the whole frame. Pan is -1 to 1 across the spare margin.
+ * Zoom 1 is the whole frame, or the largest square or 4:5 that fits.
+ * Pan is -1 to 1 across the spare margin.
  */
-export function cropRect({ width, height, rotation = 0, zoom = 1, panX = 0, panY = 0 }) {
+export function cropRect({ width, height, rotation = 0, zoom = 1, panX = 0, panY = 0, shape = 'original' }) {
   const size = rotatedSize(width, height, rotation);
+  const ratio = shapeRatio(shape);
+  let baseWidth = size.width;
+  let baseHeight = size.height;
+  if (ratio) {
+    const imageRatio = size.width / size.height;
+    if (imageRatio > ratio) {
+      baseHeight = size.height;
+      baseWidth = size.height * ratio;
+    } else {
+      baseWidth = size.width;
+      baseHeight = size.width / ratio;
+    }
+  }
   const z = clamp(Number(zoom) || 1, 1, 4);
-  const sw = size.width / z;
-  const sh = size.height / z;
+  const sw = baseWidth / z;
+  const sh = baseHeight / z;
   const spareX = (size.width - sw) / 2;
   const spareY = (size.height - sh) / 2;
   const sx = spareX + clamp(Number(panX) || 0, -1, 1) * spareX;
@@ -304,25 +297,16 @@ function drawPrepared(source, width, height, adjust, maxEdge) {
     zoom: adjust?.zoom,
     panX: adjust?.panX,
     panY: adjust?.panY,
+    shape: adjust?.shape,
   });
   const fitted = fittedSize(frame.destWidth, frame.destHeight, maxEdge);
   const canvas = document.createElement('canvas');
   canvas.width = fitted.width;
   canvas.height = fitted.height;
   const ctx = canvas.getContext('2d');
-  ctx.filter = filterCss(adjust?.filter);
-  ctx.drawImage(
-    rotated,
-    frame.sx,
-    frame.sy,
-    frame.sw,
-    frame.sh,
-    0,
-    0,
-    fitted.width,
-    fitted.height,
-  );
-  ctx.filter = 'none';
+  const filter = cssFilterFor(adjust);
+  if (filter) ctx.filter = filter;
+  ctx.drawImage(rotated, frame.sx, frame.sy, frame.sw, frame.sh, 0, 0, fitted.width, fitted.height);
   return canvas;
 }
 

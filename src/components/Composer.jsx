@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { validatePhotoFile } from '../lib/posts.js';
-import { filterCss, filterId, PHOTO_FILTERS, preparePhoto } from '../lib/photoAdjust.js';
+import { isIdentityFraming, preparePhoto } from '../lib/photoAdjust.js';
+import { cssFilterFor } from '../lib/photoFilters.js';
+import PhotoLooks from './PhotoLooks.jsx';
 import {
   MAX_TEXT_LENGTH,
   MAX_CAPTION_LENGTH,
@@ -12,11 +14,20 @@ import {
 import { formatBytes } from '../lib/utils.js';
 import { ceilingNote, composerChoices, DEFAULT_LEVEL } from '../lib/discoverability.js';
 
-const blankAdjust = () => ({ rotation: 0, zoom: 1, panX: 0, panY: 0, filter: 'original' });
+const blankAdjust = () => ({
+  rotation: 0,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  shape: 'original',
+  filter: 'as-shot',
+  brightness: 0,
+  warmth: 0,
+});
 
 /**
  * Photo and text composer.
- * Several photos become one post. Crop and rotate are buttons and a slider.
+ * Several photos become one post. A look, a crop, brightness and warmth are optional.
  * The progress bar counts bytes sent and stays short of full until the Pod answers.
  */
 export default function Composer({ open, onClose, onSubmit, discoverability = DEFAULT_LEVEL }) {
@@ -67,6 +78,8 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
 
   const current = files[selected] || null;
   const adjust = adjustments[selected] || blankAdjust();
+  const framed = adjust.shape === 'square' || adjust.shape === 'portrait';
+  const previewFilter = cssFilterFor(adjust);
 
   useEffect(() => {
     if (!current) {
@@ -242,20 +255,36 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
           ) : (
             <div className="space-y-3">
               <div
-                className={`relative rounded-xl overflow-hidden bg-ink-900 max-h-96 ${dragOver ? 'ring-2 ring-accent' : ''}`}
+                className={`relative rounded-xl overflow-hidden bg-ink-900 mx-auto ${
+                  framed ? 'max-w-sm' : 'max-h-96'
+                } ${dragOver ? 'ring-2 ring-accent' : ''}`}
+                style={framed ? { aspectRatio: adjust.shape === 'square' ? '1 / 1' : '4 / 5' } : undefined}
               >
                 {previewUrl && (
                   <img
                     src={previewUrl}
                     alt=""
                     style={{
-                      transform: `rotate(${adjust.rotation}deg) scale(${adjust.zoom}) translate(${adjust.panX * 12}%, ${adjust.panY * 12}%)`,
-                      filter: filterCss(adjust.filter),
+                      filter: previewFilter || undefined,
+                      objectPosition: framed
+                        ? `${50 + adjust.panX * 40}% ${50 + adjust.panY * 40}%`
+                        : undefined,
+                      transform: framed
+                        ? `rotate(${adjust.rotation}deg) scale(${adjust.zoom})`
+                        : `rotate(${adjust.rotation}deg) scale(${adjust.zoom}) translate(${adjust.panX * 12}%, ${adjust.panY * 12}%)`,
                     }}
-                    className="w-full max-h-96 object-contain"
+                    className={
+                      framed ? 'w-full h-full object-cover' : 'w-full max-h-96 object-contain'
+                    }
                   />
                 )}
               </div>
+              <PhotoLooks
+                previewUrl={previewUrl}
+                adjust={adjust}
+                onChange={updateAdjust}
+                disabled={submitting}
+              />
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {files.map((file, index) => (
                   <button
@@ -284,23 +313,6 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 {current?.name} · {current ? formatBytes(current.size) : ''}
                 {uploaded.length ? ` · ${uploaded.length} already sent` : ''}
               </p>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Filters">
-                {PHOTO_FILTERS.map((filter) => (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    className={`min-h-11 px-3 rounded-full text-sm font-extrabold border-2 ${
-                      filterId(adjust.filter) === filter.id
-                        ? 'bg-plum text-cream border-plum'
-                        : 'border-ink-600 text-ink-100'
-                    }`}
-                    aria-pressed={filterId(adjust.filter) === filter.id}
-                    onClick={() => updateAdjust({ filter: filter.id })}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Crop and rotate">
                 <button
                   type="button"
@@ -347,13 +359,10 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => updateAdjust({ rotation: 0, zoom: 1, panX: 0, panY: 0 })}
-                  disabled={
-                    adjust.rotation % 360 === 0 &&
-                    adjust.zoom <= 1 &&
-                    !adjust.panX &&
-                    !adjust.panY
+                  onClick={() =>
+                    updateAdjust({ rotation: 0, zoom: 1, panX: 0, panY: 0, shape: 'original' })
                   }
+                  disabled={isIdentityFraming(adjust)}
                 >
                   Reset framing
                 </button>
@@ -374,18 +383,19 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                   className="mt-1 block w-full accent-accent"
                 />
               </label>
-              <p className="text-xs text-ink-200">
-                Filters, rotate, and zoom are saved into the photo when you post. GIF motion is
-                kept only if you leave the framing and the filter alone.
+              <p className="text-xs text-ink-50">
+                A look, crop, brightness or warmth is saved into the photo when you post. Leave it
+                as shot to skip that. GIF motion stays only if you leave the photo alone. Camera
+                location is removed either way.
               </p>
 
               <div>
                 <label
                   htmlFor="composer-caption"
-                  className="block text-xs font-medium text-ink-200 mb-1.5"
+                  className="block text-xs font-medium text-ink-50 mb-1.5"
                 >
                   Caption
-                  <span className="text-ink-200 ml-2 font-normal">
+                  <span className="text-ink-100 ml-2 font-normal">
                     {caption.length}/{MAX_CAPTION_LENGTH}
                   </span>
                 </label>
@@ -397,14 +407,14 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                   placeholder="Add a caption. #tags link to posts you can already read."
                   className="input-field"
                 />
-                <p className="text-xs text-ink-300 mt-1.5">
+                <p className="text-xs text-ink-50 mt-1.5">
                   A #tag is not a public directory. People only see it on posts they are allowed to read.
                 </p>
               </div>
               <div>
-                <label htmlFor="composer-alt" className="block text-xs font-medium text-ink-200 mb-1.5">
+                <label htmlFor="composer-alt" className="block text-xs font-medium text-ink-50 mb-1.5">
                   Description of photo {selected + 1}
-                  <span className="text-ink-200 ml-2 font-normal">
+                  <span className="text-ink-100 ml-2 font-normal">
                     {(alts[selected] || '').length}/{MAX_ALT_LENGTH}
                   </span>
                 </label>
@@ -419,7 +429,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
                   placeholder="What is in this photo, for someone who cannot see it?"
                   className="input-field resize-y"
                 />
-                <p className="text-xs text-ink-300 mt-1.5">
+                <p className="text-xs text-ink-50 mt-1.5">
                   This description uses the same audience as the photo. It is not the caption.
                 </p>
               </div>
@@ -434,6 +444,7 @@ export default function Composer({ open, onClose, onSubmit, discoverability = DE
               addFiles([...(event.target.files || [])]);
               event.target.value = '';
             }}
+            aria-label="Photos"
             className="sr-only"
           />
         </div>

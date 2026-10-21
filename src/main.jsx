@@ -32,7 +32,9 @@ const stored = hasStoredSession(
   typeof window === 'undefined' ? '' : window.location.search,
 );
 
-if (stored) {
+if (import.meta.env.VITE_PODSTA_PREVIEW === '1' && window.location.pathname.startsWith('/preview')) {
+  import('./preview/PreviewApp.jsx').then(({ default: PreviewApp }) => render(<PreviewApp />));
+} else if (stored) {
   render(<Booting />);
   import('./App.jsx').then(({ default: App }) => render(<App />));
 } else {
