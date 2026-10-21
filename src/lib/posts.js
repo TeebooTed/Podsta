@@ -427,7 +427,9 @@ export async function loadOwnTextPosts({ podUrl, session }) {
   const container = `${podUrl}${PATHS.posts}`;
   let urls = [];
   try {
-    const ds = await getSolidDataset(container, { fetch: session.fetch });
+    // A cached container listing hides a post that was just saved.
+    const fresh = (input, init = {}) => session.fetch(input, { ...init, cache: 'no-store' });
+    const ds = await getSolidDataset(container, { fetch: fresh });
     urls = getContainedResourceUrlAll(ds).filter((u) => u.endsWith('.ttl'));
   } catch (err) {
     if (isNotFound(err)) return [];

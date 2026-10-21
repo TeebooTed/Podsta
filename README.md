@@ -65,13 +65,13 @@ Node.js 22. That is the version CI uses.
 npm ci
 npm run dev       # http://localhost:5173
 npm test          # node --test tests/*.test.js
-npm run test:e2e  # Playwright against the production build
+npm run test:e2e  # Playwright against the production build, including two local pods
 npm run lint      # eslint src
 npm run build     # static files in dist/
 npm run preview   # serve the production build
 ```
 
-`npm run dev` opens a browser tab. Solid sign-in on localhost has to stay on `localhost`, not `127.0.0.1`, because the OIDC client is registered for that origin.
+`npm run dev` opens a browser tab. Solid sign-in on localhost has to stay on `localhost`, not `127.0.0.1`, because the OIDC client is registered for that origin. The end-to-end run starts a Community Solid Server on this machine and signs in two accounts.
 
 `dist/` is a static site. GitHub Pages serves it at `/Podsta/`. `vercel.json` rewrites every route to `index.html` and sets a Content-Security-Policy, `X-Frame-Options: DENY`, and a referrer policy. The Pages build injects the same policy as a meta tag, because Pages cannot set response headers. Production needs HTTPS. Localhost is the exception Solid allows for development.
 
