@@ -19,6 +19,7 @@ import { withTimeout } from './timeoutFetch.js';
  *   - comments on your posts, when one exists from someone else
  *   - likes posted to your inbox
  *   - contact requests written on a followed Pod, or posted to your inbox
+ *   - an invite accept, posted to your inbox when someone uses your invite
  *   - approvals, when their contacts group lists you or their inbox notice arrived
  *
  * A comment notification appears after the author's app copies the inbox notice
@@ -87,6 +88,7 @@ export function buildNotifications({
   requests = [],
   approvals = [],
   likes = [],
+  inviteAccepts = [],
 }) {
   const items = [];
 
@@ -152,6 +154,22 @@ export function buildNotifications({
       title: `${name} liked your post`,
       detail: '',
       href: postUrl ? postPath(postUrl) : '',
+    });
+  }
+
+  for (const accept of inviteAccepts) {
+    if (!accept?.authorWebId || samePerson(accept.authorWebId, webId)) continue;
+    if (accept.recipientWebId && !samePerson(accept.recipientWebId, webId)) continue;
+    const name = actorName(accept.authorWebId, accept.authorName);
+    items.push({
+      id: `invite-accept:${accept.authorWebId}`,
+      kind: 'invite-accept',
+      created: accept.created || '',
+      actorWebId: accept.authorWebId,
+      actorName: name,
+      title: `${name} joined from your invite`,
+      detail: 'You follow each other, and you each approved the other as a contact.',
+      href: personPath(accept.authorWebId),
     });
   }
 
@@ -243,6 +261,7 @@ export async function collectNotifications({
 
   const requests = [];
   const likes = [];
+  const inviteAccepts = [];
   for (const friend of cappedFriends) {
     const located = await mark(results, async () => {
       if (friend.podUrl) return friend.podUrl;
@@ -268,6 +287,7 @@ export async function collectNotifications({
     for (const notice of inbox.value || []) {
       if (notice.kind === 'like') likes.push(notice);
       if (notice.kind === 'contact-request') requests.push(notice);
+      if (notice.kind === 'invite-accept') inviteAccepts.push(notice);
       if (notice.kind === 'contact-approval') {
         approvals.push({
           webId: notice.authorWebId,
@@ -294,7 +314,15 @@ export async function collectNotifications({
   }
 
   return {
-    items: buildNotifications({ webId, feedEntries, commentThreads, requests, approvals, likes }),
+    items: buildNotifications({
+      webId,
+      feedEntries,
+      commentThreads,
+      requests,
+      approvals,
+      likes,
+      inviteAccepts,
+    }),
     outgoingTargets,
     ...sourceOutcome(results),
   };

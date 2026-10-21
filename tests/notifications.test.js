@@ -348,3 +348,32 @@ test('a private contacts group is not treated as an approval', async () => {
   });
   assert.equal(result.items.some((item) => item.kind === 'contact-approval'), false);
 });
+
+test('an invite accept in the inbox becomes a connection notice for the inviter', async () => {
+  const result = await collectNotifications({
+    webId: ME,
+    podUrl: 'https://me.example/',
+    friends: [],
+    posts: [],
+    loadFeed: async () => ({ entries: [], unreachable: 0 }),
+    readRequests: async () => [],
+    readInbox: async () => [
+      {
+        kind: 'invite-accept',
+        authorWebId: ADA,
+        recipientWebId: ME,
+        created: '2026-04-08T00:00:00.000Z',
+      },
+      {
+        kind: 'invite-accept',
+        authorWebId: BOB,
+        recipientWebId: ADA,
+        created: '2026-04-08T00:00:00.000Z',
+      },
+    ],
+  });
+  const accepts = result.items.filter((item) => item.kind === 'invite-accept');
+  assert.equal(accepts.length, 1);
+  assert.equal(accepts[0].actorWebId, ADA);
+  assert.match(accepts[0].title, /joined from your invite/);
+});

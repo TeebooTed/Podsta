@@ -44,6 +44,7 @@ export const PODSTA = {
   discoverability: 'https://podsta.app/vocab#discoverability', // "public" | "contacts" | "hidden"
   ContactRequest: 'https://podsta.app/vocab#ContactRequest',
   ContactApproval: 'https://podsta.app/vocab#ContactApproval',
+  InviteAccept: 'https://podsta.app/vocab#InviteAccept',
   importedFrom: 'https://podsta.app/vocab#importedFrom',
   Save: 'https://podsta.app/vocab#Save',
   imageAlt: 'https://podsta.app/vocab#imageAlt',

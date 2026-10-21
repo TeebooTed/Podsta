@@ -70,6 +70,13 @@ test('turning notices on stays quiet about what is already unseen', () => {
   writeAnnounced(storage, ME, later.next);
   assert.equal(readAnnounced(storage, ME).seeded, true);
   assert.equal(deviceCandidates([{ id: 'post:2', kind: 'post' }], emptySeen()).length, 0);
+  assert.equal(
+    deviceCandidates(
+      [{ id: 'invite-accept:ada', kind: 'invite-accept' }],
+      { initialized: true, ids: [] },
+    ).length,
+    1,
+  );
 });
 
 test('a like in the inbox becomes a notification, and an unlike does not', () => {

@@ -38,6 +38,7 @@ export default function PublicPerson({
   friends = [],
   onFollow,
   followBusy = false,
+  actionLabel = '',
   signedIn = false,
   selfWebId = '',
   onAskContact,
@@ -162,7 +163,11 @@ export default function PublicPerson({
                     disabled={followBusy}
                     className="btn-primary"
                   >
-                    {followBusy ? 'Following…' : signedIn ? 'Follow' : 'Sign in to follow'}
+                    {followBusy
+                      ? actionLabel
+                        ? 'Connecting…'
+                        : 'Following…'
+                      : actionLabel || (signedIn ? 'Follow' : 'Sign in to follow')}
                   </button>
                 )}
                 {signedIn &&

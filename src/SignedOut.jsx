@@ -6,6 +6,7 @@ import Toast from './components/Toast.jsx';
 import Logo from './components/Logo.jsx';
 import { appUrl, currentAppRoot } from './lib/appUrl.js';
 import { inviteUrl, rememberFollow, rememberSignup, SIGNUP_KEY } from './lib/invite.js';
+import { rememberInviteConnect } from './lib/inviteConnect.js';
 import { RECOMMENDED_PROVIDER } from './lib/provider.js';
 
 const PersonPage = lazy(() => import('./pages/PersonPage.jsx'));
@@ -76,10 +77,12 @@ export default function SignedOut({ error = '', onLogin, showToast: showToastPro
                       friends={[]}
                       signedIn={false}
                       addingWebId={null}
+                      actionLabel="Sign in to connect"
                       onAddFriend={async (webId) => {
                         try {
                           window.sessionStorage.removeItem(SIGNUP_KEY);
                           rememberFollow(window.sessionStorage, webId);
+                          rememberInviteConnect(window.sessionStorage, webId);
                           await startLogin(
                             RECOMMENDED_PROVIDER.issuer,
                             inviteUrl(currentAppRoot(), webId),
