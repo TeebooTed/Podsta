@@ -189,6 +189,14 @@ test('new people are sent to Solid Community, and a short name is not described 
   const webid = ONBOARDING_STEPS.find((step) => step.id === 'webid');
   assert.match(webid.body, /invite link/);
   assert.match(webid.body, /full address/);
+  const landing = readFileSync(new URL('../src/pages/LoginPage.jsx', import.meta.url), 'utf8');
+  const hero = landing.slice(landing.indexOf('{/* Hero */}'), landing.indexOf('{/* Benefits */}'));
+  assert.match(hero, /Create my Pod/);
+  assert.equal(hero.includes('OTHER_PROVIDERS'), false);
+  assert.match(hero, /Advanced/);
+  const hosts = landing.slice(landing.indexOf('advanced &&'));
+  assert.match(hosts, /OTHER_PROVIDERS/);
+
   assert.equal(sectionFromPath('/start'), 'start');
   assert.equal(sectionFromPath('/invite'), 'invite');
   assert.equal(sectionFromPath('/'), 'home');

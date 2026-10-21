@@ -815,6 +815,7 @@ export default function App() {
               <LoginPage
                 error={authError}
                 onLogin={(issuer) => startLogin(issuer, appUrl('/'))}
+                onCreate={startSignup}
                 theme={theme}
               />
             }
