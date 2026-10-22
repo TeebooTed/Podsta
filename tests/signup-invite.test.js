@@ -13,6 +13,7 @@ import {
   consumeFollow,
   strangerNotice,
   inviteConfirmation,
+  inviteLandingActions,
   inviteUndoCopy,
   acceptInvite,
   SIGNUP_KEY,
@@ -126,8 +127,24 @@ test('an invite follows them and only promises posts the profile allows', async 
   );
   assert.match(
     inviteConfirmation({ name: ADA, profileShared: true, postsVisible: false, requestSent: false }),
-    /You're following them\. Their profile is public/,
+    /The contact request did not send\./,
   );
+  assert.equal(
+    inviteConfirmation({ name: 'Ada', profileShared: true, postsVisible: true, requestSent: null }).includes(
+      'contact request',
+    ),
+    false,
+  );
+  assert.deepEqual(inviteLandingActions({ isInvite: true }), {
+    requestContact: false,
+    approve: true,
+    notify: true,
+  });
+  assert.deepEqual(inviteLandingActions({ isInvite: false }), {
+    requestContact: true,
+    approve: false,
+    notify: false,
+  });
   assert.match(inviteUndoCopy({ requestSent: true }), /took back the contact request/);
   assert.equal(inviteUndoCopy({ requestSent: false }), 'Stopped following them.');
 
@@ -153,6 +170,26 @@ test('an invite follows them and only promises posts the profile allows', async 
   ]);
   assert.equal(result.requestSent, true);
   assert.match(result.message, /public posts are on Home/);
+
+  const skipped = [];
+  const approved = await acceptInvite({
+    podUrl: 'https://me.example/',
+    session: { info: { webId: 'https://me.example/profile/card#me' }, fetch: async () => {} },
+    webId: ADA,
+    discoverability: 'hidden',
+    addFriend: async () => {
+      skipped.push('follow');
+      return { webId: ADA, name: 'Ada' };
+    },
+    sendContactRequest: async () => {
+      skipped.push('request');
+    },
+    loadStranger: async () => ({ profileShared: true, posts: [{ url: 'https://ada.example/post' }] }),
+    requestContact: false,
+  });
+  assert.deepEqual(skipped, ['follow']);
+  assert.equal(approved.requestSent, false);
+  assert.equal(approved.message.includes('contact request'), false);
 });
 
 test('a private invite explains that the link does not open the profile', () => {
