@@ -81,8 +81,23 @@ export function inviteConfirmation({
   let seen = 'Their profile is private, so Home may stay empty until they share something you can see.';
   if (postsVisible) seen = 'Their public posts are on Home.';
   else if (profileShared) seen = 'Their profile is public. Nothing new is on Home yet.';
-  const request = requestSent ? 'A contact request was sent.' : 'The contact request did not send.';
-  return `You're following ${who}. ${seen} ${request}`;
+  let request = '';
+  if (requestSent === true) request = ' A contact request was sent.';
+  else if (requestSent === false) request = ' The contact request did not send.';
+  return `You're following ${who}. ${seen}${request}`;
+}
+
+/**
+ * An invite link follows once, then approves that person and posts one inbox
+ * notice. A follow stored without the invite does one contact request instead.
+ * The two are never combined, so the same visit cannot request and approve.
+ */
+export function inviteLandingActions({ isInvite = false } = {}) {
+  return {
+    requestContact: !isInvite,
+    approve: Boolean(isInvite),
+    notify: Boolean(isInvite),
+  };
 }
 
 export function inviteUndoCopy({ requestSent = false } = {}) {
@@ -92,8 +107,9 @@ export function inviteUndoCopy({ requestSent = false } = {}) {
 }
 
 /**
- * Follow the inviter and ask to be a contact. Their Hidden or Contacts setting
- * still decides what Home can read.
+ * Follow the inviter. A bare follow also sends one contact request.
+ * An invite link passes requestContact false and approves them separately.
+ * Their Hidden or Contacts setting still decides what Home can read.
  */
 export async function acceptInvite({
   podUrl,
@@ -103,14 +119,17 @@ export async function acceptInvite({
   addFriend,
   sendContactRequest,
   loadStranger,
+  requestContact = true,
 }) {
   const added = await addFriend({ podUrl, session, webId, discoverability });
   let requestSent = false;
-  try {
-    await sendContactRequest({ podUrl, session, targetWebId: added?.webId || webId });
-    requestSent = true;
-  } catch {
-    requestSent = false;
+  if (requestContact) {
+    try {
+      await sendContactRequest({ podUrl, session, targetWebId: added?.webId || webId });
+      requestSent = true;
+    } catch {
+      requestSent = false;
+    }
   }
   let profileShared = false;
   let postsVisible = false;
@@ -130,7 +149,13 @@ export async function acceptInvite({
     requestSent,
     profileShared,
     postsVisible,
-    message: inviteConfirmation({ name, webId: id, profileShared, postsVisible, requestSent }),
+    message: inviteConfirmation({
+      name,
+      webId: id,
+      profileShared,
+      postsVisible,
+      requestSent: requestContact ? requestSent : null,
+    }),
   };
 }
 

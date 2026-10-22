@@ -24,6 +24,7 @@ import {
   acceptInvite,
   consumeFollow,
   consumeSignup,
+  inviteLandingActions,
   inviteUndoCopy,
   inviteUrl,
   rememberFollow,
@@ -528,6 +529,7 @@ export default function App() {
     if (!stored && !invitedStored && friends.some((friend) => samePerson(friend.webId, pending))) return;
     followedPending.current = true;
     const level = profile.discoverability;
+    const landing = inviteLandingActions({ isInvite });
     (async () => {
       try {
         const result = await acceptInvite({
@@ -538,6 +540,7 @@ export default function App() {
           addFriend,
           sendContactRequest,
           loadStranger,
+          requestContact: landing.requestContact,
         });
         setFriends((prev) =>
           prev.some((friend) => samePerson(friend.webId, result.webId))
@@ -546,7 +549,7 @@ export default function App() {
         );
         if (result.requestSent) setSentRequests((prev) => [...prev, result.webId]);
         let contactAdded = false;
-        if (isInvite) {
+        if (landing.approve) {
           try {
             const connected = await connectPair({
               podUrl,
@@ -555,7 +558,7 @@ export default function App() {
               discoverability: level,
               follow: false,
               contact: true,
-              notify: true,
+              notify: landing.notify,
             });
             if (connected.contacts) {
               setContacts(connected.contacts);

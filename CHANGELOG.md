@@ -4,6 +4,7 @@ Dates are the days the work landed on `main`.
 
 ## 21 October 2026
 
+- The composer keeps one set of photo looks. Like counts have one switch, on Profile. Home has one weekly prompt. An invite follows once and either approves with one notice, or sends one contact request, not both.
 - The SEO notes now separate what is live from what is still outside the repo: a root robots.txt, a GitHub release, a social preview upload, a hero GIF, and the public listings. The README links CONTRIBUTING under the demo line.
 - A return visit reloads when a new service worker takes over, and an open tab checks for that update when it becomes visible again. The app shell still opens with the network off.
 - The theme script stays blocking so the first paint has the right colors, and it now runs after the stylesheet and app module are already discovered.
@@ -12,11 +13,10 @@ Dates are the days the work landed on `main`.
 - Starter packs. Profile can save up to 50 addresses in a public file in your pod and share that file with a link or a QR code. Opening it shows those people, with Follow all and a follow button for each one. There is no central directory.
 - A weekly photo prompt on Home, such as Something green. It shows only when someone you follow posted in the last seven days. Not this week hides it on this device until next week. There is no extra notification.
 - Sign in with your account. The sign-in card says "Your account" and accepts a name like @ada or @ada@solidweb.org. That name only chooses the host. It is not looked up, and there is no registry. A blank name still opens Solid Community.
+- An invite link follows that person once, approves them as a contact, and posts one notice so their app can follow back. It does not also send a contact request. A follow stored without the invite still sends one request.
 - One-tap photo looks in the new-post window: Cream, Sunshine, Coral, Berry, Plum, Mint, and Soft, each with a live thumbnail. Square or 4:5, brightness, and warmth are drawn into the photo on this device. As shot still posts in the same few taps. Camera location is still removed, and an untouched GIF still stays a GIF.
-- One-tap photo filters: Original, Warm, Fade, Mono, Cool, and Punch. The choice is drawn into the photo in the browser before it is uploaded. Camera location is still removed.
 - **Create my Pod** is the one-tap default on the signed-out page. It opens Solid Community. Sign-in for an account you already have stays on the page, and other pod hosts stay under Advanced.
 - An invite also connects both ways. The new person approves the inviter as a contact and posts a notice to the inviter's inbox. The inviter's app follows back and approves the new person. Nothing is written into the other person's pod except that inbox notice.
-- An invite link or QR code follows that person after sign-in and sends a contact request. Home shows their public posts. A private profile stays private. Undo is on Home.
 - Like counts are private by default. Other people can still like a post, and you can see your own count. Turn on "Show like counts" on your profile to publish the number with the post's audience. The home feed stays newest first.
 - After you post, follow, like, or comment, Podsta can ask to show notifications on this device. The badge and the notices cover new comments, likes, and contact requests from the same check the app already runs. There is no push server.
 - CI signs two test accounts into a local Community Solid Server and checks posting for Only me, Contacts, and Public, plus follow, contacts-only visibility, a comment, a like, and notifications between them.

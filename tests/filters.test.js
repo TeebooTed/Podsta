@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   AS_SHOT,
   LOOKS,
@@ -9,6 +10,13 @@ import {
   lookById,
   shapeRatio,
 } from '../src/lib/photoFilters.js';
+
+test('the composer has one look picker', () => {
+  const composer = readFileSync(new URL('../src/components/Composer.jsx', import.meta.url), 'utf8');
+  assert.equal(composer.match(/<PhotoLooks\b/g).length, 1);
+  assert.equal(composer.includes('Fade'), false);
+  assert.equal(composer.includes('Punch'), false);
+});
 
 test('eight looks, and As shot is the one that does nothing', () => {
   assert.equal(LOOKS.length, 8);

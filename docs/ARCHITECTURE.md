@@ -76,7 +76,7 @@ Home loads each followed person's public index, and their contacts index when th
 
 `listing.ttl` is a public card (profile URL and name). It is published only at Public, and removed when you leave Public. Raising the level does not publish posts that were Only me. Lowering it rewrites anything more open than the new ceiling.
 
-`friends.ttl` is the list of people you follow. It is world-readable only when the profile is Public. Following someone fills your feed. It does not let them see your posts. An invite link follows that person after sign-in and sends a contact request. Home shows their public posts only. A Hidden or Contacts profile stays private. Undo removes the follow and the request stored on your pod.
+`friends.ttl` is the list of people you follow. It is world-readable only when the profile is Public. Following someone fills your feed. It does not let them see your posts. An invite link follows that person once after sign-in, approves them as a contact, and posts one inbox notice so their app can follow back. It does not also send a contact request. A follow stored without the invite still sends one request. Home shows their public posts only. A Hidden or Contacts profile stays private. Undo removes the follow, and the request or the approval stored on your pod.
 
 `podsta/packs/starter.ttl` is one public starter pack. Each row is an address. It does not copy photos, names, or posts. Anyone with the link can open `/pack?url=` and follow those people, one at a time or all of them. Following uses the same rules as any other follow. There is no Podsta directory. Signing in from the pack follows the people you chose and returns to the pack.
 
